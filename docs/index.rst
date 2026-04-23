@@ -10,5 +10,6 @@ Minimal Python package for generating synthetic data from causal DAGs.
    overview
    formulations
    config_examples
+   templates
    usage
    api

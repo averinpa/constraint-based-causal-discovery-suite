@@ -131,17 +131,18 @@ def independence_config(
     seed: SeedSpec = None,
     force_uniform: bool = True,
 ) -> dict[str, Any]:
-    """
-    Config with no edges. All nodes are exogenous.
+    """Build a config with no edges; every node is exogenous.
 
-    var_specs: list of dicts, each with "name" and "type"
-               ("continuous", "binary", or "categorical").
-               Categorical specs may include "cardinality" (int, default 3).
-
-    seed: int (sets both seed_structure and seed_data) or
-          dict {"structure": int, "data": int}.
-
-    force_uniform: passed as force_uniform_marginals in simulation_params.
+    :param var_specs: List of node specs ``{"name", "type", optionally
+        "cardinality"}``. ``type`` is one of ``"continuous"``, ``"binary"``,
+        ``"categorical"``; ``cardinality`` defaults to 3 for categorical.
+    :param n_samples: Number of rows to generate.
+    :param seed: ``int`` (sets both ``seed_structure`` and ``seed_data``) or
+        ``{"structure": int, "data": int}``.
+    :param force_uniform: Passed as ``force_uniform_marginals`` in
+        ``simulation_params``; when ``True``, exogenous binary nodes get an
+        exact 50/50 split and exogenous categorical nodes get equal class
+        counts.
     """
     specs = [_normalize_var_spec(v) for v in var_specs]
     config = _base_config(n_samples=n_samples, seed=seed)
@@ -162,16 +163,23 @@ def chain_config(
     seed: SeedSpec = None,
     post_transform: str | None = None,
 ) -> dict[str, Any]:
-    """
-    Chain: var_specs[0] -> var_specs[1] -> ... -> var_specs[-1].
-    var_specs: ordered list of {"name", "type", optionally "cardinality"}.
-    mechanism: "linear" (all-continuous/binary parents) or
-               "stratum_means" (when any parent is categorical).
-    post_transform: optional name of a post-nonlinear transform (e.g. "tanh").
-    Root node is exogenous. All others are endogenous with additive
-    Gaussian noise (std=0.5) for continuous nodes; no noise for categorical.
-    For categorical endogenous nodes, use "logistic_softmax" regardless of
-    the mechanism argument.
+    """Build a chain config: ``var_specs[0] -> var_specs[1] -> ... -> var_specs[-1]``.
+
+    The first node is exogenous; each subsequent node is endogenous with the
+    previous node as its single parent. Continuous endogenous nodes use
+    additive Gaussian noise (``std=0.5``). Categorical endogenous nodes always
+    use ``categorical_model = {"name": "logistic"}`` regardless of the
+    ``mechanism`` argument.
+
+    :param var_specs: Ordered list of node specs (``{"name", "type",
+        optionally "cardinality"}``).
+    :param mechanism: ``"linear"`` for all-continuous/binary parents,
+        ``"sigmoid"`` for a tanh nonlinearity, or ``"stratum_means"`` when any
+        parent is categorical.
+    :param n_samples: Number of rows to generate.
+    :param seed: ``int``, ``{"structure": int, "data": int}``, or ``None``.
+    :param post_transform: Optional name of a post-nonlinear transform
+        applied element-wise to continuous endogenous nodes (e.g. ``"tanh"``).
     """
     specs = [_normalize_var_spec(v) for v in var_specs]
     if len(specs) < 2:
@@ -202,13 +210,18 @@ def fork_config(
     seed: SeedSpec = None,
     post_transform: str | None = None,
 ) -> dict[str, Any]:
-    """
-    Fork: root -> left, root -> right.
-    var_specs: dict with keys "root", "left", "right" — each a node spec
-               dict {"name", "type", optionally "cardinality"}.
-    mechanism: same rules as chain_config.
-    post_transform: optional name of a post-nonlinear transform (e.g. "tanh").
-    root is exogenous; left and right are endogenous.
+    """Build a fork config: ``root -> left`` and ``root -> right``.
+
+    ``root`` is exogenous; ``left`` and ``right`` are endogenous with ``root``
+    as their single parent.
+
+    :param var_specs: Dict with keys ``"root"``, ``"left"``, ``"right"`` —
+        each a node spec ``{"name", "type", optionally "cardinality"}``.
+    :param mechanism: Same options as :func:`chain_config`.
+    :param n_samples: Number of rows to generate.
+    :param seed: ``int``, ``{"structure": int, "data": int}``, or ``None``.
+    :param post_transform: Optional name of a post-nonlinear transform
+        applied element-wise to continuous endogenous nodes (e.g. ``"tanh"``).
     """
     root = _normalize_var_spec(var_specs["root"])
     left = _normalize_var_spec(var_specs["left"])
@@ -236,12 +249,18 @@ def collider_config(
     seed: SeedSpec = None,
     post_transform: str | None = None,
 ) -> dict[str, Any]:
-    """
-    Collider: left -> collider, right -> collider.
-    var_specs: dict with keys "left", "right", "collider" — each a node spec dict.
-    mechanism: same rules as chain_config.
-    post_transform: optional name of a post-nonlinear transform (e.g. "tanh").
-    left and right are exogenous; collider is endogenous with two parents.
+    """Build a collider config: ``left -> collider`` and ``right -> collider``.
+
+    ``left`` and ``right`` are exogenous; ``collider`` is endogenous with both
+    as parents.
+
+    :param var_specs: Dict with keys ``"left"``, ``"right"``, ``"collider"`` —
+        each a node spec ``{"name", "type", optionally "cardinality"}``.
+    :param mechanism: Same options as :func:`chain_config`.
+    :param n_samples: Number of rows to generate.
+    :param seed: ``int``, ``{"structure": int, "data": int}``, or ``None``.
+    :param post_transform: Optional name of a post-nonlinear transform
+        applied element-wise to continuous endogenous nodes (e.g. ``"tanh"``).
     """
     left = _normalize_var_spec(var_specs["left"])
     right = _normalize_var_spec(var_specs["right"])

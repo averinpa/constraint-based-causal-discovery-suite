@@ -15,7 +15,7 @@ Python API
 
 .. code-block:: python
 
-   from causal_simulator import CausalDataGenerator
+   from dagsampler import CausalDataGenerator
 
    config = {
        "simulation_params": {"n_samples": 200, "seed": 42},
@@ -31,7 +31,8 @@ Python API
 Random weights away from zero
 -----------------------------
 
-For CI benchmark scenarios where near-zero coefficients are undesirable:
+To control the minimum signal strength on every edge — preventing randomly
+sampled weights from being effectively zero:
 
 .. code-block:: python
 
@@ -49,6 +50,27 @@ For CI benchmark scenarios where near-zero coefficients are undesirable:
 
 This samples random structural weights from
 ``[-1.5, -0.1] U [0.1, 1.5]``.
+
+Template configurations
+-----------------------
+
+For common DAG shapes, the package ships helper functions that build a config
+dict for you. See :doc:`templates` for the full reference.
+
+.. code-block:: python
+
+   from dagsampler import CausalDataGenerator, chain_config
+
+   cfg = chain_config(
+       var_specs=[
+           {"name": "X", "type": "continuous"},
+           {"name": "Y", "type": "continuous"},
+       ],
+       mechanism="linear",
+       n_samples=200,
+       seed=0,
+   )
+   result = CausalDataGenerator(cfg).simulate()
 
 CLI
 ---

@@ -1,26 +1,34 @@
 API Reference
 =============
 
-causal_simulator
-----------------
+dagsampler
+----------
 
-.. automodule:: causal_simulator
+.. automodule:: dagsampler
    :members:
    :undoc-members:
    :show-inheritance:
 
-causal_simulator.causal_sim
----------------------------
+dagsampler.causal_sim
+---------------------
 
-.. automodule:: causal_simulator.causal_sim
+.. automodule:: dagsampler.causal_sim
    :members:
    :undoc-members:
    :show-inheritance:
 
-causal_simulator.cli
+dagsampler.templates
 --------------------
 
-.. automodule:: causal_simulator.cli
+.. automodule:: dagsampler.templates
+   :members: indep_config, independence_config, chain_config, fork_config, collider_config
+   :undoc-members:
+   :show-inheritance:
+
+dagsampler.cli
+--------------
+
+.. automodule:: dagsampler.cli
    :members:
    :undoc-members:
    :show-inheritance:

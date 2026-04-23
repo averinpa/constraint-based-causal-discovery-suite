@@ -1,15 +1,39 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "dagsampler"
 version = "0.1.0"
-description = "Causal simulator and experiment runner"
+description = "Configurable causal DAG simulator for synthetic mixed-type data and CI test benchmarks"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [{ name = "Pavel Averin" }]
-license = { text = "Proprietary" }
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = [
+  "causal-inference",
+  "causal-discovery",
+  "conditional-independence",
+  "dag",
+  "simulation",
+  "synthetic-data",
+  "benchmarks",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
 dependencies = [
   "numpy>=1.22",
   "pandas>=1.3",
@@ -17,8 +41,15 @@ dependencies = [
   "scipy>=1.7"
 ]
 
+[project.urls]
+Homepage = "https://github.com/averinpa/dagsampler"
+Documentation = "https://averinpa.github.io/dagsampler/"
+Issues = "https://github.com/averinpa/dagsampler/issues"
+Source = "https://github.com/averinpa/dagsampler"
+Changelog = "https://github.com/averinpa/dagsampler/blob/main/CHANGELOG.md"
+
 [project.scripts]
-dagsampler-generate = "causal_simulator.cli:main"
+dagsampler-generate = "dagsampler.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -29,6 +60,10 @@ docs = [
   "sphinx>=7.2,<8",
   "furo>=2024.8.6"
 ]
+examples = [
+  "jupyter>=1.0",
+  "matplotlib>=3.7"
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -36,11 +71,12 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 include = [
-  "causal_simulator*"
+  "dagsampler*"
 ]
 exclude = [
   "envs*",
   "notebooks*",
   "plots*",
   "results*",
+  "examples*",
 ]

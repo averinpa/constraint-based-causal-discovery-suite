@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from causal_simulator import (
+from dagsampler import (
     CausalDataGenerator,
     chain_config,
     collider_config,

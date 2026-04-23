@@ -1,4 +1,4 @@
-"""Top-level package for causal_simulator.
+"""Top-level package for dagsampler.
 
 Provides the main public API surface for consumers of the package.
 """

@@ -3,6 +3,32 @@ Configuration Examples
 
 This page shows practical config templates for all major simulator options.
 
+Seeding
+-------
+
+The simulator uses two independent random streams:
+
+* ``rng_structure`` controls the **data-generating process** itself — random DAG
+  topology, sampled structural weights, intercepts, thresholds, and stratum
+  means.
+* ``rng_data`` controls the **per-sample draws** given that DGP — exogenous
+  variable values, noise draws, and Bernoulli/categorical sampling.
+
+You can seed them in two ways:
+
+* **Single** ``seed`` (convenience): ``seed_structure`` is set to ``seed`` and
+  ``seed_data`` is derived as ``seed + 1`` so the two streams stay independent
+  while remaining fully reproducible. Use this for one-off examples and
+  quickstarts.
+* **Explicit** ``seed_structure`` and ``seed_data``: seed each stream
+  independently. This is the recommended form for benchmarks because it lets
+  you decouple structure from data — for example, hold ``seed_structure``
+  fixed and vary ``seed_data`` to measure how a CI test behaves on different
+  finite samples from the *same* DGP.
+
+The minimal custom-DAG example below uses the single-seed form; the random-DAG
+example uses the explicit pair.
+
 Minimal custom DAG
 ------------------
 
@@ -38,8 +64,26 @@ Random DAG
      }
    }
 
-Random weights with near-zero exclusion (faithfulness-oriented)
----------------------------------------------------------------
+When ``type = "random"`` and node types are not pinned in ``node_params``, the
+simulator samples a type per node using ``binary_proportion`` (default ``0.4``)
+and ``categorical_proportion`` (default ``0.0``); the remainder become
+continuous. Override either to control the type mix:
+
+.. code-block:: json
+
+   {
+     "simulation_params": {
+       "n_samples": 300,
+       "seed_structure": 123,
+       "seed_data": 124,
+       "binary_proportion": 0.2,
+       "categorical_proportion": 0.3
+     },
+     "graph_params": { "type": "random", "n_nodes": 6, "edge_prob": 0.35 }
+   }
+
+Random weights with near-zero exclusion (signal-strength control)
+-----------------------------------------------------------------
 
 .. code-block:: json
 
@@ -70,7 +114,8 @@ Random weights with near-zero exclusion (faithfulness-oriented)
    }
 
 In this setup, omitted linear weights are sampled from
-``[-1.5, -0.1] U [0.1, 1.5]``.
+``[-1.5, -0.1] U [0.1, 1.5]``, guaranteeing every edge contributes a minimum
+amount of signal rather than being effectively muted by a near-zero draw.
 
 Categorical parent with metric form policy override
 ---------------------------------------------------
@@ -164,6 +209,70 @@ Continuous child with linear / polynomial / interaction
      }
    }
 
+Continuous child with sigmoid / cos / sin
+-----------------------------------------
+
+.. code-block:: json
+
+   {
+     "simulation_params": { "n_samples": 300, "seed": 11 },
+     "graph_params": {
+       "type": "custom",
+       "nodes": ["X1", "X2", "Y_sig", "Y_cos", "Y_sin"],
+       "edges": [["X1", "Y_sig"], ["X2", "Y_sig"], ["X1", "Y_cos"], ["X2", "Y_cos"], ["X1", "Y_sin"], ["X2", "Y_sin"]]
+     },
+     "node_params": {
+       "X1": { "type": "continuous", "distribution": { "name": "gaussian", "mean": 0, "std": 1 } },
+       "X2": { "type": "continuous", "distribution": { "name": "gaussian", "mean": 0, "std": 1 } },
+       "Y_sig": {
+         "type": "continuous",
+         "functional_form": { "name": "sigmoid", "weights": { "X1": 1.0, "X2": -0.5 }, "output_weight": 1.5 },
+         "noise_model": { "name": "additive", "dist": "gaussian", "std": 0.3 }
+       },
+       "Y_cos": {
+         "type": "continuous",
+         "functional_form": { "name": "cos", "weights": { "X1": 1.0, "X2": 0.5 } },
+         "noise_model": { "name": "additive", "dist": "gaussian", "std": 0.2 }
+       },
+       "Y_sin": {
+         "type": "continuous",
+         "functional_form": { "name": "sin", "weights": { "X1": 0.8, "X2": 1.1 } },
+         "noise_model": { "name": "additive", "dist": "gaussian", "std": 0.2 }
+       }
+     }
+   }
+
+For ``sigmoid``, ``output_weight`` (the post-tanh scaling :math:`w_j`) and the
+per-parent ``weights`` are sampled from the random-weight distribution if
+omitted.
+
+Post-nonlinear transform
+------------------------
+
+.. code-block:: json
+
+   {
+     "simulation_params": { "n_samples": 300, "seed": 12 },
+     "graph_params": {
+       "type": "custom",
+       "nodes": ["X", "Y"],
+       "edges": [["X", "Y"]]
+     },
+     "node_params": {
+       "X": { "type": "continuous", "distribution": { "name": "gaussian", "mean": 0, "std": 1 } },
+       "Y": {
+         "type": "continuous",
+         "functional_form": { "name": "linear", "weights": { "X": 1.5 } },
+         "noise_model": { "name": "additive", "dist": "gaussian", "std": 0.4 },
+         "post_transform": { "name": "tanh" }
+       }
+     }
+   }
+
+Replace ``"tanh"`` with any of ``sin``, ``cos``, ``exp_neg_abs``, ``sqrt_abs``,
+``relu``, ``sign``. The transform is applied element-wise after the structural
+function and noise have been combined.
+
 Noise model variants
 --------------------
 
@@ -195,6 +304,80 @@ Noise model variants
        }
      }
    }
+
+Heavy-tailed and uniform additive noise
+---------------------------------------
+
+In addition to ``gaussian``, ``student_t``, ``gamma``, and ``exponential``, the
+additive noise model accepts ``laplace``, ``cauchy``, and ``uniform``. All
+three are zero-centered and parameterized by ``scale``:
+
+.. code-block:: json
+
+   {
+     "simulation_params": { "n_samples": 400, "seed": 23 },
+     "graph_params": {
+       "type": "custom",
+       "nodes": ["X", "Y_lap", "Y_cau", "Y_uni"],
+       "edges": [["X", "Y_lap"], ["X", "Y_cau"], ["X", "Y_uni"]]
+     },
+     "node_params": {
+       "X": { "type": "continuous", "distribution": { "name": "gaussian", "mean": 0, "std": 1 } },
+       "Y_lap": {
+         "type": "continuous",
+         "functional_form": { "name": "linear", "weights": { "X": 1.0 } },
+         "noise_model": { "name": "additive", "dist": "laplace", "scale": 0.7 }
+       },
+       "Y_cau": {
+         "type": "continuous",
+         "functional_form": { "name": "linear", "weights": { "X": 1.0 } },
+         "noise_model": { "name": "additive", "dist": "cauchy", "scale": 0.3 }
+       },
+       "Y_uni": {
+         "type": "continuous",
+         "functional_form": { "name": "linear", "weights": { "X": 1.0 } },
+         "noise_model": { "name": "additive", "dist": "uniform", "scale": 1.0 }
+       }
+     }
+   }
+
+Multiplicative noise also accepts ``student_t``, ``gamma``, and ``exponential``
+in addition to ``gaussian``; gamma and exponential factors are normalized to
+mean 1 to avoid biasing the structural signal.
+
+Forced uniform marginals
+------------------------
+
+Set ``force_uniform_marginals`` to make exogenous binary nodes draw an exact
+50/50 split and exogenous categorical nodes use exactly equal counts per class
+(when their ``p`` / ``probs`` are not explicitly set):
+
+.. code-block:: json
+
+   {
+     "simulation_params": {
+       "n_samples": 200,
+       "seed": 24,
+       "force_uniform_marginals": true
+     },
+     "graph_params": {
+       "type": "custom",
+       "nodes": ["B", "C", "Y"],
+       "edges": [["B", "Y"], ["C", "Y"]]
+     },
+     "node_params": {
+       "B": { "type": "binary" },
+       "C": { "type": "categorical", "cardinality": 4 },
+       "Y": {
+         "type": "continuous",
+         "functional_form": { "name": "stratum_means" },
+         "noise_model": { "name": "additive", "dist": "gaussian", "std": 0.3 }
+       }
+     }
+   }
+
+This is convenient for constructing balanced benchmark scenarios without
+worrying about small-sample fluctuations in the exogenous strata.
 
 Binary child
 ------------
@@ -324,6 +507,42 @@ Categorical to continuous (stratum-specific means)
      }
    }
 
+Mixed parents under stratum_means
+---------------------------------
+
+When ``stratum_means`` has both categorical and metric parents, you can supply
+``metric_weights`` (a per-parent dict or a single number) for the metric
+contribution. Omit it to have weights sampled from the random-weight
+distribution.
+
+.. code-block:: json
+
+   {
+     "simulation_params": {
+       "n_samples": 300,
+       "seed": 61,
+       "categorical_parent_metric_form_policy": "stratum_means"
+     },
+     "graph_params": {
+       "type": "custom",
+       "nodes": ["C", "X", "Y"],
+       "edges": [["C", "Y"], ["X", "Y"]]
+     },
+     "node_params": {
+       "C": { "type": "categorical", "cardinality": 3 },
+       "X": { "type": "continuous", "distribution": { "name": "gaussian", "mean": 0, "std": 1 } },
+       "Y": {
+         "type": "continuous",
+         "functional_form": {
+           "name": "stratum_means",
+           "strata_means": { "C=0": -1.0, "C=1": 0.0, "C=2": 1.5 },
+           "metric_weights": { "X": 0.8 }
+         },
+         "noise_model": { "name": "additive", "dist": "gaussian", "std": 0.2 }
+       }
+     }
+   }
+
 CI oracle output
 ----------------
 
@@ -354,3 +573,24 @@ list with entries of the form:
      "conditioning_set": ["Z"],
      "is_independent": false
    }
+
+The oracle iterates over every ordered pair :math:`(X, Y)` and every
+conditioning subset :math:`S` of size :math:`\le` ``ci_oracle_max_cond_set``
+(default ``2``); both independent and dependent triples are recorded.
+
+simulate() return value
+-----------------------
+
+``CausalDataGenerator(config).simulate()`` returns a dict with the following
+keys:
+
+* ``data``: a ``pandas.DataFrame`` of shape ``(n_samples, n_nodes)`` containing
+  the simulated values.
+* ``dag``: a ``networkx.DiGraph`` representing the realized DAG.
+* ``parametrization``: a deep copy of the input config with every
+  randomly-sampled value (weights, intercepts, thresholds, stratum means,
+  noise parameters, marginals, derived ``seed_structure`` / ``seed_data``,
+  inferred node types) filled in. Suitable for round-tripping to JSON to
+  reproduce the exact DGP.
+* ``ci_oracle`` (only present when ``store_ci_oracle = true``): the list of
+  oracle entries described above.

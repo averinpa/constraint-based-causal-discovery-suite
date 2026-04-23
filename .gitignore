@@ -72,3 +72,8 @@ results/
 runner/
 instruction.md
 test.py
+
+# Local-only project files
+todo.md
+.pytest_cache/
+.claude/

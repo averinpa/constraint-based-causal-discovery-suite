@@ -51,29 +51,6 @@ From GitHub (latest `main`):
 uv pip install "dagsampler @ git+https://github.com/averinpa/dagsampler.git"
 ```
 
-## Random weights away from zero
-
-To guarantee a minimum signal strength on every edge — so randomly sampled
-weights don't end up effectively muting a parent — configure:
-
-```json
-{
-  "simulation_params": {
-    "random_weight_low": -1.5,
-    "random_weight_high": 1.5,
-    "random_weight_min_abs": 0.1
-  }
-}
-```
-
-This samples random structural weights from:
-- `[-1.5, -0.1] U [0.1, 1.5]`
-
-By default, categorical parents are not allowed with metric functional forms
-(`linear`, `polynomial`, `interaction`). Set:
-- `"categorical_parent_metric_form_policy": "stratum_means"`
-to auto-redirect those cases to `stratum_means`.
-
 ## Quick start (Python API)
 
 ```python
@@ -108,10 +85,13 @@ dagsampler-generate \
 
 `config.json` must contain the same structure used by `CausalDataGenerator`.
 
-For heteroskedastic noise, use `noise_model.func` from:
-- `abs_first_parent`
-- `abs_parent_plus_const`
-- `mean_abs_plus_const`
+## Learn more
+
+- [Documentation](https://averinpa.github.io/dagsampler/) — full reference for every config option, mechanism, and noise model.
+- [Configuration examples](https://averinpa.github.io/dagsampler/config_examples.html) — JSON snippets for each feature.
+- [Model formulations](https://averinpa.github.io/dagsampler/formulations.html) — mathematical definitions.
+- [Template configurations](https://averinpa.github.io/dagsampler/templates.html) — `chain_config`, `fork_config`, `collider_config` helpers.
+- [`examples/`](examples/) — runnable notebooks.
 
 ## Development
 

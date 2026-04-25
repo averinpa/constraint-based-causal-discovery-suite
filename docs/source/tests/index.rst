@@ -22,7 +22,7 @@ taxonomy family.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Regression-Based
+   :caption: Regression
 
    regci_test
    ci_mm_test
@@ -45,7 +45,7 @@ taxonomy family.
 
 .. toctree::
    :maxdepth: 1
-   :caption: ML-Based (GCM Family)
+   :caption: Machine-Learning-Based
 
    gcm_test
    wgcm_test
@@ -53,7 +53,7 @@ taxonomy family.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Adapter
+   :caption: Robustness Wrappers
 
    disc_chisq_test
    disc_gsq_test

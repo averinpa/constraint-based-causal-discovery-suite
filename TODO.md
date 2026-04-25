@@ -33,7 +33,7 @@
 
 - [x] **CMIknn** — Wrapped `tigramite.independence_tests.cmiknn.CMIknn`. Registered as `'cmiknn'`.
 - [x] **CMIknnMixed** — Wrapped tigramite `CMIknnMixed` (with import-path fallback). Registered as `'cmiknn_mixed'`.
-- [x] **mCMIkNN** — Added wrapper from `/Users/pavelaverin/Projects/mCMIkNN/src` with lazy local import. Registered as `'mcmiknn'`.
+- [x] **mCMIkNN** — Added wrapper from `/Users/pavelaverin/Projects/vendor/mCMIkNN/src` with lazy local import. Registered as `'mcmiknn'`.
 
 ### Regression family
 
@@ -47,7 +47,7 @@
 
 ### Discretization-aware
 
-- [x] **DCT** — Added wrapper from `/Users/pavelaverin/Projects/DCT` with lazy local import. Registered as `'dct'`.
+- [x] **DCT** — Added wrapper from `/Users/pavelaverin/Projects/vendor/DCT` with lazy local import. Registered as `'dct'`.
 
 ### Adapter strategies
 

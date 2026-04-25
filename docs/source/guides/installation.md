@@ -36,8 +36,8 @@ uv sync --extra tigramite
 
 Two optional wrappers currently expect local repositories:
 
-1. `mcmiknn` -> `/Users/pavelaverin/Projects/mCMIkNN/src`
-2. `dct` -> `/Users/pavelaverin/Projects/DCT`
+1. `mcmiknn` -> `/Users/pavelaverin/Projects/vendor/mCMIkNN/src`
+2. `dct` -> `/Users/pavelaverin/Projects/vendor/DCT`
 
 If those paths are not available, these wrappers raise a clear `ImportError` when called.
 

@@ -10,8 +10,8 @@ from causallearn.utils.cit import NO_SPECIFIED_PARAMETERS_MSG, register_ci_test
 from .base import CITKTest
 
 
-MCMIKNN_SRC_PATH = Path("/Users/pavelaverin/Projects/mCMIkNN/src")
-DCT_REPO_PATH = Path("/Users/pavelaverin/Projects/DCT")
+MCMIKNN_SRC_PATH = Path("/Users/pavelaverin/Projects/vendor/mCMIkNN/src")
+DCT_REPO_PATH = Path("/Users/pavelaverin/Projects/vendor/DCT")
 
 
 def _import_from_repo(repo_path: Path, module_candidates: List[str], install_hint: str):

@@ -1,52 +1,63 @@
 # How to Choose a Conditional Independence Test
 
-Choosing the right conditional independence (CI) test is crucial for the validity of your causal discovery or feature selection analysis. The appropriate test depends on the characteristics of your data and the underlying assumptions you are willing to make.
+Choosing the right conditional independence (CI) test depends on the type of your data and the assumptions you are willing to make about the underlying dependence. `citk` ships 19 tests organised under the six survey families plus four robustness-wrapper adapters; this guide gives a practical mapping from data + assumptions to tests.
 
 ## Key Considerations
 
-Here are the primary factors to consider when selecting a test:
-
 ### 1. Data Type
 
-- **Continuous Data**: If your variables are all continuous, you have several options:
-    - `fisherz_citk`: Assumes linear relationships and multivariate normal data. It is very fast but may fail if these assumptions are violated.
-    - `spearman`: A non-parametric alternative that works on ranked data. It is suitable for monotonic (but not necessarily linear) relationships.
-    - `kci`: Optional R-backed KCIT (`RCIT::KCIT`) for complex, non-linear relationships.
-    - `rcot`, `rcit`: Optional R-backed kernel/random-feature tests from the RCIT package.
-    - `cmiknn`, `cmiknn_mixed`: Optional tigramite kNN-CMI tests.
-    - `mcmiknn`: Optional mixed-type kNN CMI wrapper from local mCMIkNN repo.
-    - `regci`: Optional tigramite parametric mixed-data regression CI.
-    - `rf`, `dml`, `crit`, `edml`: Flexible ML-based options for non-linear structure.
+- **All continuous**:
+    - `fisherz_citk`: linear, Gaussian — fastest baseline.
+    - `spearman`: monotonic but not necessarily linear — robust non-parametric alternative.
+    - `kci`: kernel-based, captures arbitrary non-linear dependence.
+    - `rcit`, `rcot`: random-Fourier-feature approximations to KCI; faster on larger samples.
+    - `cmiknn`: kNN-based conditional mutual information with local-permutation p-values.
+    - `gcm`, `wgcm`, `pcm`: ML-residualisation tests using random forest regression (via `pycomets`); flexible, asymptotically calibrated.
 
-- **Discrete Data**: If your variables are categorical:
-    - `gsq` (G-Square) or `chisq` (Chi-Square): Classical tests based on contingency tables.
+- **All discrete (categorical)**:
+    - `gsq` (G-test) or `chisq` (Chi-Square): classical contingency-table tests.
+    - `dummy_fisherz`: one-hot encoding adapter that aggregates Fisher-Z calls; competitive when categorical cardinalities are moderate.
 
-- **Mixed Data**: Current built-in options are limited; discretization is still a practical baseline for `gsq`/`chisq`.
-    - `disc_chisq`, `disc_gsq`: Equal-frequency discretization adapters around classical discrete tests.
-    - `dummy_fisherz`: One-hot encoding adapter with Fisher-Z aggregation.
-    - `hartemink_chisq`: Information-preserving Hartemink discretization (via R `bnlearn`) + Chi-square.
-    - `dct`: Optional DCT wrapper from local DCT repository.
+- **Mixed continuous + discrete**:
+    - `cmiknn_mixed`: mixed-type kNN CMI estimator (tigramite).
+    - `mcmiknn`: another mixed-type kNN CMI implementation (local wrapper).
+    - `regci`: parametric likelihood-ratio test using GLM regression chosen per response type (continuous → linear, discrete → logistic).
+    - `ci_mm`: symmetric likelihood-ratio test from R `MXM` that runs both regression directions and combines them.
+    - `disc_chisq`, `disc_gsq`: equal-frequency discretisation adapters around classical discrete tests.
+    - `hartemink_chisq`: information-preserving Hartemink discretisation (via R `bnlearn`) + Chi-Square; better dependence preservation than equal-frequency binning.
 
 ### 2. Relationship Type
 
-- **Linear**: If you believe the relationships between your variables are linear, `fisherz` is a computationally efficient choice.
-- **Monotonic**: For relationships that are consistently increasing or decreasing but not necessarily linear, `spearman` is a robust option.
-- **Non-Linear / Complex**: For arbitrary, complex relationships, machine learning-based tests like `kci` or `rf` are the most powerful and flexible choices, though they come at a higher computational cost.
+- **Linear**: `fisherz_citk` is the computationally efficient choice when both Gaussianity and linearity hold.
+- **Monotonic**: `spearman` works on ranks; robust to non-linearities as long as the relationship is monotonic.
+- **Non-linear / complex**: kernel tests (`kci`, `rcit`, `rcot`), kNN-based tests (`cmiknn`, `cmiknn_mixed`, `mcmiknn`), and ML-residualisation tests (`gcm`, `wgcm`, `pcm`) are all designed to detect arbitrary dependence at higher computational cost. `wgcm` and `pcm` add power on alternatives where the dependence is localised in the conditioning space or where the predictor is weakly identified.
+
+### 3. Sample Size
+
+- **Small samples**: classical tests (`fisherz_citk`, `spearman`, `chisq`, `gsq`) are most reliable; non-parametric and ML-based tests need more data for stable estimation.
+- **Large samples**: kernel tests (especially exact `kci`) become expensive — prefer `rcit`/`rcot` for random-feature approximations, or `gcm`/`wgcm`/`pcm` for ML-residualisation with linear cost.
+- **Very large samples**: `kci` is roughly quadratic in $n$; consider capping or switching to a faster family.
 
 ## Summary Table
 
-| Test Name | Data Type | Relationship Type | Key Assumption(s) |
-|-----------|-----------|-------------------|-------------------|
-| `fisherz_citk` | Continuous | Linear | Approximate Gaussianity |
-| `spearman` | Continuous | Monotonic | Monotonicity |
-| `gsq` / `chisq` | Discrete | Any | Adequate contingency support |
-| `kci` | Continuous | Any | Requires `rpy2` + R `RCIT` package |
-| `rcot` / `rcit` | Continuous | Any | Requires `rpy2` + R `RCIT` package |
-| `cmiknn` / `cmiknn_mixed` / `regci` | Mixed or continuous | Any | Requires `tigramite` |
-| `mcmiknn` | Mixed | Any | Requires local mCMIkNN repository |
-| `rf` / `dml` / `crit` / `edml` | Continuous | Any | ML residualization quality |
-| `gcm_linear` / `gcm_rf` / `wgcm_rf` | Continuous | Any | Residual covariance test |
-| `disc_chisq` / `disc_gsq` | Mixed or continuous | Any | Discretization quality |
-| `dummy_fisherz` | Mixed or discrete | Any | One-hot encoding fidelity |
-| `hartemink_chisq` | Mixed or continuous | Any | Requires `rpy2` + R `bnlearn` |
-| `dct` | Mixed or discretized continuous | Any | Requires local DCT repository |
+| Test Name | Family | Data Type | Relationship Type | Key Assumption(s) |
+|-----------|--------|-----------|-------------------|-------------------|
+| `fisherz_citk` | Partial Correlation | Continuous | Linear | Approximate Gaussianity |
+| `spearman` | Partial Correlation | Continuous | Monotonic | Monotonicity |
+| `chisq` | Contingency Table | Discrete | Any | Adequate cell counts |
+| `gsq` | Contingency Table | Discrete | Any | Adequate cell counts |
+| `regci` | Regression | Mixed or continuous | Any (within model class) | Correct GLM specification per variable type; requires `tigramite` |
+| `ci_mm` | Regression | Mixed | Any (within model class) | Correct linear/logistic per variable; requires `rpy2` + R `MXM` |
+| `cmiknn` | Nearest Neighbor | Continuous | Any | Sample size adequate for kNN density estimation; requires `tigramite` |
+| `cmiknn_mixed` | Nearest Neighbor | Mixed | Any | Variable types declared via `data_type`; requires `tigramite` |
+| `mcmiknn` | Nearest Neighbor | Mixed | Any | Requires local mCMIkNN repository |
+| `kci` | Kernel | Continuous | Any | Suitable kernel choice; cost is at least quadratic in $n$ |
+| `rcit` | Kernel | Continuous | Any | Random-feature approximation; requires `rpy2` + R `RCIT` |
+| `rcot` | Kernel | Continuous | Any | Random-feature approximation with reduced-dim conditioning; requires `rpy2` + R `RCIT` |
+| `gcm` | Machine-Learning-Based | Continuous | Any | Consistent nuisance regression; requires `pycomets` |
+| `wgcm` | Machine-Learning-Based | Continuous | Any (esp. localised) | Consistent nuisance regression + sample splitting; requires `pycomets` |
+| `pcm` | Machine-Learning-Based | Continuous | Any (assumption-lean) | Consistent residualisation; requires `pycomets` |
+| `disc_chisq` | Robustness Wrappers | Mixed or continuous | Any | Discretisation preserves dependence; ChiSq cell-count rule |
+| `disc_gsq` | Robustness Wrappers | Mixed or continuous | Any | Discretisation preserves dependence; GSq cell-count rule |
+| `dummy_fisherz` | Robustness Wrappers | Mixed or discrete | Any (encoded space) | One-hot encoding fidelity; combined p-values approximation |
+| `hartemink_chisq` | Robustness Wrappers | Mixed or continuous | Any | Information-preserving discretisation; requires `rpy2` + R `bnlearn` |

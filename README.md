@@ -6,8 +6,8 @@ The library is structured to be a powerful benchmark for causal discovery and a 
 
 ## Features
 
-- **Wide Range of Tests**: Includes classical tests (Fisher's Z, Spearman, G-Squared, Chi-Squared), statistical model-based tests (GLM-based), and modern ML-based tests (KCI, Random Forest, DML, CRIT, EDML).
-- **`causal-learn` Compatible**: All tests are designed as drop-in replacements for the standard tests in the `causal-learn` ecosystem, allowing you to easily use them with algorithms like PC.
+- **Survey-aligned coverage**: 19 conditional independence tests organised by the six families of the Paper 0 survey (partial correlation, contingency table, regression, nearest neighbor, kernel, machine-learning-based) plus four robustness-wrapper adapters.
+- **`causal-learn` compatible**: All tests are designed as drop-in replacements for the standard tests in the `causal-learn` ecosystem, allowing you to easily use them with algorithms like PC.
 
 ## Installation
 
@@ -23,16 +23,16 @@ For local development with extras:
 uv sync --all-extras
 ```
 
-Core CI tests no longer require LightGBM. If you want to run custom LightGBM-based models, install the optional extra:
+Optional dependency groups in `pyproject.toml`:
 
-```bash
-uv sync --extra ml
-```
+- `pycomets` — required for `gcm`, `wgcm`, `pcm` (installs `pycomets` and `xgboost`)
+- `tigramite` — required for `cmiknn`, `cmiknn_mixed`, `regci`
+- `r` — required for `kci`-via-RCIT, `rcit`, `rcot`, `ci_mm`, `hartemink_chisq` (installs `rpy2`); the corresponding R packages must also be installed:
+  - `RCIT` from GitHub `ericstrobl/RCIT` (for `rcit`, `rcot`)
+  - `MXM` from CRAN (for `ci_mm`)
+  - `bnlearn` from CRAN (for `hartemink_chisq`)
 
-R-backed tests are optional and require:
-- `rpy2` Python package (`pip install 'citk[r]'` or `uv sync --extra r`)
-- R package `RCIT` from GitHub `ericstrobl/RCIT`
-- R package `bnlearn` from CRAN
+The `mcmiknn` wrapper additionally requires a local checkout of the upstream `mCMIkNN` repository on disk (see :doc:`docs/source/guides/installation`).
 
 ## Quickstart Example
 
@@ -49,7 +49,7 @@ data = np.random.randn(200, 3)
 data[:, 2] = 0.5 * data[:, 0] + 0.5 * data[:, 1] + 0.1 * np.random.randn(200)
 
 # 2. Run the PC algorithm using a citk test
-# Example test ids: "fisherz_citk", "spearman", "gsq", "chisq", "rf", "dml"
+# Example test ids: "fisherz_citk", "spearman", "gsq", "chisq", "kci", "gcm"
 cg = pc(data, alpha=0.05, indep_test='spearman')
 
 # 3. View the learned graph
@@ -63,27 +63,23 @@ print(cg.G.get_edges())
 |---|---|---|
 | `fisherz_citk` | Partial Correlation | `causal-learn` (`CIT(..., method_name="fisherz")`) |
 | `spearman` | Partial Correlation | `causal-learn` Fisher-Z on ranked data |
-| `gsq` | Contingency Table | `causal-learn` (`Chisq_or_Gsq(..., method_name="gsq")`) |
 | `chisq` | Contingency Table | `causal-learn` (`Chisq_or_Gsq(..., method_name="chisq")`) |
-| `kci` | Kernel | R `RCIT::KCIT` via `rpy2` (optional; capped at n=2000) |
-| `rcot` | Kernel | R `RCIT::RCoT` via `rpy2` (optional) |
-| `rcit` | Kernel | R `RCIT::RCIT` via `rpy2` (optional) |
+| `gsq` | Contingency Table | `causal-learn` (`Chisq_or_Gsq(..., method_name="gsq")`) |
 | `regci` | Regression | `tigramite.independence_tests.regressionCI.RegressionCI` (optional) |
+| `ci_mm` | Regression | R `MXM::ci.mm` via `rpy2` (optional) |
 | `cmiknn` | Nearest Neighbor | `tigramite.independence_tests.cmiknn.CMIknn` (optional) |
 | `cmiknn_mixed` | Nearest Neighbor | `tigramite` CMIknnMixed wrapper (optional) |
 | `mcmiknn` | Nearest Neighbor | Local wrapper from `/Users/pavelaverin/Projects/vendor/mCMIkNN/src` (optional) |
-| `rf` | ML-Based | `scikit-learn` RandomForest + permutation CI |
-| `dml` | ML-Based | `scikit-learn` residualization + `statsmodels` residual regression test |
-| `crit` | ML-Based | `scikit-learn` quantile models + `statsmodels` residual regression test |
-| `edml` | ML-Based | `scikit-learn` residualization + e-value betting |
-| `gcm_linear` | ML-Based | Native `citk` (OLS residualization + asymptotic normal test) |
-| `gcm_rf` | ML-Based | Native `citk` (RandomForest residualization + asymptotic normal test) |
-| `wgcm_rf` | ML-Based | Native `citk` (sample-split weighted GCM with RandomForest) |
-| `disc_chisq` | Adapter | Native `citk` equal-frequency discretization + `causal-learn` Chi-Square |
-| `disc_gsq` | Adapter | Native `citk` equal-frequency discretization + `causal-learn` G-Square |
-| `dummy_fisherz` | Adapter | Native `citk` one-hot encoding + `causal-learn` Fisher-Z aggregation |
-| `hartemink_chisq` | Adapter | R `bnlearn` Hartemink discretization + `causal-learn` Chi-Square (optional) |
-| `dct` | Adapter | Local wrapper from `/Users/pavelaverin/Projects/vendor/DCT` (optional) |
+| `kci` | Kernel | `causal-learn` Python KCI |
+| `rcit` | Kernel | R `RCIT::RCIT` via `rpy2` (optional) |
+| `rcot` | Kernel | R `RCIT::RCoT` via `rpy2` (optional) |
+| `gcm` | Machine-Learning-Based | `pycomets` GCM with random forest regression (optional) |
+| `wgcm` | Machine-Learning-Based | `pycomets` WGCM with random forest regression (optional) |
+| `pcm` | Machine-Learning-Based | `pycomets` PCM with random forest regression (optional) |
+| `disc_chisq` | Robustness Wrappers | Native `citk` equal-frequency discretization + `causal-learn` Chi-Square |
+| `disc_gsq` | Robustness Wrappers | Native `citk` equal-frequency discretization + `causal-learn` G-Square |
+| `dummy_fisherz` | Robustness Wrappers | Native `citk` one-hot encoding + `causal-learn` Fisher-Z aggregation |
+| `hartemink_chisq` | Robustness Wrappers | R `bnlearn` Hartemink discretization + `causal-learn` Chi-Square (optional) |
 
 ### Module Layout (Survey Taxonomy)
 

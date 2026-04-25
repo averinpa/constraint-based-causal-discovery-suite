@@ -14,43 +14,46 @@ pip install git+https://github.com/averinpa/citk.git
 uv sync --all-extras
 ```
 
-This installs core, docs, dev, and optional R integration dependencies declared in `pyproject.toml`.
+This installs core, docs, dev, and all optional dependency groups declared in `pyproject.toml`.
 
-## Optional LightGBM Extra
+## Optional Dependency Groups
 
-LightGBM is not required for core `citk` functionality. Install only if you want to pass LightGBM models explicitly:
+The 19 shipped tests split across several optional dependency groups; install only what you need.
 
-```bash
-uv sync --extra ml
-```
+### Tigramite
 
-## Optional Tigramite Extra
-
-For tigramite wrappers (`cmiknn`, `cmiknn_mixed`, `regci`):
+For `cmiknn`, `cmiknn_mixed`, `regci`:
 
 ```bash
 uv sync --extra tigramite
 ```
 
-## Local External Wrappers
+### pycomets (GCM family)
 
-Two optional wrappers currently expect local repositories:
+For `gcm`, `wgcm`, `pcm`. The pycomets package depends on `xgboost` at import time, so the extra installs both:
 
-1. `mcmiknn` -> `/Users/pavelaverin/Projects/vendor/mCMIkNN/src`
-2. `dct` -> `/Users/pavelaverin/Projects/vendor/DCT`
+```bash
+uv sync --extra pycomets
+```
 
-If those paths are not available, these wrappers raise a clear `ImportError` when called.
+### R-Based Tests
 
-## Optional R-Based Setup
+R-backed tests are optional and require:
 
-R-backed tests are optional. They require:
-
-1. Python package `rpy2` (already in the `r` extra)
-2. R package `RCIT` from GitHub repository `ericstrobl/RCIT`
-3. R package `bnlearn` from CRAN (for `hartemink_chisq`)
-
-Example:
+1. Python package `rpy2` (installed via the `r` extra)
+2. The relevant R packages installed in your R environment:
+   - `RCIT` from GitHub `ericstrobl/RCIT` — for `rcit`, `rcot`
+   - `MXM` from CRAN — for `ci_mm`
+   - `bnlearn` from CRAN — for `hartemink_chisq`
 
 ```bash
 uv sync --extra r
 ```
+
+## Local External Wrappers
+
+The `mcmiknn` wrapper expects a local checkout of the upstream repository:
+
+- `mcmiknn` -> `/Users/pavelaverin/Projects/vendor/mCMIkNN/src`
+
+If the path is not available, the wrapper raises a clear `ImportError` when called.

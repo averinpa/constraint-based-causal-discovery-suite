@@ -21,8 +21,8 @@ data = np.random.randn(200, 3)
 data[:, 2] = 0.5 * data[:, 0] + 0.5 * data[:, 1] + 0.1 * np.random.randn(200)
 
 # 2. Run the PC algorithm using a citk test
-# You can swap 'spearman' with any other available test, like 
-# "fisherz", "gsq", "rf", "dml", etc.
+# You can swap 'spearman' with any other available test, like
+# "fisherz_citk", "gsq", "kci", "gcm", etc.
 cg = pc(data, alpha=0.05, indep_test='spearman')
 
 # 3. View the learned graph edges

@@ -29,7 +29,6 @@ dependencies = [
 
 [project.optional-dependencies]
 r = ["rpy2"]
-ml = ["lightgbm"]
 tigramite = ["tigramite"]
 pycomets = ["pycomets @ git+https://github.com/shimenghuang/pycomets.git", "xgboost"]
 docs = ["sphinx", "sphinx-rtd-theme", "myst-parser"]

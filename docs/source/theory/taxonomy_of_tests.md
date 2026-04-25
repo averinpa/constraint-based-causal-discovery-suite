@@ -1,48 +1,66 @@
 # A Taxonomy of Conditional Independence Tests
 
-The conditional independence (CI) tests provided in `citk` can be broadly classified into several categories based on their underlying principles. Understanding these categories can help you reason about which test might be most appropriate for your research question and data.
+The 19 conditional independence tests in `citk` are organised under the six families of the Paper 0 survey, plus a robustness-wrapper group that contains adapters around base tests rather than constituting a distinct family. Understanding these groups helps you reason about which test fits a given research question and data type.
 
-## 1. Correlation-Based Tests
+## 1. Partial Correlation
 
-These tests are based on measures of correlation, typically Pearson correlation for linear relationships or Spearman correlation for monotonic relationships.
+Tests based on (Pearson- or Spearman-)partial correlation between two variables after controlling for the conditioning set.
 
-- **Core Idea**: Test if the partial correlation between two variables is zero after controlling for the conditioning set.
-- **Example**: `fisherz`, `spearman`
-- **Strengths**: Computationally very fast and statistically efficient if the assumptions (e.g., linearity, normality) hold.
-- **Weaknesses**: Can fail to detect non-linear or complex dependencies.
+- **Core idea**: Fit out the conditioning set linearly (or after ranking) and test whether the residualised correlation is zero.
+- **Examples in `citk`**: `fisherz_citk`, `spearman`.
+- **Strengths**: Computationally very fast; statistically efficient under the relevant assumptions (linearity, Gaussianity, or monotonicity).
+- **Weaknesses**: Low power against non-linear or non-monotonic dependence.
 
-## 2. Contingency Table-Based Tests
+## 2. Contingency Table
 
-These are classical statistical tests designed for discrete (categorical) data.
+Classical statistical tests designed for discrete (categorical) variables.
 
-- **Core Idea**: Compare the observed cell counts in a contingency table to the counts that would be expected under the null hypothesis of independence.
-- **Example**: `gsq` (G-test), `chisq` (Chi-Square)
-- **Strengths**: Well-understood statistical properties and robust for categorical data.
-- **Weaknesses**: Requires discrete data. Can suffer from low statistical power if the sample size is small relative to the number of cells in the table.
+- **Core idea**: Compare observed and expected cell counts in a stratified contingency table.
+- **Examples in `citk`**: `chisq`, `gsq`.
+- **Strengths**: Well-understood asymptotic theory; robust on truly categorical data.
+- **Weaknesses**: Requires discrete data; loses power as the contingency table grows sparse relative to the sample size.
 
-## 3. Regression-Based Tests
+## 3. Regression
 
-These tests use regression models to check for independence.
+Parametric likelihood-ratio tests built on regression models, with link functions chosen per variable type.
 
-- **Core Idea**: Regress one variable onto the other variables (including the conditioning set). If the coefficient for the target variable is statistically indistinguishable from zero, it suggests independence.
-- **Example**: `regci` (RegressionCI from tigramite)
-- **Strengths**: Can be tailored to the specific data generating process (e.g., binary outcomes with `logit`).
-- **Weaknesses**: Make strong parametric assumptions about the functional form of the relationship.
+- **Core idea**: Compare nested regression fits with and without the variable of interest in the predictor set; the likelihood-ratio statistic is asymptotically chi-squared under the null.
+- **Examples in `citk`**: `regci` (tigramite RegressionCI), `ci_mm` (R MXM ci.mm — symmetric, both directions combined).
+- **Strengths**: Native support for mixed continuous and discrete data; small-sample behaviour better than non-parametric tests when the model class is appropriate.
+- **Weaknesses**: Power degrades when the linear / logistic link misrepresents the true dependence.
 
-## 4. Kernel-Based Tests
+## 4. Nearest Neighbor
 
-These are non-parametric tests that operate in a high-dimensional feature space defined by a kernel function.
+Non-parametric tests based on $k$-nearest-neighbour estimators of conditional mutual information, paired with permutation-based p-values.
 
-- **Core Idea**: Map the data into a Reproducing Kernel Hilbert Space (RKHS) and test for independence in that space. This allows the detection of complex, non-linear relationships. The Hilbert-Schmidt Independence Criterion (HSIC) is a common measure used.
-- **Example**: `kci`
-- **Strengths**: Can detect any kind of relationship (linear, non-linear, non-monotonic). Does not make strong assumptions about the data distribution.
-- **Weaknesses**: Computationally more expensive than simpler tests. The choice of kernel and its parameters can influence the results.
+- **Core idea**: Estimate $I(X; Y \mid Z)$ from local neighbourhood statistics and assess significance with a local-permutation null.
+- **Examples in `citk`**: `cmiknn`, `cmiknn_mixed`, `mcmiknn`.
+- **Strengths**: Detects arbitrary non-linear dependence; mixed-data variants handle ties on discrete coordinates.
+- **Weaknesses**: Requires adequate sample size for stable density estimation; permutation p-values are computationally non-trivial.
 
-## 5. Machine Learning-Based Tests
+## 5. Kernel
 
-This is a modern and flexible category of tests that leverage machine learning models to test for independence.
+Non-parametric tests that operate in a Reproducing Kernel Hilbert Space (RKHS), with Hilbert-Schmidt independence criteria as the underlying dependence measure.
 
-- **Core Idea**: Use a predictive model (like a random forest or gradient boosting) to see if one variable can be predicted from another, given the conditioning set. If the prediction is no better than random chance, it implies independence.
-- **Example**: `rf` (Random Forest), `dml` (Double Machine Learning)
-- **Strengths**: Highly flexible, can capture very complex relationships, and often make few assumptions.
-- **Weaknesses**: Can be computationally very intensive. May require larger sample sizes to work effectively. 
+- **Core idea**: Map data into an RKHS and test for independence in the residualised kernel features; under a universal kernel, the criterion is zero exactly when the variables are independent.
+- **Examples in `citk`**: `kci` (exact, Python causal-learn implementation), `rcit` and `rcot` (random Fourier feature approximations, R RCIT package).
+- **Strengths**: Detects arbitrary smooth dependence; few distributional assumptions.
+- **Weaknesses**: Exact `kci` is at least quadratic in sample size; sensitivity to kernel and bandwidth choice.
+
+## 6. Machine-Learning-Based
+
+Tests built around nuisance regressions estimated by flexible ML predictors, with calibrated test statistics derived from the residual structure.
+
+- **Core idea**: Regress $X$ and $Y$ on the conditioning set $Z$ using an ML method, then test the residuals for non-zero covariance (GCM), weighted covariance (WGCM), or projected covariance (PCM).
+- **Examples in `citk`**: `gcm`, `wgcm`, `pcm` (all via `pycomets` with random forest regression by default).
+- **Strengths**: Asymptotic-normal calibration with flexible nuisance models; `wgcm` adds power on localised dependence; `pcm` is assumption-lean and robust to weakly identified predictors.
+- **Weaknesses**: Requires sufficient sample size for nuisance estimation rates to hold; test calibration depends on the rate condition.
+
+## 7. Robustness Wrappers
+
+Adapters that modify or wrap a base test rather than constituting a distinct family. The survey explicitly notes they are "robustness layers" rather than a seventh family.
+
+- **Core idea**: Transform the data — discretise, dummy-encode, or apply an information-preserving binning — and then call a base CI test on the transformed data.
+- **Examples in `citk`**: `disc_chisq`, `disc_gsq` (equal-frequency discretisation + `chisq`/`gsq`); `dummy_fisherz` (one-hot encoding + Fisher's combined `fisherz`); `hartemink_chisq` (Hartemink information-preserving discretisation via R `bnlearn` + `chisq`).
+- **Strengths**: Lets classical tests apply to data types they were not designed for; useful baselines for mixed-data settings.
+- **Weaknesses**: Inherits the assumptions of both the transformation and the base test; performance depends on whether the transformation preserves the dependence structure.

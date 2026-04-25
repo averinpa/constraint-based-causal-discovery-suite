@@ -1,10 +1,7 @@
 import numpy as np
 import os
 
-# Import all the test classes
-from citk.tests.simple_tests import FisherZ, Spearman, DCor
-from citk.tests.statistical_model_tests import Regression
-from citk.tests.ml_based_tests import KCI, RandomForest, DML, CRIT, EDML
+from citk.tests import FisherZ, Spearman
 
 
 def run_tests_on_dataset(data, dataset_name):
@@ -14,18 +11,9 @@ def run_tests_on_dataset(data, dataset_name):
     print(f"Data shape: {data.shape}")
     print("="*60)
 
-    # Define the list of all continuous tests to run
-    # Parameters have been increased for more robust results
     all_continuous_tests = [
         (FisherZ, "Fisher's Z", {}, True),
         (Spearman, "Spearman's Rho", {}, True),
-        # (DCor, "Distance Correlation", {}, False),
-        # (Regression, "Linear Regression (LRT)", {}, True),
-        # (KCI, "Kernel CI (KCI)", {}, True),
-        # (RandomForest, "Random Forest", {"n_estimators": 100, "num_permutations": 199}, True),
-        # (DML, "Double ML (DML)", {"cv_folds": 5, "n_perms": 199}, True),
-        # (CRIT, "Conformalized Residuals (CRIT)", {"cv_folds": 5, "n_perms": 199}, True),
-        # (EDML, "E-Value DML (EDML)", {"cv_folds": 5, "betting_folds": 2}, True),
     ]
 
     for TestClass, test_name, kwargs, supports_conditional in all_continuous_tests:

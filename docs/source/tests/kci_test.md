@@ -1,18 +1,24 @@
 # Kernel Conditional Independence (KCI) Test
 
-The Kernel Conditional Independence (KCI) test is a non-parametric method for assessing conditional independence. Unlike regression-based tests that assume linear relationships, KCI can capture complex, non-linear dependencies between variables without making strong distributional assumptions. This makes it a powerful tool for causal discovery and feature selection in complex systems. This implementation is a wrapper around the KCI test provided in the `causal-learn` library.
+The Kernel Conditional Independence (KCI) test is a non-parametric method for assessing conditional independence on continuous data. Unlike regression-based tests that assume linearity, KCI captures complex non-linear dependencies through kernel methods, making it a strong default for general-purpose CI testing in causal discovery and feature selection (Zhang et al., 2011). This implementation wraps the Python KCI test from the `causal-learn` library, which is the canonical kernel implementation in `citk`.
 
 ## Mathematical Formulation
 
-The KCI test is built upon the **Hilbert-Schmidt Independence Criterion (HSIC)**, a measure of dependence between two variables, *X* and *Y* (Gretton et al., 2005). HSIC operates by mapping the data into a high-dimensional feature space, known as a Reproducing Kernel Hilbert Space (RKHS), and then computing the Hilbert-Schmidt norm of the cross-covariance operator between them. In this space, even complex dependencies can manifest as linear correlations. The key property is that HSIC is zero if and only if the variables are independent (for a universal kernel, like the Gaussian RBF).
+KCI is built on the **Hilbert-Schmidt Independence Criterion (HSIC)**, a measure of dependence in a Reproducing Kernel Hilbert Space (RKHS). For variables $X$ and $Y$, HSIC is the squared Hilbert-Schmidt norm of the cross-covariance operator between their kernel embeddings (Gretton et al., 2005):
 
-The KCI test extends this principle to the *conditional* case ($X \perp Y | Z$). It tests for independence by essentially performing a regression in the RKHS and then testing whether the residuals are independent. The final test statistic is derived from the normalized HSIC, and its distribution under the null hypothesis of conditional independence has been derived, allowing for the calculation of a p-value (Zhang et al., 2011).
+```{math}
+\mathrm{HSIC}(X, Y) = \| C_{XY} \|_{\mathrm{HS}}^2
+```
 
-## Properties and Assumptions
+For a universal kernel (e.g., Gaussian RBF), $\mathrm{HSIC}(X, Y) = 0$ if and only if $X \perp Y$.
 
-*   **Non-parametric**: The test does not assume linearity, normality, or any specific data distribution.
-*   **Kernel Choice**: Its performance can be influenced by the choice of kernel function (e.g., Gaussian, Polynomial). While default kernels often perform well, the selection is an important parameter.
-*   **Computational Cost**: KCI is more computationally intensive than linear tests, with a complexity that is at least quadratic in the sample size. This can make it slow for very large datasets.
+The KCI extension to the conditional case $X \perp Y \mid Z$ residualizes the kernel-feature embeddings of $X$ and $Y$ against $Z$ in the RKHS, then tests whether the residual cross-covariance is zero. The asymptotic null distribution of the resulting test statistic is a weighted sum of $\chi^2_1$ variables; p-values are computed from this distribution (Zhang et al., 2011).
+
+## Assumptions
+
+- **Continuous data**: KCI is designed for continuous variables.
+- **Kernel choice**: Performance depends on the kernel; the default Gaussian RBF works well in most settings, with bandwidth selected by the median heuristic.
+- **Computational cost**: At least quadratic in sample size due to the kernel Gram matrices, which limits practical sample sizes (rule of thumb: a few thousand observations).
 
 ## Code Example
 
@@ -20,23 +26,25 @@ The KCI test extends this principle to the *conditional* case ($X \perp Y | Z$).
 import numpy as np
 from citk.tests import KCI
 
-# Generate data with a non-linear relationship: X -> Z -> Y
-n = 500
+# Non-linear chain: X -> Z -> Y
+n = 300
 X = np.random.randn(n)
-Z = np.cos(X) + np.random.randn(n) * 0.1
-Y = Z**2 + np.random.randn(n) * 0.1
+Z = np.cos(X) + 0.1 * np.random.randn(n)
+Y = Z**2 + 0.1 * np.random.randn(n)
 data = np.vstack([X, Y, Z]).T
 
 # Initialize the test
 kci_test = KCI(data)
 
-# Test for unconditional independence (should be dependent)
-p_unconditional = kci_test(0, 1)
-print(f"P-value (unconditional) for X _||_ Y: {p_unconditional:.4f}")
+# Test for conditional independence of X and Y given Z
+# Expected: p-value is large (cannot reject H0 of independence)
+p_value_conditional = kci_test(0, 1, [2])
+print(f"P-value for X _||_ Y | Z: {p_value_conditional:.4f}")
 
-# Test for conditional independence given Z (should be independent)
-p_conditional = kci_test(0, 1, [2])
-print(f"P-value (conditional) for X _||_ Y | Z: {p_conditional:.4f}")
+# Test for unconditional independence of X and Y
+# Expected: p-value is small (reject H0 of independence)
+p_value_unconditional = kci_test(0, 1)
+print(f"P-value for X _||_ Y: {p_value_unconditional:.4f}")
 ```
 
 ## API Reference
@@ -45,5 +53,6 @@ For a full list of parameters, see the API documentation: :class:`citk.tests.ker
 
 ## References
 
-*   Gretton, A., Bousquet, O., Smola, A., & Schölkopf, B. (2005). Measuring Statistical Dependence with Hilbert-Schmidt Norms. In *Proceedings of the 16th International Conference on Algorithmic Learning Theory (ALT 2005)*.
-*   Zhang, K., Peters, J., Janzing, D., & Schölkopf, B. (2011). Kernel-based conditional independence test and application in causal discovery. In *Proceedings of the Twenty-Seventh Conference on Uncertainty in Artificial Intelligence (UAI 2011)*. 
+Gretton, A., Bousquet, O., Smola, A., & Schölkopf, B. (2005). Measuring statistical dependence with Hilbert-Schmidt norms. *Proceedings of the 16th International Conference on Algorithmic Learning Theory (ALT 2005)*, 63-77.
+
+Zhang, K., Peters, J., Janzing, D., & Schölkopf, B. (2011). Kernel-based conditional independence test and application in causal discovery. *Proceedings of the 27th Conference on Uncertainty in Artificial Intelligence (UAI 2011)*, 804-813.

@@ -17,7 +17,6 @@ def _load_rcit_package():
     """
     try:
         import rpy2.robjects as ro
-        from rpy2.robjects import numpy2ri
         from rpy2.robjects.packages import importr
     except ModuleNotFoundError as exc:
         raise ImportError(
@@ -25,7 +24,6 @@ def _load_rcit_package():
             "Install with: pip install 'citk[r]' (or uv sync --extra r)."
         ) from exc
 
-    numpy2ri.activate()
     try:
         rcit_pkg = importr("RCIT")
     except Exception as exc:
@@ -47,7 +45,6 @@ def _load_bnlearn_package():
             "Install with: pip install 'citk[r]' (or uv sync --extra r)."
         ) from exc
 
-    pandas2ri.activate()
     try:
         bnlearn_pkg = importr("bnlearn")
     except Exception as exc:
@@ -64,14 +61,14 @@ def _to_r_vector(ro, arr: np.ndarray):
 
 def _to_r_matrix(ro, arr: np.ndarray):
     arr = np.asarray(arr, dtype=float)
-    return ro.r.matrix(ro.FloatVector(arr.ravel()), nrow=arr.shape[0], ncol=arr.shape[1])
+    return ro.r.matrix(ro.FloatVector(arr.ravel(order="F")), nrow=arr.shape[0], ncol=arr.shape[1])
 
 
 def _extract_p_value(result) -> float:
     try:
-        return float(result.rx2("p.value")[0])
+        return float(result.rx2("p")[0])
     except Exception as exc:
-        raise RuntimeError("Could not extract 'p.value' from RCIT result.") from exc
+        raise RuntimeError("Could not extract 'p' from RCIT result.") from exc
 
 
 class _RCITBase(CITKTest):
@@ -105,18 +102,6 @@ class RCoT(_RCITBase):
 class RCIT(_RCITBase):
     method_name = "rcit"
     rcit_func_name = "RCIT"
-
-
-class RKCIT(_RCITBase):
-    method_name = "kci"
-    rcit_func_name = "KCIT"
-
-    def __init__(self, data: np.ndarray, **kwargs):
-        if data.shape[0] > 2000:
-            raise ValueError(
-                "R KCIT wrapper is capped at n=2000 samples for stability/performance."
-            )
-        super().__init__(data, **kwargs)
 
 
 class HarteminkChiSq(CITKTest):
@@ -155,5 +140,93 @@ class HarteminkChiSq(CITKTest):
 
 register_ci_test("rcot", RCoT)
 register_ci_test("rcit", RCIT)
-register_ci_test("kci", RKCIT)
 register_ci_test("hartemink_chisq", HarteminkChiSq)
+
+
+def _load_mxm_package():
+    """Lazy-load rpy2 + MXM R package."""
+    try:
+        import rpy2.robjects as ro
+        from rpy2.robjects import pandas2ri
+    except ModuleNotFoundError as exc:
+        raise ImportError(
+            "R-based MXM tests require optional dependency 'rpy2'. "
+            "Install with: pip install 'citk[r]' (or uv sync --extra r)."
+        ) from exc
+    try:
+        ro.r("library(MXM)")
+    except Exception as exc:
+        raise ImportError(
+            "R package 'MXM' is required for ci.mm test. "
+            "Install from CRAN: install.packages('MXM')."
+        ) from exc
+    return ro, pandas2ri
+
+
+class CiMM(CITKTest):
+    """Symmetric regression-based CI test from R MXM package (Tsagris et al., 2018).
+
+    ci.mm automatically selects the regression model based on variable type:
+    linear regression for continuous, logistic for binary/categorical. It runs
+    two asymmetric likelihood-ratio tests (X→Y and Y→X) and combines them.
+    Handles mixed continuous/categorical data natively.
+    """
+    supported_dtypes = {"continuous", "discrete"}
+
+    def __init__(self, data: np.ndarray, **kwargs):
+        super().__init__(data, **kwargs)
+        self.data_type = kwargs.get("data_type", None)
+        self.check_cache_method_consistent("ci_mm", NO_SPECIFIED_PARAMETERS_MSG)
+
+    def _get_mxm_type(self, col_indices):
+        """Build MXM type string for the given columns.
+
+        Uses data_type array (0=continuous, 1=discrete) if available.
+        Falls back to checking if column values are all integers with few unique values.
+        """
+        types = []
+        for j in col_indices:
+            if self.data_type is not None:
+                is_discrete = int(self.data_type[0, j]) == 1
+            else:
+                col = self.data[:, j]
+                is_discrete = np.all(col == col.astype(int)) and len(np.unique(col)) < 20
+            types.append("nominal" if is_discrete else "gaussian")
+        return types
+
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+        ro, _ = _load_mxm_package()
+
+        all_cols = [X, Y] + (condition_set or [])
+        sub = self.data[:, all_cols]
+        mxm_types = self._get_mxm_type(all_cols)
+
+        # Build R data.frame column by column
+        n_rows = sub.shape[0]
+        r_cols = {}
+        for i in range(sub.shape[1]):
+            col = sub[:, i]
+            if mxm_types[i] == "nominal":
+                r_cols[f"v{i}"] = ro.IntVector(col.astype(int))
+            else:
+                r_cols[f"v{i}"] = ro.FloatVector(col.ravel())
+
+        r_df = ro.DataFrame(r_cols)
+        ro.globalenv["dat"] = r_df
+        ro.globalenv["type_vec"] = ro.StrVector(mxm_types)
+
+        # ci.mm(ind1, ind2, cs, dat, type)
+        # Indices are 1-based in R
+        if condition_set:
+            cs_r = ro.IntVector(list(range(3, 3 + len(condition_set))))
+            ro.globalenv["cs_r"] = cs_r
+            result = ro.r("ci.mm(ind1=1, ind2=2, cs=cs_r, dat=dat, type=type_vec)")
+        else:
+            result = ro.r("ci.mm(ind1=1, ind2=2, cs=NULL, dat=dat, type=type_vec)")
+
+        # Result: [test_stat, logged_p_value, df]
+        logged_p = float(result[1])
+        return float(np.exp(logged_p))
+
+
+register_ci_test("ci_mm", CiMM)

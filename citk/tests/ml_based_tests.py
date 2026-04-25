@@ -791,6 +791,3 @@ class EDML(CITKTest):
         return float(p_value)
 
 register_ci_test("edml", EDML)
-
-# Re-export GCM family from taxonomy perspective.
-from .extended_tests import GCMLinear, GCMRF, WGCMRF  # noqa: E402,F401

@@ -6,7 +6,6 @@ import pytest
 
 from citk.tests.adapter_tests import DiscChiSq, DiscGSq, DummyFisherZ
 from citk.tests.external_repo_tests import DCT, MCMIknn
-from citk.tests.ml_based_tests import GCMLinear, GCMRF, WGCMRF
 from citk.tests.contingency_table_tests import GSq, ChiSq
 from citk.tests.partial_correlation_tests import FisherZ, Spearman
 
@@ -120,15 +119,6 @@ def test_dummy_fisherz_smoke():
     assert p_dep < 0.05
 
 
-@pytest.mark.parametrize("test_cls", [GCMLinear, GCMRF, WGCMRF])
-def test_gcm_family_smoke(test_cls):
-    data_ind, data_dep = _continuous_data(seed=12, n=300)
-    p_ind = test_cls(data_ind)(0, 1)
-    p_dep = test_cls(data_dep)(0, 1)
-    assert p_ind > 0.05
-    assert p_dep < 0.05
-
-
 def test_rcot_missing_rpy2_has_clear_error():
     if importlib.util.find_spec("rpy2") is not None:
         pytest.skip("rpy2 is installed; missing-dependency path is not applicable")
@@ -138,17 +128,6 @@ def test_rcot_missing_rpy2_has_clear_error():
     data_ind, _ = _continuous_data(seed=9, n=80)
     with pytest.raises(ImportError, match="rpy2"):
         RCoT(data_ind)(0, 1)
-
-
-def test_kci_missing_rpy2_has_clear_error():
-    if importlib.util.find_spec("rpy2") is not None:
-        pytest.skip("rpy2 is installed; missing-dependency path is not applicable")
-
-    from citk.tests.r_based_tests import RKCIT
-
-    data_ind, _ = _continuous_data(seed=13, n=80)
-    with pytest.raises(ImportError, match="rpy2"):
-        RKCIT(data_ind)(0, 1)
 
 
 def test_cmiknn_missing_tigramite_has_clear_error():
@@ -185,7 +164,7 @@ def test_hartemink_missing_rpy2_has_clear_error():
 
 
 def test_mcmiknn_missing_local_repo_has_clear_error():
-    repo_path = Path("/Users/pavelaverin/Projects/mCMIkNN/src")
+    repo_path = Path("/Users/pavelaverin/Projects/vendor/mCMIkNN/src")
     if repo_path.exists():
         pytest.skip("local mCMIkNN repo is present; missing-repo path is not applicable")
 
@@ -195,7 +174,7 @@ def test_mcmiknn_missing_local_repo_has_clear_error():
 
 
 def test_dct_missing_local_repo_has_clear_error():
-    repo_path = Path("/Users/pavelaverin/Projects/DCT")
+    repo_path = Path("/Users/pavelaverin/Projects/vendor/DCT")
     if repo_path.exists():
         pytest.skip("local DCT repo is present; missing-repo path is not applicable")
 

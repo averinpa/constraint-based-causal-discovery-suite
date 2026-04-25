@@ -50,10 +50,10 @@ def test_discrete_smoke(test_cls):
     assert p_dep < 0.05
 
 def test_kci_smoke():
-    ml_module = importlib.import_module("citk.tests.ml_based_tests")
+    kernel_module = importlib.import_module("citk.tests.kernel_tests")
     data_ind, data_dep = _continuous_data(seed=4, n=150)
-    p_ind = ml_module.KCI(data_ind)(0, 1)
-    p_dep = ml_module.KCI(data_dep)(0, 1)
+    p_ind = kernel_module.KCI(data_ind)(0, 1)
+    p_dep = kernel_module.KCI(data_dep)(0, 1)
     assert p_ind > 0.05
     assert p_dep < 0.05
 

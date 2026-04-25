@@ -41,7 +41,7 @@ print(f"P-value (conditional) for X _||_ Y | Z: {p_conditional:.4f}")
 
 ## API Reference
 
-For a full list of parameters, see the API documentation: :class:`citk.tests.ml_based_tests.KCI`.
+For a full list of parameters, see the API documentation: :class:`citk.tests.kernel_tests.KCI`.
 
 ## References
 

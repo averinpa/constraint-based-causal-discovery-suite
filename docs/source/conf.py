@@ -17,12 +17,18 @@ author = 'Pavel Averin'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinx.ext.mathjax', 'myst_parser', 'sphinx.ext.autosummary']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.coverage',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
+    'myst_parser',
+]
 
 autodoc_default_options = {
     'members': True,
     'special-members': '__call__',
-    'undoc-members': True,
     'show-inheritance': True,
 }
 

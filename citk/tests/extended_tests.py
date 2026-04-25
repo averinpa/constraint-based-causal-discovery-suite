@@ -2,15 +2,11 @@ from typing import List, Optional
 
 import numpy as np
 import pandas as pd
-from scipy.stats import combine_pvalues, norm
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import KFold
+from scipy.stats import combine_pvalues
 
 from causallearn.utils.cit import (
     CIT,
     Chisq_or_Gsq,
-    NO_SPECIFIED_PARAMETERS_MSG,
     register_ci_test,
 )
 from .base import CITKTest
@@ -37,22 +33,6 @@ def _equal_frequency_discretize(data: np.ndarray, n_bins: int = 5) -> np.ndarray
             binned = pd.qcut(col, q=n_bins, labels=False, duplicates="drop")
             out[:, j] = np.asarray(binned, dtype=int)
     return out
-
-
-def _gcm_p_value(res_x: np.ndarray, res_y: np.ndarray) -> float:
-    prod = np.asarray(res_x) * np.asarray(res_y)
-    denom = np.std(prod, ddof=1)
-    if denom <= 0:
-        return 1.0
-    stat = np.sqrt(len(prod)) * np.mean(prod) / denom
-    return float(2.0 * norm.sf(abs(stat)))
-
-
-def _fit_residuals(model, target: np.ndarray, z: np.ndarray) -> np.ndarray:
-    if z.shape[1] == 0:
-        return target - np.mean(target)
-    model.fit(z, target)
-    return target - model.predict(z)
 
 
 class DiscChiSq(CITKTest):
@@ -142,91 +122,3 @@ class DummyFisherZ(CITKTest):
 
 
 register_ci_test("dummy_fisherz", DummyFisherZ)
-
-
-class GCMLinear(CITKTest):
-    supported_dtypes = {"continuous"}
-
-    def __init__(self, data: np.ndarray, **kwargs):
-        super().__init__(data, **kwargs)
-        self.check_cache_method_consistent("gcm_linear", NO_SPECIFIED_PARAMETERS_MSG)
-
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
-        z = self.data[:, condition_set] if condition_set else np.empty((len(self.data), 0))
-        rx = _fit_residuals(LinearRegression(), self.data[:, X], z)
-        ry = _fit_residuals(LinearRegression(), self.data[:, Y], z)
-        return _gcm_p_value(rx, ry)
-
-
-# Not registered — pycomets-based wrapper in ml_based_tests.py is used instead
-
-
-class GCMRF(CITKTest):
-    supported_dtypes = {"continuous"}
-
-    def __init__(self, data: np.ndarray, **kwargs):
-        super().__init__(data, **kwargs)
-        self.n_estimators = kwargs.get("n_estimators", 200)
-        self.random_state = kwargs.get("random_state", 42)
-        self.n_splits = kwargs.get("n_splits", 5)
-        params = f"n_estimators={self.n_estimators},seed={self.random_state},splits={self.n_splits}"
-        self.check_cache_method_consistent("gcm_rf", params)
-
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
-        z = self.data[:, condition_set] if condition_set else np.empty((len(self.data), 0))
-        if z.shape[1] == 0:
-            return _gcm_p_value(self.data[:, X] - np.mean(self.data[:, X]),
-                                self.data[:, Y] - np.mean(self.data[:, Y]))
-        rx = np.zeros(len(self.data))
-        ry = np.zeros(len(self.data))
-        kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
-        for fold, (train_idx, test_idx) in enumerate(kf.split(z)):
-            rf_x = RandomForestRegressor(
-                n_estimators=self.n_estimators, random_state=self.random_state + 10 * fold, n_jobs=-1)
-            rf_y = RandomForestRegressor(
-                n_estimators=self.n_estimators, random_state=self.random_state + 10 * fold + 1, n_jobs=-1)
-            rf_x.fit(z[train_idx], self.data[train_idx, X])
-            rf_y.fit(z[train_idx], self.data[train_idx, Y])
-            rx[test_idx] = self.data[test_idx, X] - rf_x.predict(z[test_idx])
-            ry[test_idx] = self.data[test_idx, Y] - rf_y.predict(z[test_idx])
-        return _gcm_p_value(rx, ry)
-
-
-# Not registered — pycomets-based wrapper in ml_based_tests.py is used instead
-
-
-class WGCMRF(CITKTest):
-    supported_dtypes = {"continuous"}
-
-    def __init__(self, data: np.ndarray, **kwargs):
-        super().__init__(data, **kwargs)
-        self.n_estimators = kwargs.get("n_estimators", 200)
-        self.random_state = kwargs.get("random_state", 42)
-        self.n_splits = kwargs.get("n_splits", 2)
-        params = f"n_estimators={self.n_estimators},seed={self.random_state},splits={self.n_splits}"
-        self.check_cache_method_consistent("wgcm_rf", params)
-
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
-        z = self.data[:, condition_set] if condition_set else np.empty((len(self.data), 0))
-        if z.shape[1] == 0:
-            return _gcm_p_value(self.data[:, X] - np.mean(self.data[:, X]), self.data[:, Y] - np.mean(self.data[:, Y]))
-
-        rx = np.zeros(len(self.data))
-        ry = np.zeros(len(self.data))
-        kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
-        for fold, (train_idx, test_idx) in enumerate(kf.split(z)):
-            rf_x = RandomForestRegressor(
-                n_estimators=self.n_estimators, random_state=self.random_state + 10 * fold, n_jobs=-1
-            )
-            rf_y = RandomForestRegressor(
-                n_estimators=self.n_estimators, random_state=self.random_state + 10 * fold + 1, n_jobs=-1
-            )
-            rf_x.fit(z[train_idx], self.data[train_idx, X])
-            rf_y.fit(z[train_idx], self.data[train_idx, Y])
-            rx[test_idx] = self.data[test_idx, X] - rf_x.predict(z[test_idx])
-            ry[test_idx] = self.data[test_idx, Y] - rf_y.predict(z[test_idx])
-
-        return _gcm_p_value(rx, ry)
-
-
-# Not registered — dropped from benchmark (original R wGCM broken on R 4.5.1)

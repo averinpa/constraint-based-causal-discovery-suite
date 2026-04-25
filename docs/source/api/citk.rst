@@ -49,33 +49,10 @@ Kernel Tests
 .. autoclass:: citk.tests.RCIT
    :show-inheritance:
 
-Machine Learning-Based Tests
-----------------------------
-
-These tests leverage machine learning models to detect complex, non-linear conditional dependencies.
+Kernel Tests
+------------
 
 .. autoclass:: citk.tests.KCI
-   :show-inheritance:
-
-.. autoclass:: citk.tests.RandomForest
-   :show-inheritance:
-
-.. autoclass:: citk.tests.DML
-   :show-inheritance:
-
-.. autoclass:: citk.tests.CRIT
-   :show-inheritance:
-
-.. autoclass:: citk.tests.EDML
-   :show-inheritance:
-
-.. autoclass:: citk.tests.GCMLinear
-   :show-inheritance:
-
-.. autoclass:: citk.tests.GCMRF
-   :show-inheritance:
-
-.. autoclass:: citk.tests.WGCMRF
    :show-inheritance:
 
 Adapter Tests
@@ -91,7 +68,4 @@ Adapter Tests
    :show-inheritance:
 
 .. autoclass:: citk.tests.HarteminkChiSq
-   :show-inheritance:
-
-.. autoclass:: citk.tests.DCT
    :show-inheritance:

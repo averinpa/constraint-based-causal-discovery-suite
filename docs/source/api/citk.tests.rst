@@ -86,51 +86,6 @@ Kernel Tests
    :show-inheritance:
    :special-members: __call__
 
-ML-Based Tests
---------------
-
-.. autoclass:: citk.tests.ml_based_tests.RandomForest
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __call__
-
-.. autoclass:: citk.tests.ml_based_tests.GCMLinear
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __call__
-
-.. autoclass:: citk.tests.ml_based_tests.GCMRF
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __call__
-
-.. autoclass:: citk.tests.ml_based_tests.WGCMRF
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __call__
-
-.. autoclass:: citk.tests.ml_based_tests.DML
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __call__
-
-.. autoclass:: citk.tests.ml_based_tests.CRIT
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __call__
-
-.. autoclass:: citk.tests.ml_based_tests.EDML
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __call__
-
 Adapter Tests
 -------------
 
@@ -153,12 +108,6 @@ Adapter Tests
    :special-members: __call__
 
 .. autoclass:: citk.tests.adapter_tests.HarteminkChiSq
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __call__
-
-.. autoclass:: citk.tests.external_repo_tests.DCT
    :members:
    :undoc-members:
    :show-inheritance:

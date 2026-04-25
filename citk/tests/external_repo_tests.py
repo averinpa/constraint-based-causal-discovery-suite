@@ -11,7 +11,6 @@ from .base import CITKTest
 
 
 MCMIKNN_SRC_PATH = Path("/Users/pavelaverin/Projects/vendor/mCMIkNN/src")
-DCT_REPO_PATH = Path("/Users/pavelaverin/Projects/vendor/DCT")
 
 
 def _import_from_repo(repo_path: Path, module_candidates: List[str], install_hint: str):
@@ -103,47 +102,4 @@ class MCMIknn(CITKTest):
         raise RuntimeError("Unsupported mCMIkNN object type after import.")
 
 
-class DCT(CITKTest):
-    supported_dtypes = {"continuous", "discrete"}
-
-    def __init__(self, data: np.ndarray, **kwargs):
-        super().__init__(data, **kwargs)
-        self.test_kwargs = kwargs.get("test_kwargs", {})
-        self.check_cache_method_consistent("dct", NO_SPECIFIED_PARAMETERS_MSG)
-
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
-        module = _import_from_repo(
-            DCT_REPO_PATH,
-            module_candidates=["dct", "DCT", "src.dct"],
-            install_hint=(
-                "DCT wrapper requires local source at "
-                f"{DCT_REPO_PATH}. Clone/build that repository first."
-            ),
-        )
-
-        z = condition_set or []
-        # Supported entry points for wrapper mode.
-        for fn_name in ("dct_test", "run_test", "ci_test"):
-            if hasattr(module, fn_name):
-                fn = getattr(module, fn_name)
-                result = fn(self.data[:, X], self.data[:, Y], self.data[:, z] if z else None, **self.test_kwargs)
-                return _extract_pvalue(result)
-
-        for cls_name in ("DCT", "DiscretenessCI", "DCTTest"):
-            if hasattr(module, cls_name):
-                cls = getattr(module, cls_name)
-                test_obj = cls(**self.test_kwargs) if callable(cls) else cls
-                if hasattr(test_obj, "run_test"):
-                    result = test_obj.run_test(
-                        self.data[:, X], self.data[:, Y], self.data[:, z] if z else None
-                    )
-                    return _extract_pvalue(result)
-
-        raise RuntimeError(
-            "DCT module imported, but no supported entry point found "
-            "(expected dct_test/run_test/ci_test function or DCT-like class)."
-        )
-
-
 register_ci_test("mcmiknn", MCMIknn)
-register_ci_test("dct", DCT)

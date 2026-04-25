@@ -13,7 +13,3 @@ This section provides detailed documentation for each of the conditional indepen
    fisher_z_test
    spearman
    kci_test
-   random_forest_test
-   dml_test
-   crit_test
-   edml_test 

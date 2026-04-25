@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from citk.tests.adapter_tests import DiscChiSq, DiscGSq, DummyFisherZ
-from citk.tests.external_repo_tests import DCT, MCMIknn
+from citk.tests.external_repo_tests import MCMIknn
 from citk.tests.contingency_table_tests import GSq, ChiSq
 from citk.tests.partial_correlation_tests import FisherZ, Spearman
 
@@ -54,50 +54,6 @@ def test_kci_smoke():
     data_ind, data_dep = _continuous_data(seed=4, n=150)
     p_ind = ml_module.KCI(data_ind)(0, 1)
     p_dep = ml_module.KCI(data_dep)(0, 1)
-    assert p_ind > 0.05
-    assert p_dep < 0.05
-
-
-def test_random_forest_smoke():
-    ml_module = importlib.import_module("citk.tests.ml_based_tests")
-    data_ind, data_dep = _continuous_data(seed=5, n=250)
-    rf_kwargs = {"num_permutations": 39, "random_state": 42, "n_estimators": 100}
-    p_ind = ml_module.RandomForest(data_ind, **rf_kwargs)(0, 1)
-    p_dep = ml_module.RandomForest(data_dep, **rf_kwargs)(0, 1)
-    assert p_ind > 0.05
-    assert p_dep < 0.05
-
-
-def test_dml_smoke():
-    ml_module = importlib.import_module("citk.tests.ml_based_tests")
-    from sklearn.linear_model import LinearRegression
-
-    data_ind, data_dep = _continuous_data(seed=6, n=220)
-    dml_kwargs = {"model": LinearRegression(), "cv_folds": 5, "n_perms": 49}
-    p_ind = ml_module.DML(data_ind, **dml_kwargs)(0, 1)
-    p_dep = ml_module.DML(data_dep, **dml_kwargs)(0, 1)
-    assert p_ind > 0.05
-    assert p_dep < 0.05
-
-
-def test_crit_smoke():
-    ml_module = importlib.import_module("citk.tests.ml_based_tests")
-    data_ind, data_dep = _continuous_data(seed=7, n=220)
-    crit_kwargs = {"alpha": 0.1, "cv_folds": 3, "n_perms": 49}
-    p_ind = ml_module.CRIT(data_ind, **crit_kwargs)(0, 1)
-    p_dep = ml_module.CRIT(data_dep, **crit_kwargs)(0, 1)
-    assert p_ind > 0.05
-    assert p_dep < 0.05
-
-
-def test_edml_smoke():
-    ml_module = importlib.import_module("citk.tests.ml_based_tests")
-    from sklearn.linear_model import LinearRegression
-
-    data_ind, data_dep = _continuous_data(seed=8, n=220)
-    edml_kwargs = {"model": LinearRegression(), "cv_folds": 5, "betting_folds": 2}
-    p_ind = ml_module.EDML(data_ind, **edml_kwargs)(0, 1)
-    p_dep = ml_module.EDML(data_dep, **edml_kwargs)(0, 1)
     assert p_ind > 0.05
     assert p_dep < 0.05
 
@@ -173,11 +129,3 @@ def test_mcmiknn_missing_local_repo_has_clear_error():
         MCMIknn(data_ind)(0, 1)
 
 
-def test_dct_missing_local_repo_has_clear_error():
-    repo_path = Path("/Users/pavelaverin/Projects/vendor/DCT")
-    if repo_path.exists():
-        pytest.skip("local DCT repo is present; missing-repo path is not applicable")
-
-    data_ind, _ = _continuous_data(seed=18, n=80)
-    with pytest.raises(ImportError, match="DCT wrapper requires local source"):
-        DCT(data_ind)(0, 1)

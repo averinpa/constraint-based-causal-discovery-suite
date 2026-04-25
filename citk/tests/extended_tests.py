@@ -158,7 +158,7 @@ class GCMLinear(CITKTest):
         return _gcm_p_value(rx, ry)
 
 
-register_ci_test("gcm_linear", GCMLinear)
+# Not registered — pycomets-based wrapper in ml_based_tests.py is used instead
 
 
 class GCMRF(CITKTest):
@@ -168,19 +168,31 @@ class GCMRF(CITKTest):
         super().__init__(data, **kwargs)
         self.n_estimators = kwargs.get("n_estimators", 200)
         self.random_state = kwargs.get("random_state", 42)
-        params = f"n_estimators={self.n_estimators},seed={self.random_state}"
+        self.n_splits = kwargs.get("n_splits", 5)
+        params = f"n_estimators={self.n_estimators},seed={self.random_state},splits={self.n_splits}"
         self.check_cache_method_consistent("gcm_rf", params)
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
         z = self.data[:, condition_set] if condition_set else np.empty((len(self.data), 0))
-        rf_x = RandomForestRegressor(n_estimators=self.n_estimators, random_state=self.random_state, n_jobs=-1)
-        rf_y = RandomForestRegressor(n_estimators=self.n_estimators, random_state=self.random_state + 1, n_jobs=-1)
-        rx = _fit_residuals(rf_x, self.data[:, X], z)
-        ry = _fit_residuals(rf_y, self.data[:, Y], z)
+        if z.shape[1] == 0:
+            return _gcm_p_value(self.data[:, X] - np.mean(self.data[:, X]),
+                                self.data[:, Y] - np.mean(self.data[:, Y]))
+        rx = np.zeros(len(self.data))
+        ry = np.zeros(len(self.data))
+        kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
+        for fold, (train_idx, test_idx) in enumerate(kf.split(z)):
+            rf_x = RandomForestRegressor(
+                n_estimators=self.n_estimators, random_state=self.random_state + 10 * fold, n_jobs=-1)
+            rf_y = RandomForestRegressor(
+                n_estimators=self.n_estimators, random_state=self.random_state + 10 * fold + 1, n_jobs=-1)
+            rf_x.fit(z[train_idx], self.data[train_idx, X])
+            rf_y.fit(z[train_idx], self.data[train_idx, Y])
+            rx[test_idx] = self.data[test_idx, X] - rf_x.predict(z[test_idx])
+            ry[test_idx] = self.data[test_idx, Y] - rf_y.predict(z[test_idx])
         return _gcm_p_value(rx, ry)
 
 
-register_ci_test("gcm_rf", GCMRF)
+# Not registered — pycomets-based wrapper in ml_based_tests.py is used instead
 
 
 class WGCMRF(CITKTest):
@@ -214,13 +226,7 @@ class WGCMRF(CITKTest):
             rx[test_idx] = self.data[test_idx, X] - rf_x.predict(z[test_idx])
             ry[test_idx] = self.data[test_idx, Y] - rf_y.predict(z[test_idx])
 
-        weights = 1.0 / (np.abs(rx) + np.abs(ry) + 1e-6)
-        weighted_prod = weights * rx * ry
-        denom = np.std(weighted_prod, ddof=1)
-        if denom <= 0:
-            return 1.0
-        stat = np.sqrt(len(weighted_prod)) * np.mean(weighted_prod) / denom
-        return float(2.0 * norm.sf(abs(stat)))
+        return _gcm_p_value(rx, ry)
 
 
-register_ci_test("wgcm_rf", WGCMRF)
+# Not registered — dropped from benchmark (original R wGCM broken on R 4.5.1)

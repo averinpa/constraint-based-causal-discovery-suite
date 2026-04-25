@@ -52,13 +52,14 @@ class _TigramiteBase(CITKTest):
     def __init__(self, data: np.ndarray, **kwargs):
         super().__init__(data, **kwargs)
         self.test_kwargs = kwargs.get("test_kwargs", {})
+        self.data_type = kwargs.get("data_type", None)
         self.check_cache_method_consistent(self.method_name, NO_SPECIFIED_PARAMETERS_MSG)
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
         tp = _load_tigramite()
         test_cls = _load_tigramite_test_class(self.class_candidates)
 
-        dataframe = tp.DataFrame(self.data)
+        dataframe = tp.DataFrame(self.data, data_type=self.data_type)
         test = test_cls(**self.test_kwargs)
         test.set_dataframe(dataframe)
         z = [(int(c), 0) for c in condition_set]

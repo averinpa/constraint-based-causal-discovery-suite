@@ -23,7 +23,7 @@ Under the null $X \perp Y \mid Z$, $T_{\mathrm{PCM}} \xrightarrow{d} \mathcal{N}
 ## Assumptions
 
 - **Consistent residualisation**: $\hat{m}_h$ and $\hat{m}_Y$ must converge fast enough for studentised normal calibration; random forests with sample splitting typically suffice.
-- **Continuous responses**: Default settings target continuous $X$ and $Y$.
+- **Variable types**: Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively; no separate type declaration is required.
 - **Sample size**: Both folds need to be large enough for the projection step on the first fold and the test statistic on the second fold.
 
 ## Code Example

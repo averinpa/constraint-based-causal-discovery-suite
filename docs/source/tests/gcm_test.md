@@ -23,7 +23,7 @@ where $\hat{\sigma}_R$ is the empirical standard deviation of $R$. Under the nul
 ## Assumptions
 
 - **Consistent nuisance regression**: The nuisance product rate must satisfy $\| \hat{f} - f^* \|_2 \cdot \| \hat{g} - g^* \|_2 = o_P(n^{-1/2})$ for the asymptotic normality to hold; flexible learners like random forests typically meet this in low to moderate $\dim(Z)$.
-- **Continuous responses**: Default settings target continuous $X$ and $Y$.
+- **Variable types**: Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively; no separate type declaration is required.
 - **Sample size**: Studentised normal calibration requires an adequate sample size for stable variance estimation.
 
 ## Code Example

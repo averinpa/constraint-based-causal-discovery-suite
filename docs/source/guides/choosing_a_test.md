@@ -12,7 +12,6 @@ Choosing the right conditional independence (CI) test depends on the type of you
     - `kci`: kernel-based, captures arbitrary non-linear dependence.
     - `rcit`, `rcot`: random-Fourier-feature approximations to KCI; faster on larger samples.
     - `cmiknn`: kNN-based conditional mutual information with local-permutation p-values.
-    - `gcm`, `wgcm`, `pcm`: ML-residualisation tests using random forest regression (via `pycomets`); flexible, asymptotically calibrated.
 
 - **All discrete (categorical)**:
     - `gsq` (G-test) or `chisq` (Chi-Square): classical contingency-table tests.
@@ -23,6 +22,7 @@ Choosing the right conditional independence (CI) test depends on the type of you
     - `mcmiknn`: another mixed-type kNN CMI implementation (vendored from upstream `hpi-epic/mCMIkNN`).
     - `regci`: parametric likelihood-ratio test using GLM regression chosen per response type (continuous → linear, discrete → logistic).
     - `ci_mm`: symmetric likelihood-ratio test from R `MXM` that runs both regression directions and combines them.
+    - `gcm`, `wgcm`, `pcm`: ML-residualisation tests using random forest regression (via `pycomets`); flexible, asymptotically calibrated, and the RF nuisance regressions handle continuous, discrete, or mixed inputs natively.
     - `disc_chisq`, `disc_gsq`: equal-frequency discretisation adapters around classical discrete tests.
     - `hartemink_chisq`: information-preserving Hartemink discretisation (via R `bnlearn`) + Chi-Square; better dependence preservation than equal-frequency binning.
 
@@ -54,9 +54,9 @@ Choosing the right conditional independence (CI) test depends on the type of you
 | `kci` | Kernel | Continuous | Any | Suitable kernel choice; cost is at least quadratic in $n$ |
 | `rcit` | Kernel | Continuous | Any | Random-feature approximation; requires `rpy2` + R `RCIT` |
 | `rcot` | Kernel | Continuous | Any | Random-feature approximation with reduced-dim conditioning; requires `rpy2` + R `RCIT` |
-| `gcm` | Machine-Learning-Based | Continuous | Any | Consistent nuisance regression; requires `pycomets` |
-| `wgcm` | Machine-Learning-Based | Continuous | Any (esp. localised) | Consistent nuisance regression + sample splitting; requires `pycomets` |
-| `pcm` | Machine-Learning-Based | Continuous | Any (assumption-lean) | Consistent residualisation; requires `pycomets` |
+| `gcm` | Machine-Learning-Based | Mixed or continuous | Any | Consistent nuisance regression; requires `pycomets` |
+| `wgcm` | Machine-Learning-Based | Mixed or continuous | Any (esp. localised) | Consistent nuisance regression + sample splitting; requires `pycomets` |
+| `pcm` | Machine-Learning-Based | Mixed or continuous | Any (assumption-lean) | Consistent residualisation; requires `pycomets` |
 | `disc_chisq` | Adapter Strategies | Mixed or continuous | Any | Discretisation preserves dependence; ChiSq cell-count rule |
 | `disc_gsq` | Adapter Strategies | Mixed or continuous | Any | Discretisation preserves dependence; GSq cell-count rule |
 | `dummy_fisherz` | Adapter Strategies | Mixed or discrete | Any (encoded space) | One-hot encoding fidelity; combined p-values approximation |

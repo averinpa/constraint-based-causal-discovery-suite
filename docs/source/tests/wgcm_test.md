@@ -24,7 +24,7 @@ where $n_2$ is the size of the second fold. Under the null $X \perp Y \mid Z$, t
 
 - **Consistent nuisance regression**: Same product-rate requirement as GCM on $\hat{f}$ and $\hat{g}$.
 - **Useful weight learning**: The weighting function provides power gains only when the dependence has localisable structure; on globally constant alternatives, WGCM reduces to GCM with extra variance from sample splitting.
-- **Continuous responses**: Default settings target continuous $X$ and $Y$.
+- **Variable types**: Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively; no separate type declaration is required.
 
 ## Code Example
 

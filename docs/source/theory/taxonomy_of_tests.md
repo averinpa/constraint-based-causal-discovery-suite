@@ -53,7 +53,7 @@ Tests built around nuisance regressions estimated by flexible ML predictors, wit
 
 - **Core idea**: Regress $X$ and $Y$ on the conditioning set $Z$ using an ML method, then test the residuals for non-zero covariance (GCM), weighted covariance (WGCM), or projected covariance (PCM).
 - **Examples in `citk`**: `gcm`, `wgcm`, `pcm` (all via `pycomets` with random forest regression by default).
-- **Strengths**: Asymptotic-normal calibration with flexible nuisance models; `wgcm` adds power on localised dependence; `pcm` is assumption-lean and robust to weakly identified predictors.
+- **Strengths**: Asymptotic-normal calibration with flexible nuisance models; the RF nuisance regressions handle continuous, discrete, and mixed inputs natively; `wgcm` adds power on localised dependence; `pcm` is assumption-lean and robust to weakly identified predictors.
 - **Weaknesses**: Requires sufficient sample size for nuisance estimation rates to hold; test calibration depends on the rate condition.
 
 ## 7. Adapter Strategies

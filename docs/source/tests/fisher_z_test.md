@@ -25,6 +25,7 @@ is asymptotically $N(0, 1)$ (Anderson, 2003), where $n$ is the sample size and $
 - **Multivariate normality.** Zero partial correlation is equivalent to conditional independence only under restrictive distributional assumptions; Baba et al. (2004) formalised the precise conditions, showing that violations of Gaussianity or linearity can invalidate correlation-based CI decisions even asymptotically.
 - **Linearity.** The test targets linear (partial) dependence. Outside the Gaussian / elliptical family the equivalence between zero partial correlation and conditional independence breaks down (Baba et al., 2004).
 - **Sample size and conditioning-set size.** The effective degrees of freedom are $n - |Z| - 3$; as $|Z|$ grows, variance increases and power drops (Anderson, 2003).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

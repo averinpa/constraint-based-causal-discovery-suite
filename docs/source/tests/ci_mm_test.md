@@ -24,6 +24,7 @@ The link for each regression is chosen by the response type: linear regression f
 - **R + MXM available.** The reference implementation lives in the R `MXM` package and is exposed via `rpy2` (Tsagris et al., 2018).
 - **Per-variable type declarations.** A `data_type` array specifies which columns are continuous and which are discrete so the right link is chosen per regression (Tsagris et al., 2018).
 - **Asymptotic regime.** Calibration uses Wilks's theorem (Wilks, 1938); small-sample reliability depends on category counts (Tsagris et al., 2018).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

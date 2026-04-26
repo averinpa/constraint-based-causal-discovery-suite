@@ -20,6 +20,7 @@ T_{\mathrm{RCoT}} = \left\| \hat{C}_{XY} - \hat{C}_{XZ} \hat{C}_{ZZ}^{-1} \hat{C
 - **R + RCIT available.** This wrapper requires `rpy2` and the R `RCIT` package (Strobl et al., 2019).
 - **Acceptable approximation.** RCoT is faster but slightly less powerful than RCIT against alternatives where the dependence is concentrated in directions of $Z$ that the projection discards; for small or strongly nonlinear conditioning sets, prefer :doc:`/tests/rcit_test` or :doc:`/tests/kci_test` (Strobl et al., 2019; Zhang et al., 2011).
 - **Linear-time complexity.** RCoT scales as $O(n d_f)$, even faster than RCIT (Strobl et al., 2019).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

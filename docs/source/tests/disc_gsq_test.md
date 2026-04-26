@@ -26,6 +26,7 @@ where $O_i$ and $E_i$ are the observed and expected cell counts in the binned co
 - **Independent observations.** Same multinomial sampling assumption as :doc:`/tests/g_sq_test` (Agresti, 2013).
 - **Adequate cell counts.** Same Cochran (1954) rule of thumb as for Pearson's $\chi^2$: the test may be unreliable if more than 20% of cells have an expected frequency below 5.
 - **Approximate CI procedure.** As with DiscChiSq, the test targets independence between binned representations rather than the continuous CI null (Agresti, 2013).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

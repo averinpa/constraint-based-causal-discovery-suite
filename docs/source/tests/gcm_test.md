@@ -28,6 +28,7 @@ Under the null $X \perp Y \mid Z$, $T_{\mathrm{GCM}} \xrightarrow{d} \mathcal{N}
 - **Variable types.** Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively; no separate type declaration is required (Shah & Peters, 2020).
 - **No uniformly powerful CI test exists.** Shah & Peters (2020) prove that a valid CI test cannot have power against arbitrary alternatives: GCM's validity is universal but its power is alternative-class-dependent.
 - **Sample size.** Studentised normal calibration requires an adequate sample for stable variance estimation (Shah & Peters, 2020).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## v0.1.0 implementation notes
 

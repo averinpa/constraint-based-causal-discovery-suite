@@ -27,6 +27,7 @@ Under the null $X \perp Y \mid Z$, $T_{\mathrm{RCIT}}$ converges to a weighted s
 - **R + RCIT available.** This wrapper requires `rpy2` and the R `RCIT` package (from `ericstrobl/RCIT` on GitHub) (Strobl et al., 2019).
 - **Approximation quality.** The number of random features $d_f$ trades approximation accuracy against speed; Strobl et al. (2019) report $d_f$ between 5 and 25 suffices for most settings, with sensitivity rising in conditioning-set dimensionality.
 - **Linear-time complexity.** RCIT scales as $O(n d_f^2)$ in practice (Strobl et al., 2019).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

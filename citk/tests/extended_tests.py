@@ -9,17 +9,12 @@ from causallearn.utils.cit import (
     Chisq_or_Gsq,
     register_ci_test,
 )
-from .base import CITKTest, hash_parameters, inner_test_kwargs
-
-
-def _is_categorical_column(values: np.ndarray, max_levels: int = 10) -> bool:
-    unique_vals = np.unique(values[~np.isnan(values)]) if np.issubdtype(values.dtype, np.number) else np.unique(values)
-    if len(unique_vals) <= max_levels:
-        if np.issubdtype(values.dtype, np.integer):
-            return True
-        if np.issubdtype(values.dtype, np.floating):
-            return np.allclose(values, np.round(values), equal_nan=True)
-    return False
+from .base import (
+    CITKTest,
+    _is_categorical_column,
+    hash_parameters,
+    inner_test_kwargs,
+)
 
 
 def _equal_frequency_discretize(data: np.ndarray, n_bins: int = 5) -> np.ndarray:
@@ -37,6 +32,7 @@ def _equal_frequency_discretize(data: np.ndarray, n_bins: int = 5) -> np.ndarray
 
 class DiscChiSq(CITKTest):
     supported_dtypes = {"continuous", "discrete"}
+    accepted_kwargs = {"n_bins"}
 
     def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         self.n_bins = kwargs.get("n_bins", 5)
@@ -56,6 +52,7 @@ register_ci_test("disc_chisq", DiscChiSq)
 
 class DiscGSq(CITKTest):
     supported_dtypes = {"continuous", "discrete"}
+    accepted_kwargs = {"n_bins"}
 
     def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         self.n_bins = kwargs.get("n_bins", 5)
@@ -75,6 +72,7 @@ register_ci_test("disc_gsq", DiscGSq)
 
 class DummyFisherZ(CITKTest):
     supported_dtypes = {"continuous", "discrete"}
+    accepted_kwargs = {"max_levels"}
 
     def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         self.max_levels = kwargs.get("max_levels", 10)

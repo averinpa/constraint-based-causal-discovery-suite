@@ -20,6 +20,7 @@ and equals zero, for universal kernels, if and only if $X \perp Y$ (Gretton et a
 - **Kernel choice.** Performance depends on the kernel; Zhang et al. (2011) use Gaussian RBF kernels and the median heuristic for bandwidth selection.
 - **Computational cost.** KCI requires kernel-matrix eigendecompositions and scales at least quadratically in $n$, limiting practical sample sizes (Zhang et al., 2011; Strobl et al., 2019).
 - **No distributional assumption beyond kernel regularity.** KCI is fully non-parametric (Zhang et al., 2011).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

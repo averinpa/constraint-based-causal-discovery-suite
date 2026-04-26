@@ -20,6 +20,7 @@ and equals zero exactly when $X \perp Y \mid Z$ (Cover & Thomas, 2006). CMIknn e
 - **Choice of $k$.** Two integers govern the procedure: $k_{\mathrm{CMI}}$ for the CMI estimator and $k_{\mathrm{perm}}$ for the local-permutation neighbourhood (Runge, 2018). Larger $k$ smooths the estimator at the cost of bias.
 - **Continuous variables.** Vanilla CMIknn is designed for continuous data; for mixed types use :doc:`/tests/cmiknn_mixed_test` or :doc:`/tests/mcmiknn_test` (Popescu et al., 2024; Hügle et al., 2023).
 - **Cost.** Runtime scales as $O(B n \log n)$ for $B$ permutations; CMIknn is faster than RFF kernel tests for smaller $n$ but its runtime grows more sharply with $n$ and dimensionality (Runge, 2018).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

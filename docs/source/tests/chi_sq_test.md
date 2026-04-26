@@ -26,6 +26,7 @@ where $|V|$ is the number of distinct categories of variable $V$ (Agresti, 2013)
 - **Independent observations.** Standard multinomial sampling with independent draws is assumed (Agresti, 2013).
 - **Adequate cell counts.** Cochran (1954) recommends that the test may be inappropriate if more than 20% of cells have an expected count below 5 or any cell has expected count below 1; these rules of thumb remain the standard finite-sample diagnostic for the test.
 - **Power decay with conditioning-set size.** As $|Z|$ grows the number of contingency-table cells grows multiplicatively; sparse-table effects degrade power well before computational limits are reached (Agresti, 2013).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

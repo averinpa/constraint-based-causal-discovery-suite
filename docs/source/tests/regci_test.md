@@ -25,6 +25,7 @@ where $\ell(\cdot)$ is the maximised log-likelihood. Under the null and standard
 - **Correctly specified model class.** The chosen link (linear, logistic) and functional form must capture the true conditional mean of $Y$ given $(Z, X)$ (Kutner et al., 2005; Hosmer et al., 2013); under misspecification, the regression null and the CI null diverge (Tsagris et al., 2018).
 - **Mixed-data support via type tagging.** Variables are tagged continuous or discrete so the appropriate link is chosen per regression (Tsagris et al., 2018).
 - **Asymptotic regime.** P-values rely on the chi-square approximation justified by Wilks's theorem (Wilks, 1938); finite-sample reliability degrades when stratum-level sample sizes shrink (Tsagris et al., 2018).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

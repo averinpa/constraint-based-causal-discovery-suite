@@ -21,6 +21,7 @@ from the $k$-th nearest-neighbour structure of the data, adapting the Kraskov-st
 - **Vendored implementation.** No additional installation is required; `citk` ships the upstream `indeptests` package under `citk/_vendor/` (Hügle et al., 2023).
 - **Constructor parameters.** Per-test parameters (`kcmi`, `kperm`, `Mperm`, `subsample`, `transform`) can be passed via `test_kwargs` and are forwarded to the underlying `mCMIkNN(...)` constructor; these correspond to estimator and permutation knobs documented in Hügle et al. (2023).
 - **Sample size.** kNN-based density estimation needs adequate sample size to be reliable (Kraskov et al., 2004); Hügle et al. (2023) report particular advantages over alternatives in low-sample regimes.
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

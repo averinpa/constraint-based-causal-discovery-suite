@@ -26,6 +26,7 @@ df = (|X| - 1)(|Y| - 1) \prod_{z \in Z} |z|
 - **Independent observations.** Standard multinomial sampling assumptions apply (Agresti, 2013).
 - **Adequate sample size.** $G^2$ is asymptotic; the same Cochran-style cell-count guidance as for Pearson $\chi^2$ applies (Cochran, 1954; Agresti, 2013).
 - **Power decay with conditioning-set size.** Stratification by $Z$ multiplies the number of cells, leading to sparse-table effects analogous to those of Pearson $\chi^2$ (Agresti, 2013).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

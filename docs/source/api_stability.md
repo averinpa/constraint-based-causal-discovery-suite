@@ -103,6 +103,43 @@ Cache load policy:
 
 This means caches generated under v0.1.0 are *not* portable to a v0.2.0 that bumps `format_version`; users should expect to regenerate. The format_version field exists precisely so future bumps degrade gracefully rather than silently corrupting.
 
+## Construction: kwargs allowlist
+
+Every test class declares an `accepted_kwargs: set` class attribute listing the keyword arguments it consumes. Passing an unknown kwarg to a test raises `TypeError` at construction:
+
+```python
+ChiSq(data, methodname="chisq")  # TypeError: typo on method_name
+DiscChiSq(data, n_bin=3)         # TypeError: typo on n_bins
+```
+
+citk also tolerates a small set of `_protocol_kwargs` (currently: `data_type`) on every test. These are forwarded by causal-learn's `pc(...)` dispatch to every CI test class, regardless of whether the test consumes them. Tests that do not list a protocol kwarg in their own `accepted_kwargs` silently ignore it.
+
+| Test | `accepted_kwargs` (consumed) |
+|---|---|
+| `FisherZ`, `Spearman`, `ChiSq`, `GSq`, `KCI`, `RCIT`, `RCoT`, `GCM`, `WGCM`, `PCM` | `set()` |
+| `DiscChiSq`, `DiscGSq` | `{"n_bins"}` |
+| `DummyFisherZ` | `{"max_levels"}` |
+| `HarteminkChiSq` | `{"breaks", "ibreaks"}` |
+| `CiMM` | `{"data_type"}` |
+| `CMIknn`, `CMIknnMixed`, `RegressionCI` | `{"test_kwargs", "data_type"}` |
+| `MCMIknn` | `{"test_kwargs"}` |
+
+`cache_path` is always accepted because it is an explicit `__init__` parameter. The error message on rejection lists both the consumed set and the protocol-tolerated set so users can immediately see why their kwarg was rejected. Future protocol additions (e.g. `seed`) will go in `_protocol_kwargs` once at the base — no per-test churn.
+
+## Data validation: opt-in, not enforced
+
+Each test class declares a `supported_dtypes` class attribute (e.g. `{"continuous"}` for `FisherZ`, `{"discrete"}` for `ChiSq`). citk does **not** validate input data against this at construction time, because Paper 1 benchmarking depends on running every test on every data kind to characterise failure modes. Calling a test on data outside its declared `supported_dtypes` is undefined behaviour — results may be silently degenerate (e.g. `ChiSq` on continuous data treats every unique float as its own category, returning $p \approx 1$).
+
+Users wanting protection should call the classmethod before constructing:
+
+```python
+ok, reason = ChiSq.validate_data(my_data)
+if not ok:
+    raise ValueError(reason)
+```
+
+`validate_data` returns `(True, "")` if compatible and `(False, "column j is X; ClsName only supports [Y]")` for the first violation. It does not raise.
+
 ## Out-of-contract: causal-learn-inherited methods
 
 `CITKTest` inherits four public methods from `causallearn.utils.cit.CIT_Base` that are visible on every test instance:

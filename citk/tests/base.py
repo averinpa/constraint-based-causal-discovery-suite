@@ -5,7 +5,7 @@ import json
 import os
 import time
 import warnings
-from typing import Any, Iterable, List, Mapping, Optional
+from typing import Any, Iterable, List, Mapping, Optional, Tuple
 
 import numpy as np
 from causallearn.utils.cit import CIT_Base, NO_SPECIFIED_PARAMETERS_MSG
@@ -13,6 +13,29 @@ from causallearn.utils.cit import CIT_Base, NO_SPECIFIED_PARAMETERS_MSG
 from citk.exceptions import CITKComputationError, CITKError
 
 CACHE_FORMAT_VERSION = "1.0"
+
+
+def _is_categorical_column(values: np.ndarray, max_levels: int = 10) -> bool:
+    """Heuristic: is ``values`` a categorical column?
+
+    True if integer-dtype with at most ``max_levels`` unique values, or
+    float-dtype whose values are all integer-valued with at most
+    ``max_levels`` unique values. False otherwise.
+
+    Used by :meth:`CITKTest.validate_data` and by the discretising adapter
+    tests in ``extended_tests``.
+    """
+    unique_vals = (
+        np.unique(values[~np.isnan(values)])
+        if np.issubdtype(values.dtype, np.number)
+        else np.unique(values)
+    )
+    if len(unique_vals) <= max_levels:
+        if np.issubdtype(values.dtype, np.integer):
+            return True
+        if np.issubdtype(values.dtype, np.floating):
+            return np.allclose(values, np.round(values), equal_nan=True)
+    return False
 
 
 def _canonicalize_for_hash(value: Any) -> Any:
@@ -63,7 +86,20 @@ class CITKTest(CIT_Base):
     Standardises the interface to be compatible with causal-learn and
     implements a versioned, content-addressed file-based cache.
     """
+
+    #: Declared compatible data kinds; informational only — citk does not
+    #: enforce this at construction. Use :meth:`validate_data` to check.
     supported_dtypes: set = set()
+
+    #: Protocol-level kwargs forwarded by causal-learn's ``pc(...)`` dispatch.
+    #: Tolerated on every test for harness compatibility, but consumed only by
+    #: tests that list them in their own :attr:`accepted_kwargs`.
+    _protocol_kwargs: set = {"data_type"}
+
+    #: Per-test API kwargs consumed by this specific test. Subclasses declare;
+    #: ``cache_path`` is always accepted because it is an explicit ``__init__``
+    #: parameter, not a ``**kwargs`` entry.
+    accepted_kwargs: set = set()
 
     def __init__(
         self,
@@ -82,7 +118,24 @@ class CITKTest(CIT_Base):
             calls. The cache is keyed by ``(data_hash, method_name,
             parameters_hash)`` and stamped with ``format_version`` so v0.1.0
             caches can be detected and invalidated by future releases.
+
+        Raises
+        ------
+        TypeError
+            If ``kwargs`` contains keys outside ``cls.accepted_kwargs`` and
+            ``cls._protocol_kwargs``.
         """
+        allowed = self._protocol_kwargs | type(self).accepted_kwargs
+        unknown = set(kwargs.keys()) - allowed
+        if unknown:
+            consumed = sorted(type(self).accepted_kwargs | {"cache_path"})
+            tolerated = sorted(self._protocol_kwargs)
+            raise TypeError(
+                f"{type(self).__name__} got unexpected keyword arguments: "
+                f"{sorted(unknown)}. "
+                f"Accepted (consumed): {consumed}. "
+                f"Accepted (protocol-tolerated): {tolerated}."
+            )
         # Call parent with cache_path=None so its MD5-based load path is bypassed;
         # we handle hashing and load below with sha256 + format_version validation.
         super().__init__(data, cache_path=None, **kwargs)
@@ -178,3 +231,32 @@ class CITKTest(CIT_Base):
         **kwargs: Any,
     ) -> float:
         raise NotImplementedError("Subclasses must implement _compute.")
+
+    @classmethod
+    def validate_data(cls, data: np.ndarray) -> Tuple[bool, str]:
+        """Heuristic check: is ``data`` compatible with ``cls.supported_dtypes``?
+
+        Returns ``(True, "")`` if compatible, ``(False, reason)`` otherwise.
+        Does **not** raise.
+
+        citk does not call this from ``__init__`` because Paper 1 benchmarking
+        depends on running every test on every data kind to characterise
+        failure modes. Users wanting protection should call this before
+        constructing the test. Per-column heuristic:
+
+        - "discrete": integer dtype with ≤10 unique values, or float dtype
+          with all-integer values and ≤10 unique values.
+        - "continuous": anything else.
+        """
+        if not cls.supported_dtypes or cls.supported_dtypes == {"continuous", "discrete"}:
+            return True, ""
+        for j in range(data.shape[1]):
+            col_is_discrete = _is_categorical_column(data[:, j])
+            col_kind = "discrete" if col_is_discrete else "continuous"
+            if col_kind not in cls.supported_dtypes:
+                supported = sorted(cls.supported_dtypes)
+                return False, (
+                    f"column {j} is {col_kind}; "
+                    f"{cls.__name__} only supports {supported}"
+                )
+        return True, ""

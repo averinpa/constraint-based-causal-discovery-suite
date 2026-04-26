@@ -74,6 +74,7 @@ def _extract_p_value(result) -> float:
 
 class _RCITBase(CITKTest):
     supported_dtypes = {"continuous"}
+    accepted_kwargs: set = set()
     method_name = ""
     rcit_func_name = ""
 
@@ -107,6 +108,7 @@ class RCIT(_RCITBase):
 
 class HarteminkChiSq(CITKTest):
     supported_dtypes = {"continuous", "discrete"}
+    accepted_kwargs = {"breaks", "ibreaks"}
 
     def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         self.breaks = kwargs.get("breaks", 4)
@@ -178,6 +180,7 @@ class CiMM(CITKTest):
     Handles mixed continuous/categorical data natively.
     """
     supported_dtypes = {"continuous", "discrete"}
+    accepted_kwargs = {"data_type"}
 
     def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)

@@ -26,6 +26,7 @@ provided the input p-values are independent and uniform on $[0, 1]$ under $H_0$ 
 - **Linear partial correlation captures dependence in the encoded space.** As with :doc:`/tests/fisher_z_test`, the test has low power against alternatives that one-hot encoding cannot linearise (Anderson, 2003; Baba et al., 2004).
 - **Discrete cardinalities are moderate.** Each additional level adds an indicator column, so high-cardinality discrete variables blow up the per-pair count $m$ and reduce power per pair (Anderson, 2003).
 - **Independence of per-pair p-values is approximate.** The chi-square-on-log-p combination assumes independent uniform inputs under $H_0$ (Cover & Thomas, 2006); per-pair p-values from overlapping conditioning sets are not strictly independent, so the combined p-value is approximate.
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

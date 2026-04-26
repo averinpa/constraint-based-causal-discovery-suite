@@ -25,6 +25,7 @@ is referred to a standard normal distribution under the null (Hotelling, 1953; A
 - **Monotone dependence.** The test is sensitive to monotone (not necessarily linear) relationships; it does not require linearity or multivariate normality (Spearman, 1904; Kutner et al., 2005).
 - **Approximate CI procedure.** Zero partial rank correlation is not equivalent to conditional independence in general; rank-based tests rely on additional structural assumptions and should be treated as approximate CI procedures (Baba et al., 2004).
 - **Sample size.** The Z-transform calibration is asymptotic and effective degrees of freedom are $n - |Z| - 3$ (Hotelling, 1953; Anderson, 2003).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

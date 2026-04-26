@@ -26,6 +26,7 @@ where $O_i$ and $E_i$ are the observed and expected cell counts in the binned co
 - **Independent observations.** Same multinomial sampling assumption as Pearson's $\chi^2$ (Agresti, 2013).
 - **Adequate cell counts.** Cochran (1954) recommends that the test may be unreliable if more than 20% of cells have an expected frequency below 5 or any cell has expected frequency below 1; the same rule applies after binning (Agresti, 2013).
 - **Approximate CI procedure.** Discretisation tests independence between binned representations rather than the underlying continuous CI null; CI verdicts should be treated as approximate (Agresti, 2013).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

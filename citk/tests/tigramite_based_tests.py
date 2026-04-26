@@ -49,6 +49,7 @@ def _extract_tigramite_pvalue(result) -> float:
 
 class _TigramiteBase(CITKTest):
     supported_dtypes = {"continuous", "discrete"}
+    accepted_kwargs = {"test_kwargs", "data_type"}
     method_name = ""
     class_candidates: List[str] = []
 

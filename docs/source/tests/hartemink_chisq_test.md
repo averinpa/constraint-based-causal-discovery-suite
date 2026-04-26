@@ -29,6 +29,7 @@ where $O_i$ and $E_i$ are the observed and expected cell counts in the contingen
 - **Adequate cell counts.** Same Cochran (1954) rule of thumb as :doc:`/tests/chi_sq_test`: the test may be unreliable if more than 20% of cells have an expected frequency below 5 (Agresti, 2013).
 - **Independent observations.** Standard multinomial sampling (Agresti, 2013).
 - **Approximate CI procedure.** As with all discretisation-based adapters, the test targets independence between binned representations, not the underlying continuous CI null (Agresti, 2013).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

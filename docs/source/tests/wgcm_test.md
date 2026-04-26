@@ -27,6 +27,7 @@ where $n_2$ is the size of the second fold (Scheidegger et al., 2022). Under the
 - **Consistent nuisance regression.** Same product-rate requirement as GCM on $\hat{f}$ and $\hat{g}$ (Shah & Peters, 2020).
 - **Useful weight learning.** The weighting function provides power gains only when the dependence has localisable structure; on globally constant alternatives, WGCM may have less power than GCM, by design (Scheidegger et al., 2022).
 - **Variable types.** Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively (Shah & Peters, 2020); for binary or categorical $X$ and $Y$, Scheidegger et al. (2022) describe a variant with power against all alternatives.
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## v0.1.0 implementation notes
 

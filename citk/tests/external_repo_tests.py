@@ -10,6 +10,7 @@ class MCMIknn(CITKTest):
     """Wrapper around the vendored mCMIkNN kNN-CMI test (Hügle et al., 2023)."""
 
     supported_dtypes = {"continuous", "discrete"}
+    accepted_kwargs = {"test_kwargs"}
 
     def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)

@@ -20,6 +20,7 @@ equals zero if and only if $X \perp Y \mid Z$ (Cover & Thomas, 2006). The mixed-
 - **Discrete cardinality.** Categorical variables with very high cardinality reduce to the continuous case; very low cardinality combined with small sample size yields noisy estimates (Mesner & Shalizi, 2021; Popescu et al., 2024).
 - **Sample size.** Like all $k$NN-based estimators, accuracy improves with sample size (Runge, 2018; Popescu et al., 2024).
 - **No analytical null distribution.** No general analytical results for the finite-sample or asymptotic distribution of CMI under $H_0$ are known, so calibration relies on local permutation (Popescu et al., 2024).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## Code Example
 

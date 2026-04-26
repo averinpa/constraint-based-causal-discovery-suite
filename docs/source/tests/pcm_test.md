@@ -29,6 +29,7 @@ Under the null, $T_{\mathrm{PCM}} \xrightarrow{d} \mathcal{N}(0, 1)$ under nuisa
 - **Variable types.** Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively; no separate type declaration is required (Shah & Peters, 2020; Lundborg et al., 2024).
 - **Sample size.** Both folds need to be large enough for the projection step on the first fold and the test statistic on the second fold (Lundborg et al., 2024).
 - **Optimality.** A spline-regression version achieves the minimax optimal rate for this nonparametric testing problem (Lundborg et al., 2024).
+- **Dtype validation is opt-in.** Passing data outside the declared dtype produces undefined results; call `Test.validate_data(data)` to check. citk does not enforce ``supported_dtypes`` at construction.
 
 ## v0.1.0 implementation notes
 

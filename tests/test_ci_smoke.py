@@ -75,6 +75,7 @@ def test_dummy_fisherz_smoke():
 
 
 def test_rcot_smoke():
+    pytest.importorskip("rpy2")
     from citk.tests.kernel_tests import RCoT
 
     data_ind, data_dep = _continuous_data(seed=9, n=300)
@@ -85,6 +86,7 @@ def test_rcot_smoke():
 
 
 def test_cmiknn_smoke():
+    pytest.importorskip("tigramite")
     from citk.tests.nearest_neighbor_tests import CMIknn
 
     data_ind, data_dep = _continuous_data(seed=14, n=120)
@@ -96,6 +98,7 @@ def test_cmiknn_smoke():
 
 
 def test_regci_smoke():
+    pytest.importorskip("tigramite")
     from citk.tests.regression_tests import RegressionCI
 
     data_ind, data_dep = _continuous_data(seed=15, n=400)
@@ -107,6 +110,7 @@ def test_regci_smoke():
 
 
 def test_hartemink_chisq_smoke():
+    pytest.importorskip("rpy2")
     from citk.tests.adapter_tests import HarteminkChiSq
 
     data_ind, data_dep = _continuous_data(seed=16, n=300)

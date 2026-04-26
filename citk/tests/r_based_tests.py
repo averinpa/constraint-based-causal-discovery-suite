@@ -8,6 +8,7 @@ from causallearn.utils.cit import (
     register_ci_test,
 )
 
+from citk.exceptions import CITKComputationError, CITKDependencyError
 from .base import CITKTest, hash_parameters, inner_test_kwargs
 
 
@@ -19,7 +20,7 @@ def _load_rcit_package():
         import rpy2.robjects as ro
         from rpy2.robjects.packages import importr
     except ModuleNotFoundError as exc:
-        raise ImportError(
+        raise CITKDependencyError(
             "R-based CI tests require optional dependency 'rpy2'. "
             "Install with: pip install 'citk[r]' (or uv sync --extra r)."
         ) from exc
@@ -27,7 +28,7 @@ def _load_rcit_package():
     try:
         rcit_pkg = importr("RCIT")
     except Exception as exc:
-        raise ImportError(
+        raise CITKDependencyError(
             "R package 'RCIT' is required for RCoT/RCIT tests. "
             "Install in R from GitHub: ericstrobl/RCIT."
         ) from exc
@@ -40,7 +41,7 @@ def _load_bnlearn_package():
         from rpy2.robjects import pandas2ri
         from rpy2.robjects.packages import importr
     except ModuleNotFoundError as exc:
-        raise ImportError(
+        raise CITKDependencyError(
             "Hartemink CI test requires optional dependency 'rpy2'. "
             "Install with: pip install 'citk[r]' (or uv sync --extra r)."
         ) from exc
@@ -48,7 +49,7 @@ def _load_bnlearn_package():
     try:
         bnlearn_pkg = importr("bnlearn")
     except Exception as exc:
-        raise ImportError(
+        raise CITKDependencyError(
             "R package 'bnlearn' is required for Hartemink discretization. "
             "Install from CRAN in your R environment."
         ) from exc
@@ -68,7 +69,7 @@ def _extract_p_value(result) -> float:
     try:
         return float(result.rx2("p")[0])
     except Exception as exc:
-        raise RuntimeError("Could not extract 'p' from RCIT result.") from exc
+        raise CITKComputationError("Could not extract 'p' from RCIT result.") from exc
 
 
 class _RCITBase(CITKTest):
@@ -154,14 +155,14 @@ def _load_mxm_package():
         import rpy2.robjects as ro
         from rpy2.robjects import pandas2ri
     except ModuleNotFoundError as exc:
-        raise ImportError(
+        raise CITKDependencyError(
             "R-based MXM tests require optional dependency 'rpy2'. "
             "Install with: pip install 'citk[r]' (or uv sync --extra r)."
         ) from exc
     try:
         ro.r("library(MXM)")
     except Exception as exc:
-        raise ImportError(
+        raise CITKDependencyError(
             "R package 'MXM' is required for ci.mm test. "
             "Install from CRAN: install.packages('MXM')."
         ) from exc

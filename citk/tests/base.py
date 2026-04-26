@@ -10,6 +10,8 @@ from typing import Any, Mapping, Optional
 import numpy as np
 from causallearn.utils.cit import CIT_Base, NO_SPECIFIED_PARAMETERS_MSG
 
+from citk.exceptions import CITKComputationError, CITKError
+
 CACHE_FORMAT_VERSION = "1.0"
 
 
@@ -142,7 +144,16 @@ class CITKTest(CIT_Base):
         if cache_key in self.pvalue_cache:
             return float(self.pvalue_cache[cache_key])
 
-        p_value = float(self._compute(X, Y, condition_set, **kwargs))
+        try:
+            p_value = float(self._compute(X, Y, condition_set, **kwargs))
+        except CITKError:
+            # Already a typed citk exception (e.g. CITKDependencyError); re-raise.
+            raise
+        except Exception as exc:
+            raise CITKComputationError(
+                f"{type(self).__name__} failed for X={X}, Y={Y}, "
+                f"S={condition_set}: {exc}"
+            ) from exc
         self.pvalue_cache[cache_key] = str(p_value)
         return p_value
 

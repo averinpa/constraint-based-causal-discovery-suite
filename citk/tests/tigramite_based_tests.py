@@ -4,6 +4,7 @@ from typing import List, Optional
 import numpy as np
 from causallearn.utils.cit import register_ci_test
 
+from citk.exceptions import CITKComputationError, CITKDependencyError
 from .base import CITKTest, hash_parameters
 
 
@@ -11,7 +12,7 @@ def _load_tigramite():
     try:
         tp = importlib.import_module("tigramite.data_processing")
     except ModuleNotFoundError as exc:
-        raise ImportError(
+        raise CITKDependencyError(
             "Tigramite-based CI tests require optional dependency 'tigramite'. "
             "Install with: pip install tigramite."
         ) from exc
@@ -27,21 +28,23 @@ def _load_tigramite_test_class(candidates: List[str]):
             return getattr(module, class_name)
         except Exception as exc:
             last_exc = exc
-    raise ImportError(f"Could not import tigramite test class from {candidates}") from last_exc
+    raise CITKDependencyError(
+        f"Could not import tigramite test class from {candidates}"
+    ) from last_exc
 
 
 def _extract_tigramite_pvalue(result) -> float:
     if isinstance(result, tuple):
         if len(result) >= 2:
             return float(result[1])
-        raise RuntimeError("Unexpected tuple result from tigramite run_test.")
+        raise CITKComputationError("Unexpected tuple result from tigramite run_test.")
     if isinstance(result, dict):
         for key in ("pval", "p_value", "p"):
             if key in result:
                 return float(result[key])
     if isinstance(result, (float, np.floating)):
         return float(result)
-    raise RuntimeError(f"Unexpected tigramite result type: {type(result)}")
+    raise CITKComputationError(f"Unexpected tigramite result type: {type(result)}")
 
 
 class _TigramiteBase(CITKTest):

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -77,11 +77,11 @@ class _RCITBase(CITKTest):
     method_name = ""
     rcit_func_name = ""
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)
         self.check_cache_method_consistent(self.method_name, NO_SPECIFIED_PARAMETERS_MSG)
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
         ro, rcit_pkg = _load_rcit_package()
 
         x = _to_r_vector(ro, self.data[:, X])
@@ -108,7 +108,7 @@ class RCIT(_RCITBase):
 class HarteminkChiSq(CITKTest):
     supported_dtypes = {"continuous", "discrete"}
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         self.breaks = kwargs.get("breaks", 4)
         self.ibreaks = kwargs.get("ibreaks", 10)
         discretized = self._hartemink_discretize(data)
@@ -140,7 +140,7 @@ class HarteminkChiSq(CITKTest):
             out[:, j] = pd.Categorical(disc_df[col]).codes
         return out
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
         return float(self.test_instance(X, Y, condition_set))
 
 
@@ -179,7 +179,7 @@ class CiMM(CITKTest):
     """
     supported_dtypes = {"continuous", "discrete"}
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)
         self.data_type = kwargs.get("data_type", None)
         self.check_cache_method_consistent(
@@ -202,7 +202,7 @@ class CiMM(CITKTest):
             types.append("nominal" if is_discrete else "gaussian")
         return types
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
         ro, _ = _load_mxm_package()
 
         all_cols = [X, Y] + (condition_set or [])

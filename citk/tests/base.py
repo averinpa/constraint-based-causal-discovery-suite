@@ -5,7 +5,7 @@ import json
 import os
 import time
 import warnings
-from typing import Any, Mapping, Optional
+from typing import Any, Iterable, List, Mapping, Optional
 
 import numpy as np
 from causallearn.utils.cit import CIT_Base, NO_SPECIFIED_PARAMETERS_MSG
@@ -65,7 +65,12 @@ class CITKTest(CIT_Base):
     """
     supported_dtypes: set = set()
 
-    def __init__(self, data: np.ndarray, cache_path: Optional[str] = None, **kwargs) -> None:
+    def __init__(
+        self,
+        data: np.ndarray,
+        cache_path: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the test and (optionally) load a JSON p-value cache.
 
         Parameters
@@ -115,7 +120,9 @@ class CITKTest(CIT_Base):
                 if parent_dir:
                     os.makedirs(parent_dir, exist_ok=True)
 
-    def _normalize_condition_set(self, condition_set):
+    def _normalize_condition_set(
+        self, condition_set: Optional[Iterable[int]]
+    ) -> List[int]:
         if condition_set is None:
             return []
         return list(condition_set)
@@ -138,7 +145,13 @@ class CITKTest(CIT_Base):
         """Save the cache on garbage collection as a last-chance flush."""
         self.save_cache()
 
-    def __call__(self, X, Y, condition_set=None, **kwargs):
+    def __call__(
+        self,
+        X: int,
+        Y: int,
+        condition_set: Optional[Iterable[int]] = None,
+        **kwargs: Any,
+    ) -> float:
         condition_set = self._normalize_condition_set(condition_set)
         _, _, _, cache_key = self.get_formatted_XYZ_and_cachekey(X, Y, condition_set)
         if cache_key in self.pvalue_cache:
@@ -157,5 +170,11 @@ class CITKTest(CIT_Base):
         self.pvalue_cache[cache_key] = str(p_value)
         return p_value
 
-    def _compute(self, X, Y, condition_set=None, **kwargs):
+    def _compute(
+        self,
+        X: int,
+        Y: int,
+        condition_set: Optional[List[int]] = None,
+        **kwargs: Any,
+    ) -> float:
         raise NotImplementedError("Subclasses must implement _compute.")

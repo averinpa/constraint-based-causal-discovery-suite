@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Optional
+from typing import Any, List, Optional
 import pandas as pd
 
 from causallearn.utils.cit import register_ci_test, NO_SPECIFIED_PARAMETERS_MSG, Chisq_or_Gsq, CIT
@@ -17,13 +17,13 @@ class FisherZ(CITKTest):
     """
     supported_dtypes = {"continuous"}
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)
         self.data = data
         self.check_cache_method_consistent('fisherz_citk', "NO SPECIFIED PARAMETERS")
         self.test_instance = CIT(data, method_name='fisherz', **inner_test_kwargs(kwargs))
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs: Any) -> float:
         """
         Performs a Fisher-Z conditional independence test.
 
@@ -119,7 +119,7 @@ class Spearman(CITKTest):
     """
     supported_dtypes = {"continuous"}
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         # Rank the data to convert Pearson's correlation to Spearman's.
         ranked_data = pd.DataFrame(data).rank().to_numpy()
 
@@ -129,7 +129,7 @@ class Spearman(CITKTest):
         self.check_cache_method_consistent('spearman', NO_SPECIFIED_PARAMETERS_MSG)
         self.test_instance = CIT(self.data, method_name='fisherz', **inner_test_kwargs(kwargs))
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs: Any) -> float:
         """
         Performs a Spearman partial correlation conditional independence test.
 
@@ -222,12 +222,12 @@ class GSq(CITKTest):
     """
     supported_dtypes = {"discrete"}
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)
         self.check_cache_method_consistent('gsq', "NO SPECIFIED PARAMETERS")
         self.test_instance = Chisq_or_Gsq(data, method_name='gsq', **inner_test_kwargs(kwargs))
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs: Any) -> float:
         """
         Performs a G-Square conditional independence test for discrete data.
 
@@ -321,12 +321,12 @@ class ChiSq(CITKTest):
     """
     supported_dtypes = {"discrete"}
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)
         self.check_cache_method_consistent('chisq', "NO SPECIFIED PARAMETERS")
         self.test_instance = Chisq_or_Gsq(data, method_name='chisq', **inner_test_kwargs(kwargs))
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs: Any) -> float:
         """
         Performs a Chi-Square conditional independence test for discrete data.
 

@@ -1,5 +1,5 @@
 import importlib
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 from causallearn.utils.cit import register_ci_test
@@ -52,7 +52,7 @@ class _TigramiteBase(CITKTest):
     method_name = ""
     class_candidates: List[str] = []
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)
         self.test_kwargs = kwargs.get("test_kwargs", {})
         self.data_type = kwargs.get("data_type", None)
@@ -61,7 +61,7 @@ class _TigramiteBase(CITKTest):
             hash_parameters({"test_kwargs": self.test_kwargs, "data_type": self.data_type}),
         )
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
         tp = _load_tigramite()
         test_cls = _load_tigramite_test_class(self.class_candidates)
 

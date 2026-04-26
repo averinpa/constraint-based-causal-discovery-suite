@@ -2,7 +2,7 @@
 
 import contextlib
 import io
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 from causallearn.utils.cit import register_ci_test
@@ -18,11 +18,11 @@ class GCM(CITKTest):
     """
     supported_dtypes = {"continuous", "discrete"}
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)
         self.check_cache_method_consistent("gcm", "pycomets_GCM_RF")
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
         from pycomets.gcm import GCM as PyGCMImpl
         from pycomets.regression import RF
 
@@ -48,11 +48,11 @@ class WGCM(CITKTest):
     """
     supported_dtypes = {"continuous", "discrete"}
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)
         self.check_cache_method_consistent("wgcm", "pycomets_WGCM_RF")
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
         from pycomets.gcm import WGCM as PyWGCMImpl
         from pycomets.regression import RF
 
@@ -78,11 +78,11 @@ class PCM(CITKTest):
     """
     supported_dtypes = {"continuous", "discrete"}
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)
         self.check_cache_method_consistent("pcm", "pycomets_PCM_RF")
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
         from pycomets.pcm import PCM as PyPCMImpl
 
         x = self.data[:, X].astype(float)

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 from causallearn.utils.cit import register_ci_test
@@ -11,14 +11,14 @@ class MCMIknn(CITKTest):
 
     supported_dtypes = {"continuous", "discrete"}
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         super().__init__(data, **kwargs)
         self.test_kwargs = kwargs.get("test_kwargs", {})
         self.check_cache_method_consistent(
             "mcmiknn", hash_parameters({"test_kwargs": self.test_kwargs})
         )
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
         from citk._vendor.indeptests import mCMIkNN
 
         x = self.data[:, X]

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -38,7 +38,7 @@ def _equal_frequency_discretize(data: np.ndarray, n_bins: int = 5) -> np.ndarray
 class DiscChiSq(CITKTest):
     supported_dtypes = {"continuous", "discrete"}
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         self.n_bins = kwargs.get("n_bins", 5)
         disc_data = _equal_frequency_discretize(data, n_bins=self.n_bins)
         super().__init__(disc_data, **kwargs)
@@ -47,7 +47,7 @@ class DiscChiSq(CITKTest):
         )
         self.test_instance = Chisq_or_Gsq(self.data, method_name="chisq", **inner_test_kwargs(kwargs))
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
         return float(self.test_instance(X, Y, condition_set))
 
 
@@ -57,7 +57,7 @@ register_ci_test("disc_chisq", DiscChiSq)
 class DiscGSq(CITKTest):
     supported_dtypes = {"continuous", "discrete"}
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         self.n_bins = kwargs.get("n_bins", 5)
         disc_data = _equal_frequency_discretize(data, n_bins=self.n_bins)
         super().__init__(disc_data, **kwargs)
@@ -66,7 +66,7 @@ class DiscGSq(CITKTest):
         )
         self.test_instance = Chisq_or_Gsq(self.data, method_name="gsq", **inner_test_kwargs(kwargs))
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
         return float(self.test_instance(X, Y, condition_set))
 
 
@@ -76,7 +76,7 @@ register_ci_test("disc_gsq", DiscGSq)
 class DummyFisherZ(CITKTest):
     supported_dtypes = {"continuous", "discrete"}
 
-    def __init__(self, data: np.ndarray, **kwargs):
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         self.max_levels = kwargs.get("max_levels", 10)
         expanded_blocks = []
         self.col_map = {}
@@ -102,7 +102,7 @@ class DummyFisherZ(CITKTest):
         )
         self.test_instance = CIT(self.data, method_name="fisherz", **inner_test_kwargs(kwargs))
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
+    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
         x_cols = self.col_map[X]
         y_cols = self.col_map[Y]
         z_cols = []

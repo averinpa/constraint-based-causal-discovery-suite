@@ -118,15 +118,18 @@ class HarteminkChiSq(CITKTest):
 
     def _hartemink_discretize(self, data: np.ndarray) -> np.ndarray:
         pandas2ri, bnlearn_pkg = _load_bnlearn_package()
+        from rpy2.robjects import default_converter
+        from rpy2.robjects.conversion import localconverter
+
         frame = pd.DataFrame(data, columns=[f"v{i}" for i in range(data.shape[1])])
-        r_frame = pandas2ri.py2rpy(frame)
-        r_disc = bnlearn_pkg.discretize(
-            r_frame,
-            method="hartemink",
-            breaks=self.breaks,
-            ibreaks=self.ibreaks,
-        )
-        disc_df = pandas2ri.rpy2py(r_disc)
+        with localconverter(default_converter + pandas2ri.converter):
+            r_frame = pandas2ri.py2rpy(frame)
+            disc_df = bnlearn_pkg.discretize(
+                r_frame,
+                method="hartemink",
+                breaks=self.breaks,
+                ibreaks=self.ibreaks,
+            )
         if not isinstance(disc_df, pd.DataFrame):
             disc_df = pd.DataFrame(disc_df)
         out = np.zeros((len(disc_df), disc_df.shape[1]), dtype=int)

@@ -1,6 +1,6 @@
 # How to Choose a Conditional Independence Test
 
-Choosing the right conditional independence (CI) test depends on the type of your data and the assumptions you are willing to make about the underlying dependence. `citk` ships 19 tests organised under the six survey families plus four robustness-wrapper adapters; this guide gives a practical mapping from data + assumptions to tests.
+Choosing the right conditional independence (CI) test depends on the type of your data and the assumptions you are willing to make about the underlying dependence. `citk` ships 19 tests organised under the six survey families plus four adapter strategies; this guide gives a practical mapping from data + assumptions to tests.
 
 ## Key Considerations
 
@@ -20,7 +20,7 @@ Choosing the right conditional independence (CI) test depends on the type of you
 
 - **Mixed continuous + discrete**:
     - `cmiknn_mixed`: mixed-type kNN CMI estimator (tigramite).
-    - `mcmiknn`: another mixed-type kNN CMI implementation (local wrapper).
+    - `mcmiknn`: another mixed-type kNN CMI implementation (vendored from upstream `hpi-epic/mCMIkNN`).
     - `regci`: parametric likelihood-ratio test using GLM regression chosen per response type (continuous → linear, discrete → logistic).
     - `ci_mm`: symmetric likelihood-ratio test from R `MXM` that runs both regression directions and combines them.
     - `disc_chisq`, `disc_gsq`: equal-frequency discretisation adapters around classical discrete tests.
@@ -50,14 +50,14 @@ Choosing the right conditional independence (CI) test depends on the type of you
 | `ci_mm` | Regression | Mixed | Any (within model class) | Correct linear/logistic per variable; requires `rpy2` + R `MXM` |
 | `cmiknn` | Nearest Neighbor | Continuous | Any | Sample size adequate for kNN density estimation; requires `tigramite` |
 | `cmiknn_mixed` | Nearest Neighbor | Mixed | Any | Variable types declared via `data_type`; requires `tigramite` |
-| `mcmiknn` | Nearest Neighbor | Mixed | Any | Requires local mCMIkNN repository |
+| `mcmiknn` | Nearest Neighbor | Mixed | Any | Vendored upstream `mCMIkNN`; no extra install required |
 | `kci` | Kernel | Continuous | Any | Suitable kernel choice; cost is at least quadratic in $n$ |
 | `rcit` | Kernel | Continuous | Any | Random-feature approximation; requires `rpy2` + R `RCIT` |
 | `rcot` | Kernel | Continuous | Any | Random-feature approximation with reduced-dim conditioning; requires `rpy2` + R `RCIT` |
 | `gcm` | Machine-Learning-Based | Continuous | Any | Consistent nuisance regression; requires `pycomets` |
 | `wgcm` | Machine-Learning-Based | Continuous | Any (esp. localised) | Consistent nuisance regression + sample splitting; requires `pycomets` |
 | `pcm` | Machine-Learning-Based | Continuous | Any (assumption-lean) | Consistent residualisation; requires `pycomets` |
-| `disc_chisq` | Robustness Wrappers | Mixed or continuous | Any | Discretisation preserves dependence; ChiSq cell-count rule |
-| `disc_gsq` | Robustness Wrappers | Mixed or continuous | Any | Discretisation preserves dependence; GSq cell-count rule |
-| `dummy_fisherz` | Robustness Wrappers | Mixed or discrete | Any (encoded space) | One-hot encoding fidelity; combined p-values approximation |
-| `hartemink_chisq` | Robustness Wrappers | Mixed or continuous | Any | Information-preserving discretisation; requires `rpy2` + R `bnlearn` |
+| `disc_chisq` | Adapter Strategies | Mixed or continuous | Any | Discretisation preserves dependence; ChiSq cell-count rule |
+| `disc_gsq` | Adapter Strategies | Mixed or continuous | Any | Discretisation preserves dependence; GSq cell-count rule |
+| `dummy_fisherz` | Adapter Strategies | Mixed or discrete | Any (encoded space) | One-hot encoding fidelity; combined p-values approximation |
+| `hartemink_chisq` | Adapter Strategies | Mixed or continuous | Any | Information-preserving discretisation; requires `rpy2` + R `bnlearn` |

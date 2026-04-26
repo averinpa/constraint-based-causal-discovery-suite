@@ -1,12 +1,11 @@
 # `citk`: A Conditional Independence Test Toolkit
 
-`citk` is a Python library that provides a comprehensive and modern toolkit for conditional independence (CI) testing. It is designed to be seamlessly integrated with the [`causal-learn`](https://github.com/cmu-phil/causal-learn) package and offers a collection of classical, statistical, and advanced machine learning-based CI tests.
+`citk` is a Python library that provides a comprehensive toolkit for conditional independence (CI) testing. It is designed to be seamlessly integrated with the [`causal-learn`](https://github.com/cmu-phil/causal-learn) package and offers a collection of partial correlation, contingency table, regression, nearest neighbor, kernel, and machine-learning-based CI tests, plus adapter strategies.
 
 The library is structured to be a powerful benchmark for causal discovery and a practical toolkit for researchers and practitioners.
 
 ## Features
 
-- **Survey-aligned coverage**: 19 conditional independence tests organised by the six families of the Paper 0 survey (partial correlation, contingency table, regression, nearest neighbor, kernel, machine-learning-based) plus four robustness-wrapper adapters.
 - **`causal-learn` compatible**: All tests are designed as drop-in replacements for the standard tests in the `causal-learn` ecosystem, allowing you to easily use them with algorithms like PC.
 
 ## Installation
@@ -27,12 +26,12 @@ Optional dependency groups in `pyproject.toml`:
 
 - `pycomets` — required for `gcm`, `wgcm`, `pcm` (installs `pycomets` and `xgboost`)
 - `tigramite` — required for `cmiknn`, `cmiknn_mixed`, `regci`
-- `r` — required for `kci`-via-RCIT, `rcit`, `rcot`, `ci_mm`, `hartemink_chisq` (installs `rpy2`); the corresponding R packages must also be installed:
+- `r` — required for `rcit`, `rcot`, `ci_mm`, `hartemink_chisq` (installs `rpy2`); the corresponding R packages must also be installed:
   - `RCIT` from GitHub `ericstrobl/RCIT` (for `rcit`, `rcot`)
   - `MXM` from CRAN (for `ci_mm`)
   - `bnlearn` from CRAN (for `hartemink_chisq`)
 
-The `mcmiknn` wrapper additionally requires a local checkout of the upstream `mCMIkNN` repository on disk (see :doc:`docs/source/guides/installation`).
+The `mcmiknn` test uses a vendored copy of the upstream [hpi-epic/mCMIkNN](https://github.com/hpi-epic/mCMIkNN) source under `citk/_vendor/indeptests/`; no additional installation is required.
 
 ## Quickstart Example
 
@@ -69,17 +68,17 @@ print(cg.G.get_edges())
 | `ci_mm` | Regression | R `MXM::ci.mm` via `rpy2` (optional) |
 | `cmiknn` | Nearest Neighbor | `tigramite.independence_tests.cmiknn.CMIknn` (optional) |
 | `cmiknn_mixed` | Nearest Neighbor | `tigramite` CMIknnMixed wrapper (optional) |
-| `mcmiknn` | Nearest Neighbor | Local wrapper from `/Users/pavelaverin/Projects/vendor/mCMIkNN/src` (optional) |
+| `mcmiknn` | Nearest Neighbor | Vendored `indeptests.mCMIkNN` from [hpi-epic/mCMIkNN](https://github.com/hpi-epic/mCMIkNN) (no install required) |
 | `kci` | Kernel | `causal-learn` Python KCI |
 | `rcit` | Kernel | R `RCIT::RCIT` via `rpy2` (optional) |
 | `rcot` | Kernel | R `RCIT::RCoT` via `rpy2` (optional) |
 | `gcm` | Machine-Learning-Based | `pycomets` GCM with random forest regression (optional) |
 | `wgcm` | Machine-Learning-Based | `pycomets` WGCM with random forest regression (optional) |
 | `pcm` | Machine-Learning-Based | `pycomets` PCM with random forest regression (optional) |
-| `disc_chisq` | Robustness Wrappers | Native `citk` equal-frequency discretization + `causal-learn` Chi-Square |
-| `disc_gsq` | Robustness Wrappers | Native `citk` equal-frequency discretization + `causal-learn` G-Square |
-| `dummy_fisherz` | Robustness Wrappers | Native `citk` one-hot encoding + `causal-learn` Fisher-Z aggregation |
-| `hartemink_chisq` | Robustness Wrappers | R `bnlearn` Hartemink discretization + `causal-learn` Chi-Square (optional) |
+| `disc_chisq` | Adapter Strategies | Native `citk` equal-frequency discretization + `causal-learn` Chi-Square |
+| `disc_gsq` | Adapter Strategies | Native `citk` equal-frequency discretization + `causal-learn` G-Square |
+| `dummy_fisherz` | Adapter Strategies | Native `citk` one-hot encoding + `causal-learn` Fisher-Z aggregation |
+| `hartemink_chisq` | Adapter Strategies | R `bnlearn` Hartemink discretization + `causal-learn` Chi-Square (optional) |
 
 ### Module Layout (Survey Taxonomy)
 

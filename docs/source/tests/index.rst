@@ -53,7 +53,7 @@ taxonomy family.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Robustness Wrappers
+   :caption: Adapter Strategies
 
    disc_chisq_test
    disc_gsq_test

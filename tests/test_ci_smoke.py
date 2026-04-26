@@ -1,5 +1,4 @@
 import importlib
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -75,57 +74,54 @@ def test_dummy_fisherz_smoke():
     assert p_dep < 0.05
 
 
-def test_rcot_missing_rpy2_has_clear_error():
-    if importlib.util.find_spec("rpy2") is not None:
-        pytest.skip("rpy2 is installed; missing-dependency path is not applicable")
+def test_rcot_smoke():
+    from citk.tests.kernel_tests import RCoT
 
-    from citk.tests.r_based_tests import RCoT
-
-    data_ind, _ = _continuous_data(seed=9, n=80)
-    with pytest.raises(ImportError, match="rpy2"):
-        RCoT(data_ind)(0, 1)
-
-
-def test_cmiknn_missing_tigramite_has_clear_error():
-    if importlib.util.find_spec("tigramite") is not None:
-        pytest.skip("tigramite is installed; missing-dependency path is not applicable")
-
-    from citk.tests.tigramite_based_tests import CMIknn
-
-    data_ind, _ = _continuous_data(seed=14, n=80)
-    with pytest.raises(ImportError, match="tigramite"):
-        CMIknn(data_ind)(0, 1)
+    data_ind, data_dep = _continuous_data(seed=9, n=300)
+    p_ind = RCoT(data_ind)(0, 1)
+    p_dep = RCoT(data_dep)(0, 1)
+    assert p_ind > 0.05
+    assert p_dep < 0.05
 
 
-def test_regci_missing_tigramite_has_clear_error():
-    if importlib.util.find_spec("tigramite") is not None:
-        pytest.skip("tigramite is installed; missing-dependency path is not applicable")
+def test_cmiknn_smoke():
+    from citk.tests.nearest_neighbor_tests import CMIknn
 
-    from citk.tests.tigramite_based_tests import RegressionCI
-
-    data_ind, _ = _continuous_data(seed=15, n=80)
-    with pytest.raises(ImportError, match="tigramite"):
-        RegressionCI(data_ind)(0, 1)
-
-
-def test_hartemink_missing_rpy2_has_clear_error():
-    if importlib.util.find_spec("rpy2") is not None:
-        pytest.skip("rpy2 is installed; missing-dependency path is not applicable")
-
-    from citk.tests.r_based_tests import HarteminkChiSq
-
-    data_ind, _ = _continuous_data(seed=16, n=80)
-    with pytest.raises(ImportError, match="rpy2"):
-        HarteminkChiSq(data_ind)(0, 1)
+    data_ind, data_dep = _continuous_data(seed=14, n=120)
+    cmiknn_kwargs = {"test_kwargs": {"sig_samples": 49}}
+    p_ind = CMIknn(data_ind, **cmiknn_kwargs)(0, 1)
+    p_dep = CMIknn(data_dep, **cmiknn_kwargs)(0, 1)
+    assert p_ind > 0.05
+    assert p_dep < 0.05
 
 
-def test_mcmiknn_missing_local_repo_has_clear_error():
-    repo_path = Path("/Users/pavelaverin/Projects/vendor/mCMIkNN/src")
-    if repo_path.exists():
-        pytest.skip("local mCMIkNN repo is present; missing-repo path is not applicable")
+def test_regci_smoke():
+    from citk.tests.regression_tests import RegressionCI
 
-    data_ind, _ = _continuous_data(seed=17, n=80)
-    with pytest.raises(ImportError, match="mCMIkNN wrapper requires local source"):
-        MCMIknn(data_ind)(0, 1)
+    data_ind, data_dep = _continuous_data(seed=15, n=400)
+    data_type = np.zeros(data_ind.shape, dtype="int32")
+    p_ind = RegressionCI(data_ind, data_type=data_type)(0, 1)
+    p_dep = RegressionCI(data_dep, data_type=data_type)(0, 1)
+    assert p_ind > 0.05
+    assert p_dep < 0.05
+
+
+def test_hartemink_chisq_smoke():
+    from citk.tests.adapter_tests import HarteminkChiSq
+
+    data_ind, data_dep = _continuous_data(seed=16, n=300)
+    p_ind = HarteminkChiSq(data_ind, breaks=3, ibreaks=6)(0, 1)
+    p_dep = HarteminkChiSq(data_dep, breaks=3, ibreaks=6)(0, 1)
+    assert p_ind > 0.05
+    assert p_dep < 0.05
+
+
+def test_mcmiknn_smoke():
+    data_ind, data_dep = _continuous_data(seed=17, n=120)
+    mcmiknn_kwargs = {"test_kwargs": {"Mperm": 49}}
+    p_ind = MCMIknn(data_ind, **mcmiknn_kwargs)(0, 1)
+    p_dep = MCMIknn(data_dep, **mcmiknn_kwargs)(0, 1)
+    assert p_ind > 0.05
+    assert p_dep < 0.05
 
 

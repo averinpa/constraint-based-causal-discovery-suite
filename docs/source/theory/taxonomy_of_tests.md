@@ -1,6 +1,6 @@
 # A Taxonomy of Conditional Independence Tests
 
-The 19 conditional independence tests in `citk` are organised under the six families of the Paper 0 survey, plus a robustness-wrapper group that contains adapters around base tests rather than constituting a distinct family. Understanding these groups helps you reason about which test fits a given research question and data type.
+The 19 conditional independence tests in `citk` are organised under the six families of the Paper 0 survey, plus a group of adapter strategies that wrap base tests rather than constituting a distinct family. Understanding these groups helps you reason about which test fits a given research question and data type.
 
 ## 1. Partial Correlation
 
@@ -56,9 +56,9 @@ Tests built around nuisance regressions estimated by flexible ML predictors, wit
 - **Strengths**: Asymptotic-normal calibration with flexible nuisance models; `wgcm` adds power on localised dependence; `pcm` is assumption-lean and robust to weakly identified predictors.
 - **Weaknesses**: Requires sufficient sample size for nuisance estimation rates to hold; test calibration depends on the rate condition.
 
-## 7. Robustness Wrappers
+## 7. Adapter Strategies
 
-Adapters that modify or wrap a base test rather than constituting a distinct family. The survey explicitly notes they are "robustness layers" rather than a seventh family.
+Adapters that modify or wrap a base test rather than constituting a distinct family. The survey describes these as robustness layers — transformations applied on top of an existing CI test rather than a seventh family.
 
 - **Core idea**: Transform the data — discretise, dummy-encode, or apply an information-preserving binning — and then call a base CI test on the transformed data.
 - **Examples in `citk`**: `disc_chisq`, `disc_gsq` (equal-frequency discretisation + `chisq`/`gsq`); `dummy_fisherz` (one-hot encoding + Fisher's combined `fisherz`); `hartemink_chisq` (Hartemink information-preserving discretisation via R `bnlearn` + `chisq`).

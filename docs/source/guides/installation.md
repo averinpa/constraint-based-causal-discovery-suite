@@ -50,10 +50,3 @@ R-backed tests are optional and require:
 uv sync --extra r
 ```
 
-## Local External Wrappers
-
-The `mcmiknn` wrapper expects a local checkout of the upstream repository:
-
-- `mcmiknn` -> `/Users/pavelaverin/Projects/vendor/mCMIkNN/src`
-
-If the path is not available, the wrapper raises a clear `ImportError` when called.

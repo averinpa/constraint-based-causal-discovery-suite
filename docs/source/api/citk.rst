@@ -97,8 +97,8 @@ ML-Based Tests
    :show-inheritance:
    :special-members: __call__
 
-Adapter Tests
--------------
+Adapter Strategies
+------------------
 
 .. autoclass:: citk.tests.DiscChiSq
    :members:

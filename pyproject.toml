@@ -31,7 +31,7 @@ dependencies = [
 r = ["rpy2"]
 tigramite = ["tigramite"]
 pycomets = ["pycomets @ git+https://github.com/shimenghuang/pycomets.git", "xgboost"]
-docs = ["sphinx", "sphinx-rtd-theme", "myst-parser"]
+docs = ["sphinx", "furo", "myst-parser"]
 dev = ["pytest", "ipython", "jupyterlab", "ipykernel"]
 
 [tool.hatch.metadata]

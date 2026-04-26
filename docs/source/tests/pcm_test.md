@@ -30,6 +30,10 @@ Under the null, $T_{\mathrm{PCM}} \xrightarrow{d} \mathcal{N}(0, 1)$ under nuisa
 - **Sample size.** Both folds need to be large enough for the projection step on the first fold and the test statistic on the second fold (Lundborg et al., 2024).
 - **Optimality.** A spline-regression version achieves the minimax optimal rate for this nonparametric testing problem (Lundborg et al., 2024).
 
+## v0.1.0 implementation notes
+
+The pycomets backend, regressor (`RandomForestRegressor`), the projection estimator, and the sample-splitting fold count are **not surfaced as constructor kwargs in v0.1.0**. Future minor versions may add explicit kwargs additively. **Empty conditioning set** is handled by substituting a constant column $Z = 0$, as in :doc:`/tests/gcm_test`.
+
 ## Code Example
 
 ```python

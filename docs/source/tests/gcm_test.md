@@ -29,6 +29,12 @@ Under the null $X \perp Y \mid Z$, $T_{\mathrm{GCM}} \xrightarrow{d} \mathcal{N}
 - **No uniformly powerful CI test exists.** Shah & Peters (2020) prove that a valid CI test cannot have power against arbitrary alternatives: GCM's validity is universal but its power is alternative-class-dependent.
 - **Sample size.** Studentised normal calibration requires an adequate sample for stable variance estimation (Shah & Peters, 2020).
 
+## v0.1.0 implementation notes
+
+The pycomets backend, regressor (`RandomForestRegressor`), and its hyperparameters are **not surfaced as constructor kwargs in v0.1.0**. The wrapper accepts `cache_path` only; the underlying regression is fixed to pycomets defaults. Future minor versions may add explicit kwargs (e.g. `regressor`, `n_estimators`) — these will be additive, never removing today's defaults, so v0.1.0 calls remain valid.
+
+**Empty conditioning set**: when `condition_set` is empty (or `None`), the wrapper substitutes a single constant column $Z = 0$ before passing to pycomets. This means `GCM(data)(X, Y, [])` tests $X \perp Y$ marginally via residualisation against a constant, not via the no-conditioning path. The other 16 tests in citk pass an empty conditioning set through unchanged. Same behavior applies to :doc:`/tests/wgcm_test` and :doc:`/tests/pcm_test`.
+
 ## Code Example
 
 ```python

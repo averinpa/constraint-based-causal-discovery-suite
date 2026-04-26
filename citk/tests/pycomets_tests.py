@@ -7,7 +7,33 @@ from typing import Any, List, Optional
 import numpy as np
 from causallearn.utils.cit import register_ci_test
 
+from citk.exceptions import CITKDependencyError
 from .base import CITKTest
+
+
+def _load_pycomets_gcm():
+    try:
+        from pycomets.gcm import GCM as PyGCMImpl, WGCM as PyWGCMImpl
+        from pycomets.regression import RF
+    except ModuleNotFoundError as exc:
+        raise CITKDependencyError(
+            "pycomets-based CI tests (GCM, WGCM, PCM) require optional "
+            "dependency 'pycomets'. Install with: pip install 'citk[ml]' "
+            "(or uv sync --extra ml)."
+        ) from exc
+    return PyGCMImpl, PyWGCMImpl, RF
+
+
+def _load_pycomets_pcm():
+    try:
+        from pycomets.pcm import PCM as PyPCMImpl
+    except ModuleNotFoundError as exc:
+        raise CITKDependencyError(
+            "pycomets-based CI tests (GCM, WGCM, PCM) require optional "
+            "dependency 'pycomets'. Install with: pip install 'citk[ml]' "
+            "(or uv sync --extra ml)."
+        ) from exc
+    return PyPCMImpl
 
 
 class GCM(CITKTest):
@@ -23,8 +49,7 @@ class GCM(CITKTest):
         self.check_cache_method_consistent("gcm", "pycomets_GCM_RF")
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
-        from pycomets.gcm import GCM as PyGCMImpl
-        from pycomets.regression import RF
+        PyGCMImpl, _, RF = _load_pycomets_gcm()
 
         x = self.data[:, X].astype(float)
         y = self.data[:, Y].astype(float)
@@ -53,8 +78,7 @@ class WGCM(CITKTest):
         self.check_cache_method_consistent("wgcm", "pycomets_WGCM_RF")
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
-        from pycomets.gcm import WGCM as PyWGCMImpl
-        from pycomets.regression import RF
+        _, PyWGCMImpl, RF = _load_pycomets_gcm()
 
         x = self.data[:, X].astype(float)
         y = self.data[:, Y].astype(float)
@@ -83,7 +107,7 @@ class PCM(CITKTest):
         self.check_cache_method_consistent("pcm", "pycomets_PCM_RF")
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
-        from pycomets.pcm import PCM as PyPCMImpl
+        PyPCMImpl = _load_pycomets_pcm()
 
         x = self.data[:, X].astype(float)
         y = self.data[:, Y].astype(float)

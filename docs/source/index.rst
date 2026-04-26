@@ -34,10 +34,11 @@ user guide and a research reference for the underlying statistical theory.
    :caption: API Reference
 
    api/modules
+   api_stability
 
 .. toctree::
    :maxdepth: 1
    :caption: Development
 
    contributing
-   changelog 
+   changelog

@@ -28,6 +28,10 @@ where $n_2$ is the size of the second fold (Scheidegger et al., 2022). Under the
 - **Useful weight learning.** The weighting function provides power gains only when the dependence has localisable structure; on globally constant alternatives, WGCM may have less power than GCM, by design (Scheidegger et al., 2022).
 - **Variable types.** Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively (Shah & Peters, 2020); for binary or categorical $X$ and $Y$, Scheidegger et al. (2022) describe a variant with power against all alternatives.
 
+## v0.1.0 implementation notes
+
+The pycomets backend, regressor (`RandomForestRegressor`), the weighting estimator, and the sample-splitting fold count are **not surfaced as constructor kwargs in v0.1.0**. Future minor versions may add explicit kwargs additively. **Empty conditioning set** is handled by substituting a constant column $Z = 0$, as in :doc:`/tests/gcm_test`.
+
 ## Code Example
 
 ```python

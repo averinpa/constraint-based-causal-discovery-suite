@@ -2,9 +2,9 @@ import importlib
 from typing import List, Optional
 
 import numpy as np
-from causallearn.utils.cit import NO_SPECIFIED_PARAMETERS_MSG, register_ci_test
+from causallearn.utils.cit import register_ci_test
 
-from .base import CITKTest
+from .base import CITKTest, hash_parameters
 
 
 def _load_tigramite():
@@ -53,7 +53,10 @@ class _TigramiteBase(CITKTest):
         super().__init__(data, **kwargs)
         self.test_kwargs = kwargs.get("test_kwargs", {})
         self.data_type = kwargs.get("data_type", None)
-        self.check_cache_method_consistent(self.method_name, NO_SPECIFIED_PARAMETERS_MSG)
+        self.check_cache_method_consistent(
+            self.method_name,
+            hash_parameters({"test_kwargs": self.test_kwargs, "data_type": self.data_type}),
+        )
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
         tp = _load_tigramite()

@@ -3,7 +3,7 @@ from typing import Optional
 import pandas as pd
 
 from causallearn.utils.cit import register_ci_test, NO_SPECIFIED_PARAMETERS_MSG, Chisq_or_Gsq, CIT
-from .base import CITKTest
+from .base import CITKTest, inner_test_kwargs
 
 
 class FisherZ(CITKTest):
@@ -21,7 +21,7 @@ class FisherZ(CITKTest):
         super().__init__(data, **kwargs)
         self.data = data
         self.check_cache_method_consistent('fisherz_citk', "NO SPECIFIED PARAMETERS")
-        self.test_instance = CIT(data, method_name='fisherz', **kwargs)
+        self.test_instance = CIT(data, method_name='fisherz', **inner_test_kwargs(kwargs))
 
     def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs) -> float:
         """
@@ -127,7 +127,7 @@ class Spearman(CITKTest):
         super().__init__(ranked_data, **kwargs)
 
         self.check_cache_method_consistent('spearman', NO_SPECIFIED_PARAMETERS_MSG)
-        self.test_instance = CIT(self.data, method_name='fisherz', **kwargs)
+        self.test_instance = CIT(self.data, method_name='fisherz', **inner_test_kwargs(kwargs))
 
     def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs) -> float:
         """
@@ -225,7 +225,7 @@ class GSq(CITKTest):
     def __init__(self, data, **kwargs):
         super().__init__(data, **kwargs)
         self.check_cache_method_consistent('gsq', "NO SPECIFIED PARAMETERS")
-        self.test_instance = Chisq_or_Gsq(data, method_name='gsq', **kwargs)
+        self.test_instance = Chisq_or_Gsq(data, method_name='gsq', **inner_test_kwargs(kwargs))
 
     def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs) -> float:
         """
@@ -324,7 +324,7 @@ class ChiSq(CITKTest):
     def __init__(self, data, **kwargs):
         super().__init__(data, **kwargs)
         self.check_cache_method_consistent('chisq', "NO SPECIFIED PARAMETERS")
-        self.test_instance = Chisq_or_Gsq(data, method_name='chisq', **kwargs)
+        self.test_instance = Chisq_or_Gsq(data, method_name='chisq', **inner_test_kwargs(kwargs))
 
     def _compute(self, X: int, Y: int, condition_set: Optional[list[int]] = None, **kwargs) -> float:
         """

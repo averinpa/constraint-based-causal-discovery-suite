@@ -1,9 +1,9 @@
 from typing import List, Optional
 
 import numpy as np
-from causallearn.utils.cit import NO_SPECIFIED_PARAMETERS_MSG, register_ci_test
+from causallearn.utils.cit import register_ci_test
 
-from .base import CITKTest
+from .base import CITKTest, hash_parameters
 
 
 class MCMIknn(CITKTest):
@@ -14,7 +14,9 @@ class MCMIknn(CITKTest):
     def __init__(self, data: np.ndarray, **kwargs):
         super().__init__(data, **kwargs)
         self.test_kwargs = kwargs.get("test_kwargs", {})
-        self.check_cache_method_consistent("mcmiknn", NO_SPECIFIED_PARAMETERS_MSG)
+        self.check_cache_method_consistent(
+            "mcmiknn", hash_parameters({"test_kwargs": self.test_kwargs})
+        )
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
         from citk._vendor.indeptests import mCMIkNN

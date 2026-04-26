@@ -8,7 +8,7 @@ from causallearn.utils.cit import (
     register_ci_test,
 )
 
-from .base import CITKTest
+from .base import CITKTest, hash_parameters, inner_test_kwargs
 
 
 def _load_rcit_package():
@@ -112,9 +112,11 @@ class HarteminkChiSq(CITKTest):
         self.ibreaks = kwargs.get("ibreaks", 10)
         discretized = self._hartemink_discretize(data)
         super().__init__(discretized, **kwargs)
-        params = f"breaks={self.breaks},ibreaks={self.ibreaks}"
-        self.check_cache_method_consistent("hartemink_chisq", params)
-        self.test_instance = Chisq_or_Gsq(self.data, method_name="chisq", **kwargs)
+        self.check_cache_method_consistent(
+            "hartemink_chisq",
+            hash_parameters({"breaks": self.breaks, "ibreaks": self.ibreaks}),
+        )
+        self.test_instance = Chisq_or_Gsq(self.data, method_name="chisq", **inner_test_kwargs(kwargs))
 
     def _hartemink_discretize(self, data: np.ndarray) -> np.ndarray:
         pandas2ri, bnlearn_pkg = _load_bnlearn_package()
@@ -179,7 +181,9 @@ class CiMM(CITKTest):
     def __init__(self, data: np.ndarray, **kwargs):
         super().__init__(data, **kwargs)
         self.data_type = kwargs.get("data_type", None)
-        self.check_cache_method_consistent("ci_mm", NO_SPECIFIED_PARAMETERS_MSG)
+        self.check_cache_method_consistent(
+            "ci_mm", hash_parameters({"data_type": self.data_type})
+        )
 
     def _get_mxm_type(self, col_indices):
         """Build MXM type string for the given columns.

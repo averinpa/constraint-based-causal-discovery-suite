@@ -9,7 +9,7 @@ from causallearn.utils.cit import (
     Chisq_or_Gsq,
     register_ci_test,
 )
-from .base import CITKTest
+from .base import CITKTest, hash_parameters, inner_test_kwargs
 
 
 def _is_categorical_column(values: np.ndarray, max_levels: int = 10) -> bool:
@@ -42,9 +42,10 @@ class DiscChiSq(CITKTest):
         self.n_bins = kwargs.get("n_bins", 5)
         disc_data = _equal_frequency_discretize(data, n_bins=self.n_bins)
         super().__init__(disc_data, **kwargs)
-        params = f"n_bins={self.n_bins}"
-        self.check_cache_method_consistent("disc_chisq", params)
-        self.test_instance = Chisq_or_Gsq(self.data, method_name="chisq", **kwargs)
+        self.check_cache_method_consistent(
+            "disc_chisq", hash_parameters({"n_bins": self.n_bins})
+        )
+        self.test_instance = Chisq_or_Gsq(self.data, method_name="chisq", **inner_test_kwargs(kwargs))
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
         return float(self.test_instance(X, Y, condition_set))
@@ -60,9 +61,10 @@ class DiscGSq(CITKTest):
         self.n_bins = kwargs.get("n_bins", 5)
         disc_data = _equal_frequency_discretize(data, n_bins=self.n_bins)
         super().__init__(disc_data, **kwargs)
-        params = f"n_bins={self.n_bins}"
-        self.check_cache_method_consistent("disc_gsq", params)
-        self.test_instance = Chisq_or_Gsq(self.data, method_name="gsq", **kwargs)
+        self.check_cache_method_consistent(
+            "disc_gsq", hash_parameters({"n_bins": self.n_bins})
+        )
+        self.test_instance = Chisq_or_Gsq(self.data, method_name="gsq", **inner_test_kwargs(kwargs))
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
         return float(self.test_instance(X, Y, condition_set))
@@ -95,9 +97,10 @@ class DummyFisherZ(CITKTest):
 
         expanded = np.hstack(expanded_blocks)
         super().__init__(expanded, **kwargs)
-        params = f"max_levels={self.max_levels}"
-        self.check_cache_method_consistent("dummy_fisherz", params)
-        self.test_instance = CIT(self.data, method_name="fisherz", **kwargs)
+        self.check_cache_method_consistent(
+            "dummy_fisherz", hash_parameters({"max_levels": self.max_levels})
+        )
+        self.test_instance = CIT(self.data, method_name="fisherz", **inner_test_kwargs(kwargs))
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs) -> float:
         x_cols = self.col_map[X]

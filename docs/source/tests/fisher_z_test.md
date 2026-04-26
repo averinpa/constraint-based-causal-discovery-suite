@@ -1,31 +1,30 @@
 # Fisher's Z Test
 
-The Fisher's Z test is a classical conditional independence test for continuous data. It is most powerful under the assumption of linear relationships and serves as a foundational method in statistical and causal discovery applications. Because of its computational efficiency, it remains the default test used in seminal causal discovery methods like the PC algorithm, even in modern high-dimensional settings (Kalisch & Bühlmann, 2007).
+Fisher's Z is the canonical partial-correlation--based conditional independence test for continuous data. Under multivariate normality, conditional independence between $X$ and $Y$ given $Z$ is equivalent to zero partial correlation $\rho(X, Y \mid Z)$ (Anderson, 2003).
+
+**Intuition.** A variance-stabilising transform converts the (partial) Pearson correlation into a statistic that is asymptotically standard normal under the null, yielding analytic p-values without resampling (Hotelling, 1953; Anderson, 2003).
 
 ## Mathematical Formulation
 
-The test is based on the sample partial correlation coefficient, $r = \rho(X, Y | Z)$. To create a test statistic with a well-behaved sampling distribution, the test relies on the Fisher's Z-transformation, first developed to handle the "probable error" of correlation coefficients from small samples (Fisher, 1921). The transformation of the partial correlation $r$ is given by:
+The statistical basis of the Z-transform of the (partial) Pearson correlation coefficient was established by Hotelling (1953); its application to partial correlations and CI testing in Gaussian models is developed in classical multivariate analysis (Anderson, 2003). For sample partial correlation $r = \rho(X, Y \mid Z)$, the transform is
 
 ```{math}
-Z(r) = \frac{1}{2} \ln\left(\frac{1+r}{1-r}\right)
+Z(r) = \frac{1}{2} \ln\!\left(\frac{1+r}{1-r}\right)
 ```
 
-This can also be expressed as the inverse hyperbolic tangent, `artanh(r)`. This transformation stabilizes the variance and maps the correlation coefficient to an approximately normal distribution, a concept that was later explicitly extended to cover partial correlations (Fisher, 1924). The statistical properties and robustness of this transformation were later explored in extensive detail (Hotelling, 1953).
-
-Under the null hypothesis of conditional independence, the test statistic is constructed as:
+equivalently $\operatorname{artanh}(r)$ (Hotelling, 1953). Under the null $X \perp Y \mid Z$ in a Gaussian model, the standardised statistic
 
 ```{math}
 T = \sqrt{n - |Z| - 3} \cdot |Z(r)|
 ```
 
-where $n$ is the sample size and $|Z|$ is the number of conditioning variables. This statistic follows a standard normal distribution, $N(0, 1)$, from which the p-value is calculated.
+is asymptotically $N(0, 1)$ (Anderson, 2003), where $n$ is the sample size and $|Z|$ is the cardinality of the conditioning set.
 
 ## Assumptions
 
-The validity of the Fisher's Z test rests on two strong assumptions:
-
-- **Multivariate Normality**: All variables (X, Y, and the conditioning set Z) are assumed to be drawn from a multivariate normal distribution. In such a distribution, zero partial correlation is mathematically equivalent to conditional independence, a property that is foundational to constraint-based causal discovery (Spirtes et al., 2000).
-- **Linearity**: The relationships between the variables are assumed to be linear. The test may have low power to detect non-linear dependencies.
+- **Multivariate normality.** Zero partial correlation is equivalent to conditional independence only under restrictive distributional assumptions; Baba et al. (2004) formalised the precise conditions, showing that violations of Gaussianity or linearity can invalidate correlation-based CI decisions even asymptotically.
+- **Linearity.** The test targets linear (partial) dependence. Outside the Gaussian / elliptical family the equivalence between zero partial correlation and conditional independence breaks down (Baba et al., 2004).
+- **Sample size and conditioning-set size.** The effective degrees of freedom are $n - |Z| - 3$; as $|Z|$ grows, variance increases and power drops (Anderson, 2003).
 
 ## Code Example
 
@@ -61,12 +60,8 @@ For a full list of parameters, see the API documentation: :class:`citk.tests.sim
 
 ## References
 
-Fisher, R. A. (1921). On the 'probable error' of a coefficient of correlation deduced from a small sample. *Metron, 1*(4), 1-32.
+Anderson, T. W. (2003). *An Introduction to Multivariate Statistical Analysis* (3rd ed.). Wiley-Interscience.
 
-Fisher, R. A. (1924). The distribution of the partial correlation coefficient. *Metron, 3*(3-4), 329-332.
+Baba, K., Shibata, R., & Sibuya, M. (2004). Partial correlation and conditional correlation as measures of conditional independence. *Australian & New Zealand Journal of Statistics, 46*(4), 657-664.
 
 Hotelling, H. (1953). New light on the correlation coefficient and its transforms. *Journal of the Royal Statistical Society: Series B (Methodological), 15*(2), 193-225.
-
-Kalisch, M., & Bühlmann, P. (2007). Estimating high-dimensional directed acyclic graphs with the PC-algorithm. *Journal of Machine Learning Research, 8*, 613-636.
-
-Spirtes, P., Glymour, C. N., & Scheines, R. (2000). *Causation, prediction, and search*. MIT press. 

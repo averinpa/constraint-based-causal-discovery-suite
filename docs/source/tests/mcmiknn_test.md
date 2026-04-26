@@ -1,24 +1,26 @@
 # Multivariate Mixed kNN-CMI (mCMIkNN) Test
 
-mCMIkNN is a mixed-data extension of the $k$-nearest-neighbour conditional mutual information test (Hügle et al., 2023). The upstream implementation is distributed as a standalone research codebase rather than via PyPI; `citk` vendors the relevant `indeptests` package under `citk/_vendor/indeptests/` so the test is available out of the box, with no additional installation step.
+mCMIkNN is the kNN-based non-parametric CI test for mixed discrete-continuous data of Hügle et al. (2023). It uses a kNN conditional mutual information estimator as the test statistic and a kNN-based local permutation scheme for p-values; Hügle et al. (2023) prove statistical validity and power, including consistency in constraint-based causal discovery, and report state-of-the-art accuracy at low sample sizes.
+
+`citk` vendors the upstream `indeptests` package under `citk/_vendor/indeptests/` so the test is available out of the box (see `citk/_vendor/NOTICE.md` for the upstream source URL and the vendored revision SHA).
+
+**Intuition.** Like CMIknn (Runge, 2018), mCMIkNN treats CMI as a non-parametric measure of conditional dependence (Cover & Thomas, 2006) and calibrates with local permutations; mCMIkNN's distinguishing choice is a discrete-aware rank transform that preserves ties for categorical variables, providing direct mixed-type support without one-hot encoding (Hügle et al., 2023).
 
 ## Mathematical Formulation
 
-Like :doc:`/tests/cmiknn_test` and :doc:`/tests/cmiknn_mixed_test`, mCMIkNN estimates the conditional mutual information
+mCMIkNN estimates the conditional mutual information
 
 ```{math}
 I(X; Y \mid Z) = \int p(x, y, z) \log \frac{p(x, y \mid z)}{p(x \mid z)\, p(y \mid z)} \, dx \, dy \, dz
 ```
 
-from the $k$-th nearest-neighbour structure of the data. The mixed-data variant adapts the Kraskov-style estimator (Kraskov et al., 2004) so that ties in discrete coordinates are handled correctly and continuous coordinates retain density-based behaviour. P-values are obtained via a local-permutation procedure analogous to the one used in CMIknn (Runge, 2018).
-
-The exact algorithmic choices (neighbourhood metric, tie-breaking, and permutation strategy) follow the vendored `mCMIkNN` reference implementation; see `citk/_vendor/NOTICE.md` for the upstream source URL and the vendored revision SHA.
+from the $k$-th nearest-neighbour structure of the data, adapting the Kraskov-style estimator (Kraskov et al., 2004) so ties in discrete coordinates are handled correctly while continuous coordinates retain density-based behaviour (Hügle et al., 2023). P-values are obtained via the kNN local-permutation procedure of Hügle et al. (2023), which extends the local-permutation scheme of Runge (2018) to the mixed-type setting. The exact algorithmic choices (neighbourhood metric, tie-breaking, and permutation strategy) follow the vendored `mCMIkNN` reference implementation.
 
 ## Assumptions
 
-- **Vendored implementation**: No additional installation is required; `citk` ships the upstream `indeptests` package under `citk/_vendor/`.
-- **Constructor parameters**: Per-test parameters (`kcmi`, `kperm`, `Mperm`, `subsample`, `transform`) can be passed via `test_kwargs` and are forwarded to the underlying `mCMIkNN(...)` constructor.
-- **Sample size**: $k$NN density estimation needs adequate sample size to be reliable.
+- **Vendored implementation.** No additional installation is required; `citk` ships the upstream `indeptests` package under `citk/_vendor/` (Hügle et al., 2023).
+- **Constructor parameters.** Per-test parameters (`kcmi`, `kperm`, `Mperm`, `subsample`, `transform`) can be passed via `test_kwargs` and are forwarded to the underlying `mCMIkNN(...)` constructor; these correspond to estimator and permutation knobs documented in Hügle et al. (2023).
+- **Sample size.** kNN-based density estimation needs adequate sample size to be reliable (Kraskov et al., 2004); Hügle et al. (2023) report particular advantages over alternatives in low-sample regimes.
 
 ## Code Example
 
@@ -53,7 +55,9 @@ For a full list of parameters, see the API documentation: :class:`citk.tests.nea
 
 ## References
 
-Hügle, J., Hagedorn, C., & Uflacker, M. (2023). A kNN-based non-parametric conditional independence test for mixed data and application in causal discovery. *Proceedings of ECML PKDD 2023*.
+Cover, T. M., & Thomas, J. A. (2006). *Elements of Information Theory* (2nd ed.). Wiley-Interscience.
+
+Hügle, J., Hagedorn, C., & Schlosser, R. (2023). A kNN-based non-parametric conditional independence test for mixed data and application in causal discovery. *Proceedings of ECML PKDD 2023*.
 
 Kraskov, A., Stögbauer, H., & Grassberger, P. (2004). Estimating mutual information. *Physical Review E, 69*(6), 066138.
 

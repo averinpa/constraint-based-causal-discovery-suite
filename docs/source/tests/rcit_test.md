@@ -1,28 +1,32 @@
 # Randomized Conditional Independence Test (RCIT)
 
-RCIT is a kernel-based conditional independence test that uses random Fourier features to approximate the Gaussian RBF kernel, providing an order-of-magnitude speedup over exact KCI while preserving most of its statistical power on continuous data (Strobl et al., 2019). It is implemented in the R `RCIT` package and exposed via `rpy2`.
+RCIT is the random-Fourier-feature relaxation of the kernel CI test of Zhang et al. (2011), introduced by Strobl et al. (2019). RCIT approximates KCIT by working in a finite-dimensional random feature space and scales linearly in $n$ in practice, returning accurate p-values much faster than KCIT in the large-sample regime; constraint-based causal discovery run with RCIT recovers graphs at least as accurate as with KCIT but with large run-time reductions (Strobl et al., 2019).
+
+**Intuition.** A shift-invariant kernel can be approximated by random cosine features drawn from its spectral distribution (Strobl et al., 2019). Replacing the $n \times n$ Gram matrix with a $d_f$-dimensional feature matrix avoids cubic kernel eigendecompositions while preserving most of KCIT's statistical power on continuous data (Strobl et al., 2019).
 
 ## Mathematical Formulation
 
-Let $\phi_X$, $\phi_Y$, $\phi_Z$ denote $D$-dimensional random Fourier feature maps for $X$, $Y$, $Z$ respectively (Rahimi & Recht, 2007). RCIT residualises the feature maps of $X$ and $Y$ against $Z$ in this finite-dimensional space:
+Let $\phi_X$, $\phi_Y$, $\phi_Z$ denote $d_f$-dimensional random Fourier feature maps for $X$, $Y$, $Z$ (Strobl et al., 2019). RCIT residualises the feature maps of $X$ (or the extended variable $\ddot{X} = (X, Z)$) and $Y$ against $\phi_Z$ via empirical cross-covariance estimates:
 
 ```{math}
 \tilde{\phi}_X = \phi_X - \hat{C}_{XZ} \hat{C}_{ZZ}^{-1} \phi_Z, \qquad \tilde{\phi}_Y = \phi_Y - \hat{C}_{YZ} \hat{C}_{ZZ}^{-1} \phi_Z
 ```
 
-where $\hat{C}$ are the empirical cross-covariance estimates. The test statistic is the squared Hilbert-Schmidt norm of the empirical cross-covariance of the residualised features:
+(Strobl et al., 2019). The test statistic is the squared Frobenius norm of the empirical cross-covariance of the residualised features:
 
 ```{math}
 T_{\mathrm{RCIT}} = \| \hat{C}_{\tilde{X} \tilde{Y}} \|_{\mathrm{HS}}^2
 ```
 
-Under the null $X \perp Y \mid Z$, $T_{\mathrm{RCIT}}$ is asymptotically a weighted sum of $\chi^2_1$ variables. P-values are computed by approximating this null distribution using the spectrum of the empirical cross-covariance matrix.
+Under the null $X \perp Y \mid Z$, $T_{\mathrm{RCIT}}$ converges to a weighted sum of $\chi^2_1$ variables; RCIT calibrates p-values by moment-matching to a mixture of chi-squared distributions, the same family of approximations used in KCIT (Strobl et al., 2019).
 
 ## Assumptions
 
-- **Continuous data**: RCIT is designed for continuous variables.
-- **R + RCIT available**: This wrapper requires `rpy2` and the R `RCIT` package (from `ericstrobl/RCIT` on GitHub).
-- **Approximation quality**: The number of random features $D$ controls the approximation accuracy; the package defaults are appropriate for typical sample sizes.
+- **Continuous data.** RCIT is designed for continuous variables (Strobl et al., 2019).
+- **Shift-invariant kernel.** RFF approximate shift-invariant kernels (Gaussian RBF by default), which do not naturally represent delta kernels for categorical inputs (Strobl et al., 2019).
+- **R + RCIT available.** This wrapper requires `rpy2` and the R `RCIT` package (from `ericstrobl/RCIT` on GitHub) (Strobl et al., 2019).
+- **Approximation quality.** The number of random features $d_f$ trades approximation accuracy against speed; Strobl et al. (2019) report $d_f$ between 5 and 25 suffices for most settings, with sensitivity rising in conditioning-set dimensionality.
+- **Linear-time complexity.** RCIT scales as $O(n d_f^2)$ in practice (Strobl et al., 2019).
 
 ## Code Example
 
@@ -57,6 +61,6 @@ For a full list of parameters, see the API documentation: :class:`citk.tests.ker
 
 ## References
 
-Rahimi, A., & Recht, B. (2007). Random features for large-scale kernel machines. *Advances in Neural Information Processing Systems 20 (NIPS 2007)*, 1177-1184.
-
 Strobl, E. V., Zhang, K., & Visweswaran, S. (2019). Approximate kernel-based conditional independence tests for fast non-parametric causal discovery. *Journal of Causal Inference, 7*(1), 20180017.
+
+Zhang, K., Peters, J., Janzing, D., & Schölkopf, B. (2011). Kernel-based conditional independence test and application in causal discovery. *Proceedings of the 27th Conference on Uncertainty in Artificial Intelligence (UAI 2011)*, 804-813.

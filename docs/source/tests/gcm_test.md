@@ -1,30 +1,33 @@
 # Generalised Covariance Measure (GCM) Test
 
-The Generalised Covariance Measure is a general-purpose conditional independence test built around regression residualisation (Shah & Peters, 2020). It regresses each of $X$ and $Y$ on the conditioning set $Z$ using flexible machine-learning predictors, then tests whether the resulting residuals are uncorrelated. By plugging in modern regressors, GCM detects non-linear dependence while preserving exact asymptotic-normal calibration of the test statistic.
+The Generalised Covariance Measure of Shah & Peters (2020) tests $X \perp Y \mid Z$ by separately regressing $X$ on $Z$ and $Y$ on $Z$, then asking whether the resulting residuals are uncorrelated. Shah & Peters (2020) prove that the validity of the test relies almost entirely on the weak requirement that the regression procedures estimate the conditional means at a slow rate, so the choice of regression backend determines the test's effective assumptions while leaving asymptotic-normal calibration intact.
 
 The `citk` implementation uses random forest regression by default (via the `pycomets` library) for both nuisance regressions.
 
+**Intuition.** Under $X \perp Y \mid Z$, the residuals $X - E[X \mid Z]$ and $Y - E[Y \mid Z]$ are uncorrelated for any choice of $E$-estimator that is consistent enough; testing whether their sample covariance is zero gives a CI test that inherits flexibility from modern ML regressors while staying calibrated by a standard-normal limit (Shah & Peters, 2020).
+
 ## Mathematical Formulation
 
-Let $\hat{f}(z) \approx \mathbb{E}[X \mid Z = z]$ and $\hat{g}(z) \approx \mathbb{E}[Y \mid Z = z]$ denote the nuisance regression estimates. The residuals are
+Let $\hat{f}(z) \approx \mathbb{E}[X \mid Z = z]$ and $\hat{g}(z) \approx \mathbb{E}[Y \mid Z = z]$ denote the nuisance regression estimates (Shah & Peters, 2020). The residuals are
 
 ```{math}
 r_{X,i} = X_i - \hat{f}(Z_i), \qquad r_{Y,i} = Y_i - \hat{g}(Z_i)
 ```
 
-and the GCM test statistic is the studentised average of their elementwise product:
+and the GCM test statistic is the studentised mean of their elementwise product (Shah & Peters, 2020):
 
 ```{math}
 T_{\mathrm{GCM}} = \frac{\sqrt{n}\, \overline{R}}{\hat{\sigma}_R}, \qquad R_i = r_{X,i} \cdot r_{Y,i}, \quad \overline{R} = \frac{1}{n}\sum_i R_i
 ```
 
-where $\hat{\sigma}_R$ is the empirical standard deviation of $R$. Under the null $X \perp Y \mid Z$ and a mild rate condition on the nuisance estimates, $T_{\mathrm{GCM}} \xrightarrow{d} \mathcal{N}(0, 1)$, so two-sided p-values are computed from the standard normal (Shah & Peters, 2020).
+Under the null $X \perp Y \mid Z$, $T_{\mathrm{GCM}} \xrightarrow{d} \mathcal{N}(0, 1)$, regardless of the regression method, provided the nuisance product rate $\| \hat{f} - f^* \|_2 \cdot \| \hat{g} - g^* \|_2 = o_P(n^{-1/2})$ holds (Shah & Peters, 2020). Power depends directly on regression quality; poor residual estimation reduces the signal available for the covariance test (Shah & Peters, 2020).
 
 ## Assumptions
 
-- **Consistent nuisance regression**: The nuisance product rate must satisfy $\| \hat{f} - f^* \|_2 \cdot \| \hat{g} - g^* \|_2 = o_P(n^{-1/2})$ for the asymptotic normality to hold; flexible learners like random forests typically meet this in low to moderate $\dim(Z)$.
-- **Variable types**: Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively; no separate type declaration is required.
-- **Sample size**: Studentised normal calibration requires an adequate sample size for stable variance estimation.
+- **Consistent nuisance regression.** The product rate condition $\| \hat{f} - f^* \|_2 \cdot \| \hat{g} - g^* \|_2 = o_P(n^{-1/2})$ must hold for the asymptotic normality to be valid; flexible learners like random forests typically meet this in low-to-moderate $\dim(Z)$ (Shah & Peters, 2020).
+- **Variable types.** Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively; no separate type declaration is required (Shah & Peters, 2020).
+- **No uniformly powerful CI test exists.** Shah & Peters (2020) prove that a valid CI test cannot have power against arbitrary alternatives: GCM's validity is universal but its power is alternative-class-dependent.
+- **Sample size.** Studentised normal calibration requires an adequate sample for stable variance estimation (Shah & Peters, 2020).
 
 ## Code Example
 

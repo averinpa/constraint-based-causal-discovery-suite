@@ -1,6 +1,8 @@
 # Discretised Chi-Squared (DiscChiSq) Test
 
-DiscChiSq is an adapter that applies equal-frequency discretisation to continuous variables before running the standard :doc:`/tests/chi_sq_test`. It provides a practical baseline for applying classical contingency-table tests to continuous or mixed data, at the cost of the information loss inherent in binning.
+DiscChiSq is an adapter that applies equal-frequency discretisation to continuous variables before running the standard :doc:`/tests/chi_sq_test` (Agresti, 2013). It provides a practical baseline for applying classical contingency-table CI tests to continuous or mixed data, at the cost of the information loss inherent in binning.
+
+**Intuition.** Once continuous variables are mapped to discrete bins, CI testing reduces to verifying the factorisation of a finite joint probability table — the setting Pearson's $\chi^2$ test was designed for (Agresti, 2013). The trade-off is that the null hypothesis being tested is no longer conditional independence in the continuous space, but rather independence between discretised representations of the variables.
 
 ## Mathematical Formulation
 
@@ -10,19 +12,20 @@ For each continuous column $V$ of the input data, the adapter produces a discret
 \widetilde{V}_i = \mathrm{quantile\_bin}(V_i; b)
 ```
 
-where `quantile_bin` assigns each observation to one of $b$ equal-frequency bins (i.e., bins defined by the empirical $1/b, 2/b, \ldots, (b-1)/b$ quantiles). Columns that are already categorical are left unchanged. The Pearson chi-squared statistic is then computed on the binned data:
+where `quantile_bin` assigns each observation to one of $b$ equal-frequency bins (i.e., bins defined by the empirical $1/b, 2/b, \ldots, (b-1)/b$ quantiles). Columns that are already categorical are left unchanged. The Pearson chi-squared statistic is then computed on the binned data (Agresti, 2013):
 
 ```{math}
 \chi^2 = \sum_{i} \frac{(O_i - E_i)^2}{E_i}
 ```
 
-where $O_i$ and $E_i$ are the observed and expected cell counts in the binned contingency table under the null $X \perp Y \mid Z$. Under the null and standard regularity conditions, the statistic is asymptotically $\chi^2$-distributed with degrees of freedom matching the binned cardinalities (see :doc:`/tests/chi_sq_test`).
+where $O_i$ and $E_i$ are the observed and expected cell counts in the binned contingency table under the null $X \perp Y \mid Z$ (Agresti, 2013). Under the null and standard regularity conditions, the statistic is asymptotically $\chi^2$-distributed with degrees of freedom matching the binned cardinalities (Agresti, 2013); see :doc:`/tests/chi_sq_test`.
 
 ## Assumptions
 
-- **Discretisation preserves dependence**: The chosen number of bins must be coarse enough to keep cells populated, but fine enough that the underlying dependence is still detectable after binning.
-- **Independent observations**: Same as Chi-Squared.
-- **Adequate cell counts**: As a rule of thumb, the test may be unreliable if more than 20% of cells have an expected frequency below 5 (Cochran, 1954).
+- **Discretisation preserves dependence.** The number of bins must be coarse enough to keep cells populated, but fine enough that the underlying dependence is still detectable after binning (Agresti, 2013).
+- **Independent observations.** Same multinomial sampling assumption as Pearson's $\chi^2$ (Agresti, 2013).
+- **Adequate cell counts.** Cochran (1954) recommends that the test may be unreliable if more than 20% of cells have an expected frequency below 5 or any cell has expected frequency below 1; the same rule applies after binning (Agresti, 2013).
+- **Approximate CI procedure.** Discretisation tests independence between binned representations rather than the underlying continuous CI null; CI verdicts should be treated as approximate (Agresti, 2013).
 
 ## Code Example
 
@@ -57,6 +60,6 @@ For a full list of parameters, see the API documentation: :class:`citk.tests.ada
 
 ## References
 
-Cochran, W. G. (1954). Some methods for strengthening the common $\chi^2$ tests. *Biometrics, 10*(4), 417-451.
+Agresti, A. (2013). *Categorical Data Analysis* (3rd ed.). Wiley.
 
-Pearson, K. (1900). On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. *Philosophical Magazine, 50*(302), 157-175.
+Cochran, W. G. (1954). Some methods for strengthening the common $\chi^2$ tests. *Biometrics, 10*(4), 417-451.

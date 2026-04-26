@@ -1,30 +1,34 @@
 # Projected Covariance Measure (PCM) Test
 
-The Projected Covariance Measure is an assumption-lean conditional independence test that addresses the principal weakness of :doc:`/tests/gcm_test`: GCM has trivial power when the predictor of interest is **weakly identified** by the nuisance regressions (Lundborg et al., 2024). PCM constructs a data-driven projection of $Y$ onto a direction along which dependence with $X$ given $Z$ can still be detected, restoring power in regimes where GCM is uninformative.
+The Projected Covariance Measure of Lundborg et al. (2024) is an assumption-lean test for the model-free null of conditional mean independence — that the conditional mean of $Y$ given $(X, Z)$ does not depend on $X$. It addresses the principal weakness of :doc:`/tests/gcm_test` (Shah & Peters, 2020): GCM has reduced power when $X$ is involved in complex interactions or when the predictor of interest is weakly identified by the nuisance regressions. Lundborg et al. (2024) prove that a spline-regression instance of their procedure attains the minimax optimal rate in this nonparametric testing problem.
 
 The `citk` implementation uses sample-splitting with random forest regression by default (via the `pycomets` library).
 
+**Intuition.** Rather than testing zero residual covariance directly, PCM first uses one half of the data to estimate a *projection* of $Y$ on $(X, Z)$ — typically the regression $\hat{h}(X, Z) \approx \mathbb{E}[Y \mid X, Z]$ — and then on the other half tests the expected conditional covariance between this projection and $Y$, after adjusting both for $Z$ (Lundborg et al., 2024). The procedure inherits robust Type I error control from the orthogonality of the residualisation step and gains power from the data-driven projection (Lundborg et al., 2024).
+
 ## Mathematical Formulation
 
-PCM splits the data into two folds. On the first fold it learns a **projection function** $\hat{h}(X, Z)$ — typically the regression of $Y$ on $(X, Z)$ — that captures the conditional contribution of $X$ given $Z$. On the second fold it residualises both $\hat{h}(X, Z)$ and $Y$ against $Z$ via nuisance regressions $\hat{m}_h$ and $\hat{m}_Y$:
+PCM splits the data into two folds. On the first fold it learns a projection function $\hat{h}(X, Z)$, typically $\hat{h}(X, Z) \approx \mathbb{E}[Y \mid X, Z]$ (Lundborg et al., 2024). On the second fold it residualises both $\hat{h}(X, Z)$ and $Y$ against $Z$ via nuisance regressions $\hat{m}_h$ and $\hat{m}_Y$:
 
 ```{math}
 \tilde{h}_i = \hat{h}(X_i, Z_i) - \hat{m}_h(Z_i), \qquad \tilde{Y}_i = Y_i - \hat{m}_Y(Z_i)
 ```
 
-and forms the studentised covariance test statistic
+and forms the studentised covariance test statistic (Lundborg et al., 2024):
 
 ```{math}
 T_{\mathrm{PCM}} = \frac{\sqrt{n_2}\, \overline{R}}{\hat{\sigma}_R}, \qquad R_i = \tilde{h}_i \cdot \tilde{Y}_i
 ```
 
-Under the null $X \perp Y \mid Z$, $T_{\mathrm{PCM}} \xrightarrow{d} \mathcal{N}(0, 1)$ under nuisance rate conditions analogous to GCM (Lundborg et al., 2024). Crucially, the validity of the test does not depend on the projection $\hat{h}$ being a good predictor of $Y$ — only on the residualisation step being consistent — so PCM remains assumption-lean.
+Under the null, $T_{\mathrm{PCM}} \xrightarrow{d} \mathcal{N}(0, 1)$ under nuisance rate conditions analogous to GCM's (Lundborg et al., 2024). Crucially, validity of the test does not require $\hat{h}$ to be a good predictor of $Y$ — only that the residualisation step is consistent — so PCM remains assumption-lean (Lundborg et al., 2024).
 
 ## Assumptions
 
-- **Consistent residualisation**: $\hat{m}_h$ and $\hat{m}_Y$ must converge fast enough for studentised normal calibration; random forests with sample splitting typically suffice.
-- **Variable types**: Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively; no separate type declaration is required.
-- **Sample size**: Both folds need to be large enough for the projection step on the first fold and the test statistic on the second fold.
+- **Conditional mean independence null.** PCM tests $\mathbb{E}[Y \mid X, Z] = \mathbb{E}[Y \mid Z]$ (i.e. the conditional mean of $Y$ does not depend on $X$ given $Z$), not full conditional independence (Lundborg et al., 2024).
+- **Consistent residualisation.** $\hat{m}_h$ and $\hat{m}_Y$ must converge fast enough for studentised normal calibration; flexible learners with sample splitting typically suffice (Lundborg et al., 2024).
+- **Variable types.** Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively; no separate type declaration is required (Shah & Peters, 2020; Lundborg et al., 2024).
+- **Sample size.** Both folds need to be large enough for the projection step on the first fold and the test statistic on the second fold (Lundborg et al., 2024).
+- **Optimality.** A spline-regression version achieves the minimax optimal rate for this nonparametric testing problem (Lundborg et al., 2024).
 
 ## Code Example
 

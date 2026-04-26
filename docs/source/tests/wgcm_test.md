@@ -1,30 +1,32 @@
 # Weighted Generalised Covariance Measure (WGCM) Test
 
-The Weighted GCM is an extension of :doc:`/tests/gcm_test` that improves power against alternatives where the conditional dependence is **localised** in $Z$ — that is, where $X$ and $Y$ are dependent only over a sub-region of the conditioning space (Scheidegger et al., 2022). It adds a sample-splitting step and a learned weighting function that emphasises samples in the dependence region.
+The Weighted GCM of Scheidegger et al. (2022) is an extension of :doc:`/tests/gcm_test` (Shah & Peters, 2020) that improves power against alternatives where the conditional dependence is **localised** in $Z$ — that is, where $X$ and $Y$ are dependent only over a sub-region of the conditioning space. Scheidegger et al. (2022) show that WGCM has power against a strictly larger class of alternatives than GCM, and in the special case of binary or categorical $X$ and $Y$ one variant has power against all alternatives.
 
-The `citk` implementation uses random forest regression by default (via the `pycomets` library) for both the nuisance regressions and the weighting.
+The `citk` implementation uses random forest regression by default (via the `pycomets` library) for both nuisance regressions and weighting.
+
+**Intuition.** GCM averages the residual product uniformly over $Z$, so localised dependence regions are diluted by the surrounding null region (Shah & Peters, 2020); WGCM upweights the regions where the residual product covaries with $z$ so the relevant signal is amplified (Scheidegger et al., 2022).
 
 ## Mathematical Formulation
 
-WGCM splits the data into two folds. On the first fold it learns the nuisance regressions $\hat{f}, \hat{g}$ as in GCM and, in addition, a weighting function $\hat{w}(z)$ that targets regions where the residual product covaries with $z$. On the second fold it computes the weighted residual product
+WGCM splits the data into two folds. On the first fold it learns the nuisance regressions $\hat{f}, \hat{g}$ as in GCM and, in addition, a weighting function $\hat{w}(z)$ targeting regions where the residual product covaries with $z$ (Scheidegger et al., 2022). On the second fold it computes the weighted residual product
 
 ```{math}
 R_i = \hat{w}(Z_i) \cdot \bigl(X_i - \hat{f}(Z_i)\bigr) \cdot \bigl(Y_i - \hat{g}(Z_i)\bigr)
 ```
 
-and forms the studentised mean test statistic
+(Scheidegger et al., 2022), and forms the studentised mean test statistic
 
 ```{math}
 T_{\mathrm{WGCM}} = \frac{\sqrt{n_2}\, \overline{R}}{\hat{\sigma}_R}
 ```
 
-where $n_2$ is the size of the second fold. Under the null $X \perp Y \mid Z$, the same rate condition as GCM gives $T_{\mathrm{WGCM}} \xrightarrow{d} \mathcal{N}(0, 1)$ (Scheidegger et al., 2022). When the dependence is localised, the weights amplify the relevant region and the test gains power against the unweighted GCM.
+where $n_2$ is the size of the second fold (Scheidegger et al., 2022). Under the null and a rate condition analogous to GCM's, $T_{\mathrm{WGCM}} \xrightarrow{d} \mathcal{N}(0, 1)$ (Scheidegger et al., 2022). When the dependence is localised, the weights amplify the relevant region and the test gains power over unweighted GCM (Scheidegger et al., 2022).
 
 ## Assumptions
 
-- **Consistent nuisance regression**: Same product-rate requirement as GCM on $\hat{f}$ and $\hat{g}$.
-- **Useful weight learning**: The weighting function provides power gains only when the dependence has localisable structure; on globally constant alternatives, WGCM reduces to GCM with extra variance from sample splitting.
-- **Variable types**: Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively; no separate type declaration is required.
+- **Consistent nuisance regression.** Same product-rate requirement as GCM on $\hat{f}$ and $\hat{g}$ (Shah & Peters, 2020).
+- **Useful weight learning.** The weighting function provides power gains only when the dependence has localisable structure; on globally constant alternatives, WGCM may have less power than GCM, by design (Scheidegger et al., 2022).
+- **Variable types.** Random forest nuisance regressions handle continuous, discrete, or mixed $X$, $Y$, and $Z$ natively (Shah & Peters, 2020); for binary or categorical $X$ and $Y$, Scheidegger et al. (2022) describe a variant with power against all alternatives.
 
 ## Code Example
 

@@ -1,29 +1,30 @@
 # Spearman's Rho Test
 
-The Spearman's Rho test is a non-parametric conditional independence test for continuous data, first introduced by Spearman (1904). It is a robust alternative to the Fisher's Z test, particularly when the assumption of linearity is not met.
+Spearman's rho is a rank-based partial-correlation test for continuous data, originally introduced by Spearman (1904) as a non-parametric measure of association between two variables. As a CI test it is a robust alternative to Fisher's Z when the relationship between variables is monotone but not linear (Kutner et al., 2005).
+
+**Intuition.** Replacing the raw values with their ranks removes the linearity and Gaussianity assumptions of Pearson's correlation while still detecting monotone dependence (Spearman, 1904; Kutner et al., 2005). Applying the Fisher Z-transform to the resulting rank partial correlation gives an approximately Gaussian-calibrated statistic (Hotelling, 1953).
 
 ## Mathematical Formulation
 
-The test operates by first converting the data to ranks. It then calculates the partial Pearson correlation on the ranked data, which is equivalent to Spearman's partial correlation, $r_s = \rho(R(X), R(Y) | R(Z))$, where $R(V)$ is the rank of variable $V$.
-
-The test statistic is then derived using the Fisher's Z-transformation on this rank-based correlation (Kendall & Stuart, 1973):
+The test computes the partial Pearson correlation on the ranked data, $r_s = \rho(R(X), R(Y) \mid R(Z))$, where $R(V)$ denotes the rank vector of variable $V$ (Spearman, 1904; Kutner et al., 2005). Ties are broken by midranks (Kutner et al., 2005). The variance-stabilising Z-transform of Hotelling (1953) is then applied to $r_s$:
 
 ```{math}
-Z(r_s) = \frac{1}{2} \ln\left(\frac{1+r_s}{1-r_s}\right)
+Z(r_s) = \frac{1}{2} \ln\!\left(\frac{1+r_s}{1-r_s}\right)
 ```
 
-The final test statistic is:
+and the standardised statistic
 
 ```{math}
 T = \sqrt{n - |Z| - 3} \cdot |Z(r_s)|
 ```
 
-where $n$ is the sample size and $|Z|$ is the number of conditioning variables. This statistic follows a standard normal distribution, $N(0, 1)$.
+is referred to a standard normal distribution under the null (Hotelling, 1953; Anderson, 2003).
 
 ## Assumptions
 
-- The relationship between variables is monotonic (either consistently increasing or decreasing).
-- It does not assume a linear relationship or a multivariate normal distribution.
+- **Monotone dependence.** The test is sensitive to monotone (not necessarily linear) relationships; it does not require linearity or multivariate normality (Spearman, 1904; Kutner et al., 2005).
+- **Approximate CI procedure.** Zero partial rank correlation is not equivalent to conditional independence in general; rank-based tests rely on additional structural assumptions and should be treated as approximate CI procedures (Baba et al., 2004).
+- **Sample size.** The Z-transform calibration is asymptotic and effective degrees of freedom are $n - |Z| - 3$ (Hotelling, 1953; Anderson, 2003).
 
 ## Code Example
 
@@ -59,6 +60,12 @@ For a full list of parameters, see the API documentation: :class:`citk.tests.sim
 
 ## References
 
-Spearman, C. (1904). The proof and measurement of association between two things. *The American Journal of Psychology, 15*(1), 72-101.
+Anderson, T. W. (2003). *An Introduction to Multivariate Statistical Analysis* (3rd ed.). Wiley-Interscience.
 
-Kendall, M. G., & Stuart, A. (1973). *The Advanced Theory of Statistics, Vol. 2: Inference and Relationship*. Griffin.
+Baba, K., Shibata, R., & Sibuya, M. (2004). Partial correlation and conditional correlation as measures of conditional independence. *Australian & New Zealand Journal of Statistics, 46*(4), 657-664.
+
+Hotelling, H. (1953). New light on the correlation coefficient and its transforms. *Journal of the Royal Statistical Society: Series B (Methodological), 15*(2), 193-225.
+
+Kutner, M. H., Nachtsheim, C. J., Neter, J., & Li, W. (2005). *Applied Linear Statistical Models* (5th ed.). McGraw-Hill Irwin.
+
+Spearman, C. (1904). The proof and measurement of association between two things. *The American Journal of Psychology, 15*(1), 72-101.

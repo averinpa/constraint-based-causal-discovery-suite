@@ -1,10 +1,12 @@
 # Symmetric Mixed-Model Conditional Independence (CiMM) Test
 
-The CiMM test is a symmetric, regression-based conditional independence test for mixed continuous and discrete data, originating from the R `MXM` package (Tsagris et al., 2018). It runs two complementary likelihood-ratio tests in opposite directions and combines them, providing better small-sample stability than a single asymmetric regression test.
+CiMM is the symmetric, regression-based CI test for mixed continuous--categorical data introduced by Tsagris et al. (2018) for constraint-based causal discovery with mixed variables. It runs two complementary likelihood-ratio regressions in opposite directions and combines them, addressing the fact that likelihood-ratio tests are not generally symmetric in the roles of $X$ and $Y$ (Tsagris et al., 2018).
+
+**Intuition.** Likelihood-ratio CI tests of $X \perp Y \mid Z$ via "regress $Y$ on $(Z, X)$" need not match those via "regress $X$ on $(Z, Y)$" once links and error families differ across variable types; symmetrising over the two directions gives a single CI verdict that does not depend on the arbitrary choice of response (Tsagris et al., 2018).
 
 ## Mathematical Formulation
 
-For each pair $(X, Y)$ and conditioning set $Z$, CiMM fits two pairs of nested regressions, one with $X$ as the response and one with $Y$ as the response:
+For each pair $(X, Y)$ and conditioning set $Z$, CiMM fits two pairs of nested regressions, one with $X$ as the response and one with $Y$ as the response (Tsagris et al., 2018):
 
 ```{math}
 \Lambda_{X \mid Y, Z} = -2 \left[ \ell(X \sim Z) - \ell(X \sim Y, Z) \right]
@@ -14,14 +16,14 @@ For each pair $(X, Y)$ and conditioning set $Z$, CiMM fits two pairs of nested r
 \Lambda_{Y \mid X, Z} = -2 \left[ \ell(Y \sim Z) - \ell(Y \sim X, Z) \right]
 ```
 
-Each direction yields a likelihood-ratio statistic with an asymptotic $\chi^2$ distribution. The link function for each regression is chosen automatically by the response type: linear regression for continuous responses, logistic regression for binary or categorical responses (Tsagris et al., 2018). The two p-values are combined into a final symmetric test statistic.
+The link for each regression is chosen by the response type: linear regression for continuous responses (Kutner et al., 2005), logistic or multinomial regression for binary or categorical responses (Hosmer et al., 2013); ordinal responses use ordered-logit links (Tsagris et al., 2018). Each direction's statistic is asymptotically $\chi^2$ under the null (Wilks, 1938). The two p-values are combined into a single symmetric verdict using the procedure of Tsagris et al. (2018).
 
 ## Assumptions
 
-- **Correctly specified link per variable type**: Linear or logistic must be reasonable approximations for each variable's conditional mean.
-- **R + MXM available**: This wrapper requires `rpy2` and the R `MXM` package to be installed.
-- **Variable type declarations**: A `data_type` array specifies which columns are continuous and which are discrete, so the right link is chosen per regression.
-- **Asymptotic regime**: P-values use the chi-square approximation; small-sample reliability depends on category counts.
+- **Correctly specified link per variable type.** The chosen GLM family must be a reasonable approximation for each variable's conditional mean (Kutner et al., 2005; Hosmer et al., 2013); under misspecification the asymptotic calibration can fail (Tsagris et al., 2018).
+- **R + MXM available.** The reference implementation lives in the R `MXM` package and is exposed via `rpy2` (Tsagris et al., 2018).
+- **Per-variable type declarations.** A `data_type` array specifies which columns are continuous and which are discrete so the right link is chosen per regression (Tsagris et al., 2018).
+- **Asymptotic regime.** Calibration uses Wilks's theorem (Wilks, 1938); small-sample reliability depends on category counts (Tsagris et al., 2018).
 
 ## Code Example
 
@@ -60,4 +62,10 @@ For a full list of parameters, see the API documentation: :class:`citk.tests.reg
 
 ## References
 
+Hosmer, D. W., Lemeshow, S., & Sturdivant, R. X. (2013). *Applied Logistic Regression* (3rd ed.). Wiley.
+
+Kutner, M. H., Nachtsheim, C. J., Neter, J., & Li, W. (2005). *Applied Linear Statistical Models* (5th ed.). McGraw-Hill Irwin.
+
 Tsagris, M., Borboudakis, G., Lagani, V., & Tsamardinos, I. (2018). Constraint-based causal discovery with mixed data. *International Journal of Data Science and Analytics, 6*(1), 19-30.
+
+Wilks, S. S. (1938). The large-sample distribution of the likelihood ratio for testing composite hypotheses. *The Annals of Mathematical Statistics, 9*(1), 60-62.

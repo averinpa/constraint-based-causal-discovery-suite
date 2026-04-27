@@ -69,7 +69,23 @@ class GCM(CITKTest):
 class WGCM(CITKTest):
     """Weighted GCM test via pycomets (Scheidegger et al., 2022).
 
-    Uses RF regression with sample splitting (pycomets default).
+    Implements WGCM.est: sample-split (50/50) weight estimation. Nuisance
+    regressions ``E[Y|Z]`` and ``E[X|Z]`` use RF; the weight regression
+    ``E[(rX·rY)|Z]`` uses pycomets's KRR default. The cache fingerprint
+    ``"pycomets_WGCM_RF"`` reflects the two RF nuisance choices but not
+    the KRR weight choice — the v0.1.0 contract freezes both.
+
+    Empty conditioning set falls back to ``GCM`` (the unweighted reduction
+    when there is no Z to localise weights on), so the test is safe to use
+    inside PC at depth 0.
+
+    Limitations (v0.1.0)
+    --------------------
+    - Results are not bit-reproducible across processes. pycomets's
+      ``WGCM.test`` uses ``rng=np.random.default_rng()`` as a mutable
+      default arg, and its RF wrapper does not surface ``random_state``.
+      Type-I and power are statistically valid; only the per-call p-value
+      varies between fresh Python processes.
     """
     supported_dtypes = {"continuous", "discrete"}
 
@@ -78,21 +94,24 @@ class WGCM(CITKTest):
         self.check_cache_method_consistent("wgcm", "pycomets_WGCM_RF")
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
-        _, PyWGCMImpl, RF = _load_pycomets_gcm()
+        PyGCMImpl, PyWGCMImpl, RF = _load_pycomets_gcm()
 
         x = self.data[:, X].astype(float)
         y = self.data[:, Y].astype(float)
 
-        wgcm = PyWGCMImpl()
         if condition_set:
             z = self.data[:, condition_set].astype(float)
-        else:
-            z = np.zeros((len(self.data), 1))
+            wgcm = PyWGCMImpl()
+            with contextlib.redirect_stdout(io.StringIO()):
+                wgcm.test(y, x, z, reg_yz=RF(), reg_xz=RF(), show_summary=False)
+            return float(wgcm.pval)
 
+        # |S|=0: WGCM's sign-of-weight collapses on constant Z → fall back to GCM.
+        z = np.zeros((len(self.data), 1))
+        gcm = PyGCMImpl()
         with contextlib.redirect_stdout(io.StringIO()):
-            wgcm.test(y, x, z, reg_yz=RF(), reg_xz=RF(), show_summary=False)
-
-        return float(wgcm.pval)
+            gcm.test(y, x, z, reg_yz=RF(), reg_xz=RF(), show_summary=False)
+        return float(gcm.pval)
 
 
 class PCM(CITKTest):

@@ -129,3 +129,85 @@ def test_mcmiknn_smoke():
     assert p_dep < 0.05
 
 
+def _load_mxm_or_skip():
+    pytest.importorskip("rpy2")
+    import rpy2.robjects as ro
+
+    try:
+        ro.r("suppressMessages(library(MXM))")
+    except Exception:
+        pytest.skip("R package MXM not installed")
+    return ro
+
+
+def test_cimm_k5_factor_dispatch():
+    # Regression for ci_mm.md G2: K>=3 nominal columns must hit nnet::multinom
+    # (df=(K-1)^2), not lm (df=1). Audit fixture: n=500, seed=42, K=5 -> df=16.
+    ro = _load_mxm_or_skip()
+    from citk.tests.r_based_tests import CiMM
+
+    rng = np.random.default_rng(42)
+    n = 500
+    y = rng.integers(0, 5, size=n)
+    x = np.where(
+        y == 0,
+        rng.choice(5, size=n, p=[0.7, 0.1, 0.1, 0.05, 0.05]),
+        rng.integers(0, 5, size=n),
+    )
+    z = rng.standard_normal(n)
+    data = np.column_stack([x, y, z]).astype(float)
+    data_type = np.array([[1, 1, 0]])
+
+    p_citk = CiMM(data, data_type=data_type)(0, 1, [2])
+
+    ro.globalenv["x_ref"] = ro.IntVector(x.astype(int))
+    ro.globalenv["y_ref"] = ro.IntVector(y.astype(int))
+    ro.globalenv["z_ref"] = ro.FloatVector(z)
+    res_factor = ro.r(
+        "dat_fac <- data.frame(v0=as.factor(x_ref), v1=as.factor(y_ref), v2=z_ref);"
+        " ci.mm(1, 2, cs=3, dat=dat_fac, type=c('nominal','nominal','gaussian'))"
+    )
+    p_factor = float(np.exp(float(res_factor[1])))
+    df_factor = float(res_factor[2])
+
+    # Pre-fix path (integer dispatch -> lm, df=1) for negative-control comparison.
+    res_int = ro.r(
+        "dat_int <- data.frame(v0=as.integer(x_ref), v1=as.integer(y_ref), v2=z_ref);"
+        " ci.mm(1, 2, cs=3, dat=dat_int, type=c('nominal','nominal','gaussian'))"
+    )
+    p_int = float(np.exp(float(res_int[1])))
+    df_int = float(res_int[2])
+
+    assert df_factor == 16, f"factor dispatch should give df=(K-1)^2=16, got {df_factor}"
+    assert df_int == 1, f"integer dispatch (buggy path) should give df=1, got {df_int}"
+    assert p_citk == p_factor, (
+        f"CiMM must match direct R factor dispatch bit-identically; "
+        f"citk={p_citk!r}, factor={p_factor!r}"
+    )
+    assert p_citk != p_int, (
+        f"CiMM must NOT match the buggy lm/integer path; both gave {p_citk!r}"
+    )
+    assert p_citk < 0.001  # dependence must still be detected
+
+
+def test_cimm_k2_binary_short_circuit_unchanged():
+    # K=2 hits MXM's `length(unique(y))==2` short-circuit (glm binomial) regardless
+    # of column class, so the factor patch must not change behaviour here.
+    ro = _load_mxm_or_skip()
+    from citk.tests.r_based_tests import CiMM
+
+    rng = np.random.default_rng(7)
+    n = 500
+    y = rng.integers(0, 2, size=n)
+    flip = rng.random(n) < 0.2
+    x = np.where(flip, 1 - y, y)
+    z = rng.standard_normal(n)
+    data = np.column_stack([x, y, z]).astype(float)
+    data_type = np.array([[1, 1, 0]])
+
+    p_citk = CiMM(data, data_type=data_type)(0, 1, [2])
+
+    assert np.isfinite(p_citk)
+    assert p_citk < 0.01
+
+

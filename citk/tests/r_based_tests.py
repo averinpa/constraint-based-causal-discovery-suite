@@ -215,10 +215,12 @@ class CiMM(CITKTest):
         # Build R data.frame column by column
         n_rows = sub.shape[0]
         r_cols = {}
+        as_factor = ro.r("as.factor")
         for i in range(sub.shape[1]):
             col = sub[:, i]
             if mxm_types[i] == "nominal":
-                r_cols[f"v{i}"] = ro.IntVector(col.astype(int))
+                # ci.mm ignores `type` and dispatches on R column class; factor needed for K>=3 multinom.
+                r_cols[f"v{i}"] = as_factor(ro.IntVector(col.astype(int)))
             else:
                 r_cols[f"v{i}"] = ro.FloatVector(col.ravel())
 
@@ -237,7 +239,13 @@ class CiMM(CITKTest):
 
         # Result: [test_stat, logged_p_value, df]
         logged_p = float(result[1])
-        return float(np.exp(logged_p))
+        p = float(np.exp(logged_p))
+        if not np.isfinite(p):
+            raise CITKComputationError(
+                f"CiMM produced non-finite p (log_p={logged_p}) for "
+                f"X={X}, Y={Y}, S={condition_set}; likely multinom/ordinal fit degeneracy."
+            )
+        return p
 
 
 register_ci_test("ci_mm", CiMM)

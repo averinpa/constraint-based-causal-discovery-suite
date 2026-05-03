@@ -108,38 +108,74 @@ class RCIT(_RCITBase):
 
 class HarteminkChiSq(CITKTest):
     supported_dtypes = {"continuous", "discrete"}
-    accepted_kwargs = {"breaks", "ibreaks"}
+    accepted_kwargs = {"breaks", "ibreaks", "data_type"}
 
     def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
         self.breaks = kwargs.get("breaks", 4)
         self.ibreaks = kwargs.get("ibreaks", 10)
+        self.data_type = kwargs.get("data_type", None)
         discretized = self._hartemink_discretize(data)
         super().__init__(discretized, **kwargs)
         self.check_cache_method_consistent(
             "hartemink_chisq",
-            hash_parameters({"breaks": self.breaks, "ibreaks": self.ibreaks}),
+            hash_parameters({
+                "breaks": self.breaks,
+                "ibreaks": self.ibreaks,
+                "data_type": self.data_type,
+            }),
         )
         self.test_instance = Chisq_or_Gsq(self.data, method_name="chisq", **inner_test_kwargs(kwargs))
 
     def _hartemink_discretize(self, data: np.ndarray) -> np.ndarray:
-        pandas2ri, bnlearn_pkg = _load_bnlearn_package()
-        from rpy2.robjects import default_converter
-        from rpy2.robjects.conversion import localconverter
+        # Partition columns by type (0=continuous, 1=discrete in data_type array).
+        # bnlearn's joint Hartemink discretizer rejects integer/categorical columns,
+        # so categoricals are passed through unchanged and only continuous columns
+        # are discretized. With >=2 continuous columns we use joint Hartemink (preserves
+        # cross-column MI among continuous variables); with 1 continuous column we fall
+        # back to equal-frequency binning (Hartemink's joint algorithm needs >=2 cols).
+        n_rows, n_cols = data.shape
+        if self.data_type is not None:
+            cont_idx = [j for j in range(n_cols) if int(self.data_type[0, j]) == 0]
+        else:
+            cont_idx = []
+            for j in range(n_cols):
+                col = data[:, j]
+                looks_continuous = not (
+                    np.all(col == col.astype(int)) and len(np.unique(col)) < 20
+                )
+                if looks_continuous:
+                    cont_idx.append(j)
+        cat_idx = [j for j in range(n_cols) if j not in cont_idx]
 
-        frame = pd.DataFrame(data, columns=[f"v{i}" for i in range(data.shape[1])])
-        with localconverter(default_converter + pandas2ri.converter):
-            r_frame = pandas2ri.py2rpy(frame)
-            disc_df = bnlearn_pkg.discretize(
-                r_frame,
-                method="hartemink",
-                breaks=self.breaks,
-                ibreaks=self.ibreaks,
-            )
-        if not isinstance(disc_df, pd.DataFrame):
-            disc_df = pd.DataFrame(disc_df)
-        out = np.zeros((len(disc_df), disc_df.shape[1]), dtype=int)
-        for j, col in enumerate(disc_df.columns):
-            out[:, j] = pd.Categorical(disc_df[col]).codes
+        out = np.zeros((n_rows, n_cols), dtype=int)
+
+        if len(cont_idx) >= 2:
+            pandas2ri, bnlearn_pkg = _load_bnlearn_package()
+            from rpy2.robjects import default_converter
+            from rpy2.robjects.conversion import localconverter
+
+            cont_data = data[:, cont_idx]
+            frame = pd.DataFrame(cont_data, columns=[f"v{i}" for i in range(len(cont_idx))])
+            with localconverter(default_converter + pandas2ri.converter):
+                r_frame = pandas2ri.py2rpy(frame)
+                disc_df = bnlearn_pkg.discretize(
+                    r_frame,
+                    method="hartemink",
+                    breaks=self.breaks,
+                    ibreaks=self.ibreaks,
+                )
+            if not isinstance(disc_df, pd.DataFrame):
+                disc_df = pd.DataFrame(disc_df)
+            for i, j in enumerate(cont_idx):
+                out[:, j] = pd.Categorical(disc_df.iloc[:, i]).codes
+        elif len(cont_idx) == 1:
+            j = cont_idx[0]
+            binned = pd.qcut(data[:, j], q=self.breaks, labels=False, duplicates="drop")
+            out[:, j] = np.asarray(binned, dtype=int)
+
+        for j in cat_idx:
+            out[:, j] = pd.Categorical(data[:, j]).codes
+
         return out
 
     def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:

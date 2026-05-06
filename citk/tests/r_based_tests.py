@@ -2,14 +2,21 @@ from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
-from causallearn.utils.cit import (
-    Chisq_or_Gsq,
-    NO_SPECIFIED_PARAMETERS_MSG,
-    register_ci_test,
-)
 
 from citk.exceptions import CITKComputationError, CITKDependencyError
-from .base import CITKTest, hash_parameters, inner_test_kwargs
+from ._register import maybe_register
+from .base import (
+    CITKTest,
+    NO_SPECIFIED_PARAMETERS_MSG,
+    hash_parameters,
+    inner_test_kwargs,
+)
+
+try:
+    from causallearn.utils.cit import Chisq_or_Gsq
+    _HAS_CAUSALLEARN = True
+except ImportError:
+    _HAS_CAUSALLEARN = False
 
 
 def _load_rcit_package():
@@ -107,10 +114,21 @@ class RCIT(_RCITBase):
 
 
 class HarteminkChiSq(CITKTest):
+    """Hartemink discretization (R/bnlearn) + chi-squared CI (causal-learn).
+
+    Requires both ``[r]`` and ``[causallearn]`` extras. Construction
+    raises :class:`CITKDependencyError` if causal-learn is missing.
+    """
+
     supported_dtypes = {"continuous", "discrete"}
     accepted_kwargs = {"breaks", "ibreaks", "data_type"}
 
     def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
+        if not _HAS_CAUSALLEARN:
+            raise CITKDependencyError(
+                "HarteminkChiSq requires the optional 'causal-learn' extra. "
+                "Install with: pip install citk[causallearn]."
+            )
         self.breaks = kwargs.get("breaks", 4)
         self.ibreaks = kwargs.get("ibreaks", 10)
         self.data_type = kwargs.get("data_type", None)
@@ -182,9 +200,9 @@ class HarteminkChiSq(CITKTest):
         return float(self.test_instance(X, Y, condition_set))
 
 
-register_ci_test("rcot", RCoT)
-register_ci_test("rcit", RCIT)
-register_ci_test("hartemink_chisq", HarteminkChiSq)
+maybe_register("rcot", RCoT)
+maybe_register("rcit", RCIT)
+maybe_register("hartemink_chisq", HarteminkChiSq)
 
 
 def _load_mxm_package():
@@ -284,4 +302,4 @@ class CiMM(CITKTest):
         return p
 
 
-register_ci_test("ci_mm", CiMM)
+maybe_register("ci_mm", CiMM)

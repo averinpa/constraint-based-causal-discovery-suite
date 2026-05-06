@@ -22,12 +22,12 @@ dependencies = [
     "numpy",
     "scipy",
     "pandas",
-    "causal-learn",
     "scikit-learn",
     "statsmodels",
 ]
 
 [project.optional-dependencies]
+causallearn = ["causal-learn"]
 r = ["rpy2"]
 tigramite = ["tigramite"]
 pycomets = ["pycomets @ git+https://github.com/shimenghuang/pycomets.git", "xgboost"]

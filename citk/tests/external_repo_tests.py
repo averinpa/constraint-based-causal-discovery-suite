@@ -1,8 +1,8 @@
 from typing import Any, List, Optional
 
 import numpy as np
-from causallearn.utils.cit import register_ci_test
 
+from ._register import maybe_register
 from .base import CITKTest, hash_parameters
 
 
@@ -30,4 +30,4 @@ class MCMIknn(CITKTest):
         return float(test.compute_pval(x, y, z))
 
 
-register_ci_test("mcmiknn", MCMIknn)
+maybe_register("mcmiknn", MCMIknn)

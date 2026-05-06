@@ -1,4 +1,18 @@
-"""Base class and cache helpers for citk conditional independence tests."""
+"""Base class and cache helpers for citk conditional independence tests.
+
+``CITKTest`` is a standalone base class — it does NOT inherit from
+``causal-learn``'s ``CIT_Base``. The methods originally provided by
+``CIT_Base`` (``get_formatted_XYZ_and_cachekey``,
+``check_cache_method_consistent``, ``assert_input_data_is_valid``,
+``save_to_local_cache``) are reimplemented here so citk can be installed
+and used without ``causal-learn`` pulled in.
+
+Causal-learn is still useful as an *optional* backend for adapter-style
+tests (``ChiSq``, ``GSq``, ``KCI``, etc.) and for auto-registration with
+``causallearn.search.ConstraintBased.PC``. Those integrations live in
+the optional ``[causallearn]`` extra and the ``citk.adapters.causallearn``
+helper, gated behind try/except imports in the individual test modules.
+"""
 import codecs
 import hashlib
 import json
@@ -9,9 +23,12 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, List, Mapping, Optional, Tuple
 
 import numpy as np
-from causallearn.utils.cit import CIT_Base, NO_SPECIFIED_PARAMETERS_MSG
 
 from citk.exceptions import CITKComputationError, CITKError
+
+#: Sentinel matching causal-learn's ``NO_SPECIFIED_PARAMETERS_MSG`` so cache
+#: files written by either ecosystem remain interchangeable.
+NO_SPECIFIED_PARAMETERS_MSG = "NO SPECIFIED PARAMETERS"
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,12 +115,18 @@ def hash_parameters(params: Optional[Mapping[str, Any]]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-class CITKTest(CIT_Base):
+class CITKTest:
     """Abstract base class for all conditional independence tests in citk.
 
-    Standardises the interface to be compatible with causal-learn and
-    implements a versioned, content-addressed file-based cache.
+    Standalone — does not inherit from causal-learn. Subclasses implement
+    :meth:`_compute` and use the inherited :meth:`__call__` for caching.
+
+    Conforms to the structural ``cbcd.CITest`` Protocol (see
+    :attr:`n_vars` and :meth:`details`), so any citk test instance can be
+    passed straight to a cbcd algorithm: ``cbcd.pc(data, ci_test=cit)``.
     """
+
+    SAVE_CACHE_CYCLE_SECONDS: float = 30.0
 
     #: Declared compatible data kinds; informational only — citk does not
     #: enforce this at construction. Use :meth:`validate_data` to check.
@@ -154,13 +177,16 @@ class CITKTest(CIT_Base):
                 f"Accepted (consumed): {consumed}. "
                 f"Accepted (protocol-tolerated): {tolerated}."
             )
-        # Call parent with cache_path=None so its MD5-based load path is bypassed;
-        # we handle hashing and load below with sha256 + format_version validation.
-        super().__init__(data, cache_path=None, **kwargs)
+        if not isinstance(data, np.ndarray):
+            raise TypeError("CITKTest data must be a numpy ndarray")
+        self.data = data
+        self.sample_size, self.num_features = data.shape
         self.data_hash = hashlib.sha256(
             np.ascontiguousarray(data).tobytes()
         ).hexdigest()
         self.cache_path = cache_path
+        self.last_time_cache_saved = time.time()
+        self.method: Optional[str] = None
         self.pvalue_cache = {
             "format_version": CACHE_FORMAT_VERSION,
             "data_hash": self.data_hash,
@@ -197,6 +223,75 @@ class CITKTest(CIT_Base):
         if condition_set is None:
             return []
         return list(condition_set)
+
+    # ------------------------------------------------------------------
+    # Methods previously inherited from causallearn.utils.cit.CIT_Base.
+    # Reimplemented locally so citk does not require causal-learn.
+    # ------------------------------------------------------------------
+
+    def assert_input_data_is_valid(
+        self, allow_nan: bool = False, allow_inf: bool = False
+    ) -> None:
+        """Validate the bound dataset against NaN / Inf entries."""
+        if not allow_nan and np.isnan(self.data).any():
+            raise ValueError("Input data contains NaN. Please check.")
+        if not allow_inf and np.isinf(self.data).any():
+            raise ValueError("Input data contains Inf. Please check.")
+
+    def check_cache_method_consistent(
+        self, method_name: str, parameters_hash: str
+    ) -> None:
+        """Stamp the cache with this test's identity; assert consistency on reload."""
+        self.method = method_name
+        if method_name not in self.pvalue_cache:
+            self.pvalue_cache["method_name"] = method_name
+            self.pvalue_cache["parameters_hash"] = parameters_hash
+        else:
+            assert (
+                self.pvalue_cache["method_name"] == method_name
+            ), "CI test method name mismatch."
+            assert (
+                self.pvalue_cache["parameters_hash"] == parameters_hash
+            ), "CI test method parameters mismatch."
+
+    def save_to_local_cache(self) -> None:
+        """Persist the cache to ``cache_path`` if more than
+        ``SAVE_CACHE_CYCLE_SECONDS`` have elapsed since the last save."""
+        if (
+            self.cache_path is not None
+            and time.time() - self.last_time_cache_saved
+            > self.SAVE_CACHE_CYCLE_SECONDS
+        ):
+            with codecs.open(self.cache_path, "w") as fout:
+                fout.write(json.dumps(self.pvalue_cache, indent=2))
+            self.last_time_cache_saved = time.time()
+
+    def get_formatted_XYZ_and_cachekey(
+        self, X: int, Y: int, condition_set: Optional[Iterable[int]]
+    ) -> Tuple[List[int], List[int], List[int], str]:
+        """Reformat ``X, Y, condition_set`` and return a stable cache key.
+
+        Behaviour mirrors causal-learn's ``CIT_Base.get_formatted_XYZ_and_cachekey``:
+        ``X`` and ``Y`` are sorted (smaller first) so the key is symmetric
+        in the test direction; conditioning indices are sorted and
+        deduplicated; ``X``/``Y`` cannot overlap with the conditioning set.
+        """
+        self.save_to_local_cache()
+        if condition_set is None:
+            condition_set = []
+        condition_set = sorted(set(int(s) for s in condition_set))
+        X, Y = (int(X), int(Y)) if X < Y else (int(Y), int(X))
+        if X in condition_set or Y in condition_set:
+            raise ValueError("X, Y cannot be in condition_set.")
+
+        def _strlst(lst: List[int]) -> str:
+            return ".".join(str(v) for v in lst)
+
+        if condition_set:
+            cache_key = f"{_strlst([X])};{_strlst([Y])}|{_strlst(condition_set)}"
+        else:
+            cache_key = f"{_strlst([X])};{_strlst([Y])}"
+        return [X], [Y], condition_set, cache_key
 
     def save_cache(self) -> None:
         """Explicitly save the p-value cache to ``cache_path``.

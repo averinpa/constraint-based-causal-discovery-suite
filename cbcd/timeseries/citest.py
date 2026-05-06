@@ -126,6 +126,8 @@ class ParCorr:
             )
         if np.any(np.isnan(dataset.data)):
             raise CBCDDataError("ParCorr does not support NaN entries")
+        if np.any(np.isinf(dataset.data)):
+            raise CBCDDataError("ParCorr does not support infinite entries")
 
         n_design = self.n_vars * (ml + 1)
         design = np.empty((n_eff, n_design), dtype=np.float64)

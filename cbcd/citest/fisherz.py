@@ -43,6 +43,8 @@ class FisherZ:
             raise CBCDInputError(f"data must be 2-D, got shape {data.shape}")
         if np.any(np.isnan(data)):
             raise CBCDDataError("Fisher-Z does not support NaN entries")
+        if np.any(np.isinf(data)):
+            raise CBCDDataError("Fisher-Z does not support infinite entries")
 
         self.n_samples, self.n_vars = data.shape
         if self.n_samples < 4:

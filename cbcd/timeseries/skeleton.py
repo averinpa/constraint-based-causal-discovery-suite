@@ -100,7 +100,9 @@ class PC1Skeleton:
                 if not survivors:
                     break
                 # Sort by strength: smallest pval_max first (strongest evidence).
-                survivors.sort(key=lambda z: pval_max[z])
+                # Ties broken deterministically by (var, -lag) so the result
+                # is independent of Python's stable-sort + insertion order.
+                survivors.sort(key=lambda z: (pval_max[z], z.var, -z.lag))
                 if len(survivors) - 1 < depth:
                     break
                 removed: set[LaggedVar] = set()

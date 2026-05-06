@@ -25,6 +25,19 @@ class CITest(Protocol):
     A ``CITest`` answers ``X ⫫ Y | S`` queries on integer variable indices in
     ``[0, n_vars)``. ``__call__`` returns the p-value; ``details`` returns the
     full ``CITestResult``.
+
+    Conformance is **structural, not nominal**. Any object with the three
+    members below satisfies the Protocol — no inheritance, no import of
+    ``cbcd`` required. Third-party CI test libraries (e.g. ``citk``) plug in
+    by exposing classes with this shape:
+
+    * ``n_vars: int`` attribute.
+    * ``__call__(x: int, y: int, S: Sequence[int]) -> float``.
+    * ``details(x: int, y: int, S: Sequence[int])`` returning any object
+      with a ``.p_value: float`` attribute. (cbcd's algorithms only read
+      ``.p_value`` from cached results; the richer ``CITestResult`` fields
+      ``statistic`` / ``df`` / ``n_effective`` / ``extra`` are optional but
+      recommended for diagnostics.)
     """
 
     n_vars: int

@@ -59,6 +59,24 @@ from numpy.typing import NDArray
 #   - cbcd.citest.PartialCorr      (continuous, robust)
 #   - cbcd.citest.KCI              (nonparametric)
 #   - eventually citk.* (post-2026, after citk is decoupled from causal-learn)
+#
+# Conformance is STRUCTURAL, not nominal. The Protocol is decorated with
+# `@runtime_checkable`, but more importantly it expresses a duck-typed
+# contract: any object that exposes
+#     - n_vars: int
+#     - __call__(x: int, y: int, S: Sequence[int]) -> float
+#     - details(x: int, y: int, S: Sequence[int]) -> something with .p_value
+# satisfies the Protocol. No inheritance from a cbcd class is required, and
+# no import of cbcd is needed to conform.
+#
+# This is the load-bearing design choice for third-party CI test libraries
+# (notably citk). citk's CI test classes plug into cbcd algorithms with no
+# imports between the two packages — citk just writes classes with the
+# right shape, and `cbcd.pc(data, ci_test=citk.KCI(data))` works directly.
+# Same applies to LaggedCITest in §H. cbcd algorithms read only `.p_value`
+# from cached `details(...)` results, so a third-party library may return
+# its own result dataclass with that attribute (the additional fields on
+# `CITestResult` are optional diagnostics, not part of the call contract).
 
 
 @runtime_checkable

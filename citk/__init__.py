@@ -6,10 +6,13 @@ from citk.exceptions import (
     CITKDependencyError,
     CITKError,
 )
+from citk.tests.base import CITKResult, CITKTest
 
 __all__ = [
-    "CITKError",
-    "CITKDependencyError",
     "CITKComputationError",
     "CITKDataError",
+    "CITKDependencyError",
+    "CITKError",
+    "CITKResult",
+    "CITKTest",
 ]

@@ -4,6 +4,132 @@ Append-only log of what's been done, when, and why. New entries at the **top**.
 
 ---
 
+## 2026-05-06 — Suite migration
+
+cbcd moved from `~/Projects/cbcd/` to `~/Projects/suite/cbcd/` as part of
+scaffolding the four-package suite umbrella (cbcd + citk + bnm + dagsampler).
+No code, no commits, no remotes affected — pure filesystem reorganization.
+See `~/Projects/suite/journal.md` for the cross-package context.
+
+The relative path `../../vendor/causal-learn/` referenced in CLAUDE.md is
+now correct (was previously off-by-one, since `vendor/` was a sibling of
+`cbcd` at the old `~/Projects/` level; now both live under
+`~/Projects/suite/`).
+
+---
+
+## 2026-05-06 — Document the CITest contract as structural-not-nominal
+
+Added doc notes to `cbcd.CITest` and `cbcd.LaggedCITest` Protocols and
+to the §A header of `docs/design/api_v0.py` spelling out that
+conformance is duck-typed: any object with the required member shape
+satisfies the Protocol — no inheritance, no import of cbcd needed.
+
+This is the contract third-party CI test libraries (specifically citk)
+target when integrating. Doc-only commit; 239 tests still pass.
+Commit: `d1f108d`.
+
+---
+
+## 2026-05-06 — Edge-case audit: Inf guard + PC₁ tie-break + 14 boundary tests
+
+After self-auditing what was and wasn't covered by the per-module test
+suites, two real fixes plus a focused boundary-test pass.
+
+### Behaviour fixes
+
+- `ParCorr` and `FisherZ` now reject `Inf` entries explicitly. NaN was
+  already rejected; Inf would have propagated through correlations and
+  silently corrupted results. Genuine bug.
+- `PC1Skeleton`'s sort key now breaks ties by `(var, -lag)` instead of
+  relying on Python's stable-sort + insertion order. Result was
+  deterministic in practice; the explicit key documents and pins it
+  for future Python/list semantics changes.
+
+### New tests (`tests/test_edge_cases.py`, 14 cases)
+
+- Inf rejection on both CI tests.
+- `n_vars=1` boundary on `pc()`, `fci()`, `pcmci()` — produce empty graphs.
+- Independent-data on `pc()` and `fci()` — every edge correctly removed.
+- PC₁ deterministic under constant- and dependent-p stubs (run twice,
+  identical parents + sepsets).
+- `find_discriminating_path` deterministic on repeated calls.
+- `FCIRules` R4 graceful no-op when `sepsets=None` — falls into the
+  "else" branch, orienting `⟨a, b, c⟩` as `a ↔ b ↔ c` instead of crashing.
+- `max_cond_set` exceeding candidate-set size clamps gracefully (no
+  crash) for both `PC1Skeleton` and `pc()`.
+- `DAG(n_vars=0)` constructs.
+
+### Skipped from the audit list
+
+- Conflicting collider triples in `apply_to_pag` — re-checking, the
+  scenario isn't reachable with `SepsetOrienter` (it only emits
+  triples that all agree on writing ARROW at Z). D14's last-write
+  semantics is defensive documentation rather than testable behaviour.
+  Re-evaluate when `ConservativeOrienter` / `MajorityOrienter` land.
+
+Total: 239 tests (+14), ruff and mypy clean, parity harness still
+passes after the behaviour changes. Commit: `6d0b46f`.
+
+---
+
+## 2026-05-06 — Parity harnesses: cbcd vs causal-learn / tigramite (13/13 match)
+
+Added `parity/` — developer-only comparison scripts that run cbcd and
+the reference implementations on shared fixtures and compare endpoint
+matrices after mark-convention conversion. Reference packages
+(causal-learn, tigramite) installed on demand; **not added to
+`pyproject.toml`** — cbcd's declared dependency surface is unchanged.
+
+### Layout
+
+- `parity/pc/run.py` — `cbcd.pc()` vs `causal-learn pc()`
+- `parity/fci/run.py` — `cbcd.fci()` vs `causal-learn fci()`
+- `parity/pcmci/run.py` — `cbcd.pcmci()` vs tigramite PCMCI
+- `parity/run_all.py` — aggregate
+- `parity/_compare.py` — endpoint conversions + Linear-Gaussian / VAR
+  simulators
+- `parity/README.md` — install + usage
+
+### Mark conversions (verified against actual outputs)
+
+- causal-learn / Tetrad: `graph[i, j]` = mark at `i` of edge `{i, j}`.
+  `0` no edge, `1` ARROW, `-1` TAIL, `2` CIRCLE → cbcd's
+  `endpoints[j, i]` with `{0, 2, 1, 3}` respectively.
+- tigramite: `graph[i, j, tau]` is a string (`''`, `'-->'`, `'o-o'`,
+  …); for vanilla PCMCI we only see `''` and `'-->'`, mapping to
+  `NO_EDGE` / `ARROW` at `j` on cbcd's
+  `(max_lag+1, n_vars, n_vars)` array.
+
+### Results (`docs/parity_report.md`)
+
+| family | fixtures | cbcd ≡ truth | reference ≡ truth | cbcd ≡ reference | real disagreements |
+|---|---:|---:|---:|---:|---:|
+| PC | 6/6 | 6 | 6 | 6 | 0 |
+| FCI | 4/4 | 4 | 4 | 4 | 0 |
+| PCMCI | 3/3 | 3 | 3 | 3 | 0 |
+| **all** | **13/13** | **13** | **13** | **13** | **0** |
+
+Byte-equal outputs on every fixture, including the confounded chain
+that exercises Zhang R1, R2, and R4. Zero "real disagreements" —
+cases where both implementations match d-sep / m-sep truth but
+produce different endpoint matrices.
+
+### What this does NOT prove
+
+- Borderline-α edge cases.
+- Selection-bias scenarios firing R5–R7 in oracle/parity tests
+  (rule-level unit tests cover the patterns; no end-to-end fixture).
+- PCMCI+ / LPCMCI / tsFCI / SVAR-FCI / J-PCMCI — not implemented yet.
+- Fixtures large enough to expose causal-learn's audited bugs
+  (exponential `removeByPossibleDsep`, md5 cache collision).
+
+cbcd's own test suite (225 tests at the time of this commit) plus
+ruff and mypy still clean. Reference-package install isolated to the
+cbcd venv. Commit: `81d78c2`.
+
+---
+
 ## 2026-05-06 — O5 resolved: v0.x API stability committed
 
 Open question O5 of `docs/design/api_v0.py` — when to commit to API

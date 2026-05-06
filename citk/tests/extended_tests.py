@@ -1,20 +1,29 @@
+"""Adapter-strategy tests: discretize-then-test and one-hot-then-Fisher-Z.
+
+All three classes wrap causal-learn's ``Chisq_or_Gsq`` / ``CIT`` for the
+underlying statistic, so they require the optional ``[causallearn]``
+extra. When causal-learn isn't installed, the classes are bound to
+``None`` placeholders.
+"""
 from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
 from scipy.stats import combine_pvalues
 
-from causallearn.utils.cit import (
-    CIT,
-    Chisq_or_Gsq,
-    register_ci_test,
-)
+from ._register import maybe_register
 from .base import (
     CITKTest,
     _is_categorical_column,
     hash_parameters,
     inner_test_kwargs,
 )
+
+try:
+    from causallearn.utils.cit import CIT, Chisq_or_Gsq
+    _HAS_CAUSALLEARN = True
+except ImportError:
+    _HAS_CAUSALLEARN = False
 
 
 def _equal_frequency_discretize(data: np.ndarray, n_bins: int = 5) -> np.ndarray:
@@ -30,96 +39,109 @@ def _equal_frequency_discretize(data: np.ndarray, n_bins: int = 5) -> np.ndarray
     return out
 
 
-class DiscChiSq(CITKTest):
-    supported_dtypes = {"continuous", "discrete"}
-    accepted_kwargs = {"n_bins"}
+if _HAS_CAUSALLEARN:
 
-    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
-        self.n_bins = kwargs.get("n_bins", 5)
-        disc_data = _equal_frequency_discretize(data, n_bins=self.n_bins)
-        super().__init__(disc_data, **kwargs)
-        self.check_cache_method_consistent(
-            "disc_chisq", hash_parameters({"n_bins": self.n_bins})
-        )
-        self.test_instance = Chisq_or_Gsq(self.data, method_name="chisq", **inner_test_kwargs(kwargs))
+    class DiscChiSq(CITKTest):
+        supported_dtypes = {"continuous", "discrete"}
+        accepted_kwargs = {"n_bins"}
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
-        return float(self.test_instance(X, Y, condition_set))
+        def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
+            self.n_bins = kwargs.get("n_bins", 5)
+            disc_data = _equal_frequency_discretize(data, n_bins=self.n_bins)
+            super().__init__(disc_data, **kwargs)
+            self.check_cache_method_consistent(
+                "disc_chisq", hash_parameters({"n_bins": self.n_bins})
+            )
+            self.test_instance = Chisq_or_Gsq(
+                self.data, method_name="chisq", **inner_test_kwargs(kwargs)
+            )
 
+        def _compute(
+            self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any
+        ) -> float:
+            return float(self.test_instance(X, Y, condition_set))
 
-register_ci_test("disc_chisq", DiscChiSq)
+    class DiscGSq(CITKTest):
+        supported_dtypes = {"continuous", "discrete"}
+        accepted_kwargs = {"n_bins"}
 
+        def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
+            self.n_bins = kwargs.get("n_bins", 5)
+            disc_data = _equal_frequency_discretize(data, n_bins=self.n_bins)
+            super().__init__(disc_data, **kwargs)
+            self.check_cache_method_consistent(
+                "disc_gsq", hash_parameters({"n_bins": self.n_bins})
+            )
+            self.test_instance = Chisq_or_Gsq(
+                self.data, method_name="gsq", **inner_test_kwargs(kwargs)
+            )
 
-class DiscGSq(CITKTest):
-    supported_dtypes = {"continuous", "discrete"}
-    accepted_kwargs = {"n_bins"}
+        def _compute(
+            self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any
+        ) -> float:
+            return float(self.test_instance(X, Y, condition_set))
 
-    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
-        self.n_bins = kwargs.get("n_bins", 5)
-        disc_data = _equal_frequency_discretize(data, n_bins=self.n_bins)
-        super().__init__(disc_data, **kwargs)
-        self.check_cache_method_consistent(
-            "disc_gsq", hash_parameters({"n_bins": self.n_bins})
-        )
-        self.test_instance = Chisq_or_Gsq(self.data, method_name="gsq", **inner_test_kwargs(kwargs))
+    class DummyFisherZ(CITKTest):
+        supported_dtypes = {"continuous", "discrete"}
+        accepted_kwargs = {"max_levels"}
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
-        return float(self.test_instance(X, Y, condition_set))
-
-
-register_ci_test("disc_gsq", DiscGSq)
-
-
-class DummyFisherZ(CITKTest):
-    supported_dtypes = {"continuous", "discrete"}
-    accepted_kwargs = {"max_levels"}
-
-    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
-        self.max_levels = kwargs.get("max_levels", 10)
-        expanded_blocks = []
-        self.col_map = {}
-        cursor = 0
-        for j in range(data.shape[1]):
-            col = data[:, j]
-            if _is_categorical_column(col, max_levels=self.max_levels):
-                dummies = pd.get_dummies(pd.Series(col).astype("category"), drop_first=True)
-                if dummies.shape[1] == 0:
-                    block = np.zeros((len(col), 1), dtype=float)
+        def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
+            self.max_levels = kwargs.get("max_levels", 10)
+            expanded_blocks = []
+            self.col_map = {}
+            cursor = 0
+            for j in range(data.shape[1]):
+                col = data[:, j]
+                if _is_categorical_column(col, max_levels=self.max_levels):
+                    dummies = pd.get_dummies(
+                        pd.Series(col).astype("category"), drop_first=True
+                    )
+                    if dummies.shape[1] == 0:
+                        block = np.zeros((len(col), 1), dtype=float)
+                    else:
+                        block = dummies.to_numpy(dtype=float)
                 else:
-                    block = dummies.to_numpy(dtype=float)
-            else:
-                block = col.reshape(-1, 1).astype(float)
-            expanded_blocks.append(block)
-            self.col_map[j] = list(range(cursor, cursor + block.shape[1]))
-            cursor += block.shape[1]
+                    block = col.reshape(-1, 1).astype(float)
+                expanded_blocks.append(block)
+                self.col_map[j] = list(range(cursor, cursor + block.shape[1]))
+                cursor += block.shape[1]
 
-        expanded = np.hstack(expanded_blocks)
-        super().__init__(expanded, **kwargs)
-        self.check_cache_method_consistent(
-            "dummy_fisherz", hash_parameters({"max_levels": self.max_levels})
-        )
-        self.test_instance = CIT(self.data, method_name="fisherz", **inner_test_kwargs(kwargs))
+            expanded = np.hstack(expanded_blocks)
+            super().__init__(expanded, **kwargs)
+            self.check_cache_method_consistent(
+                "dummy_fisherz", hash_parameters({"max_levels": self.max_levels})
+            )
+            self.test_instance = CIT(
+                self.data, method_name="fisherz", **inner_test_kwargs(kwargs)
+            )
 
-    def _compute(self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any) -> float:
-        x_cols = self.col_map[X]
-        y_cols = self.col_map[Y]
-        z_cols = []
-        for z in condition_set:
-            z_cols.extend(self.col_map[z])
+        def _compute(
+            self, X: int, Y: int, condition_set: Optional[List[int]] = None, **kwargs: Any
+        ) -> float:
+            x_cols = self.col_map[X]
+            y_cols = self.col_map[Y]
+            z_cols: list[int] = []
+            for z in condition_set:
+                z_cols.extend(self.col_map[z])
 
-        p_vals = []
-        for x_col in x_cols:
-            for y_col in y_cols:
-                cond = [c for c in z_cols if c != x_col and c != y_col]
-                p_vals.append(float(self.test_instance(x_col, y_col, cond)))
+            p_vals = []
+            for x_col in x_cols:
+                for y_col in y_cols:
+                    cond = [c for c in z_cols if c != x_col and c != y_col]
+                    p_vals.append(float(self.test_instance(x_col, y_col, cond)))
 
-        if not p_vals:
-            return 1.0
-        if len(p_vals) == 1:
-            return p_vals[0]
-        safe_p_vals = np.clip(np.asarray(p_vals, dtype=float), 1e-300, 1.0)
-        combined_p = combine_pvalues(safe_p_vals, method="fisher")[1]
-        return float(np.clip(combined_p, 0.0, 1.0))
+            if not p_vals:
+                return 1.0
+            if len(p_vals) == 1:
+                return p_vals[0]
+            safe_p_vals = np.clip(np.asarray(p_vals, dtype=float), 1e-300, 1.0)
+            combined_p = combine_pvalues(safe_p_vals, method="fisher")[1]
+            return float(np.clip(combined_p, 0.0, 1.0))
 
-
-register_ci_test("dummy_fisherz", DummyFisherZ)
+    maybe_register("disc_chisq", DiscChiSq)
+    maybe_register("disc_gsq", DiscGSq)
+    maybe_register("dummy_fisherz", DummyFisherZ)
+else:
+    DiscChiSq = None  # type: ignore[assignment]
+    DiscGSq = None  # type: ignore[assignment]
+    DummyFisherZ = None  # type: ignore[assignment]

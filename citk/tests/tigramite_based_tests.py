@@ -2,9 +2,9 @@ import importlib
 from typing import Any, List, Optional
 
 import numpy as np
-from causallearn.utils.cit import register_ci_test
 
 from citk.exceptions import CITKComputationError, CITKDependencyError
+from ._register import maybe_register
 from .base import CITKTest, hash_parameters
 
 
@@ -92,6 +92,6 @@ class RegressionCI(_TigramiteBase):
     class_candidates = ["tigramite.independence_tests.regressionCI.RegressionCI"]
 
 
-register_ci_test("cmiknn", CMIknn)
-register_ci_test("cmiknn_mixed", CMIknnMixed)
-register_ci_test("regci", RegressionCI)
+maybe_register("cmiknn", CMIknn)
+maybe_register("cmiknn_mixed", CMIknnMixed)
+maybe_register("regci", RegressionCI)

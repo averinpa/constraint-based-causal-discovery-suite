@@ -5,9 +5,9 @@ import io
 from typing import Any, List, Optional
 
 import numpy as np
-from causallearn.utils.cit import register_ci_test
 
 from citk.exceptions import CITKDependencyError
+from ._register import maybe_register
 from .base import CITKTest
 
 
@@ -143,6 +143,6 @@ class PCM(CITKTest):
         return float(pcm.pval)
 
 
-register_ci_test("gcm", GCM)
-register_ci_test("wgcm", WGCM)
-register_ci_test("pcm", PCM)
+maybe_register("gcm", GCM)
+maybe_register("wgcm", WGCM)
+maybe_register("pcm", PCM)

@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-`cbcd` (constraint-based causal discovery) has **three vertical slices working end-to-end**: `pc()` (PC family — i.i.d., CPDAG output), `fci()` (FCI family — i.i.d., PAG output), and `pcmci()` (PCMCI family — time-series, TimeSeriesCPDAG output). PCMCI was the third pressure test on the design; the §A–§G abstractions are validated against both CPDAG and PAG outputs in the i.i.d. layer, and §H is validated against the per-target search shape with a 3D endpoint matrix in the time-series layer. As of the latest journal entry, runtime code covers:
+`cbcd` (constraint-based causal discovery) has **three vertical slices working end-to-end**: `pc()` (PC family — i.i.d., CPDAG output), `fci()` (FCI family — i.i.d., PAG output), and `pcmci()` (PCMCI family — time-series, TimeSeriesCPDAG output). PCMCI was the third pressure test on the design; the §A–§G abstractions are validated against both CPDAG and PAG outputs in the i.i.d. layer, and §H is validated against the per-target search shape with a 3D endpoint matrix in the time-series layer.
+
+**v0.x API stability commitment (D15, 2026-05-06)**: the public surface re-exported from `cbcd/__init__.py` is committed backwards-compatible across all v0.x minor and patch bumps. Breaking changes wait for v1.0. Additive changes (new algorithms, new kwargs with safe defaults, new CI tests via the registries) ship in minor bumps without notice. Stub-only items in the design (e.g., `MaxPOrienter`, `lpcmci`, `MAG` methods) are NOT yet frozen — when implemented, they must conform to their current §G / §H signatures. See D15 in `docs/design/api_v0.py` for the full frozen-vs-not breakdown.
+
+As of the latest journal entry, runtime code covers:
 
 **i.i.d. layer (§A–§G):**
 - `cbcd/graph/` — `EndpointMark`, `Edge`, `_GraphBase`, `DAG`, `CPDAG` + `PartialCPDAG` (Dor–Tarsi extension), `PAG` + `PartialPAG`, `MAG` (minimal stub — methods deferred), graph queries (`possible_dsep`, `find_uncovered_circle_path`, `find_uncovered_pd_path`, `find_discriminating_path`)

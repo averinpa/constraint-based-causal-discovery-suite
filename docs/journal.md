@@ -4,6 +4,47 @@ Append-only log of what's been done, when, and why. New entries at the **top**.
 
 ---
 
+## 2026-05-06 — O5 resolved: v0.x API stability committed
+
+Open question O5 of `docs/design/api_v0.py` — when to commit to API
+stability — is now closed. The original proposal: freeze v0.x after PC,
+FCI, and PCMCI are implemented end-to-end. All three shipped today; the
+gate is met.
+
+Recorded as **D15** in the design's decisions block.
+
+The committed surface is what `cbcd/__init__.py` re-exports today.
+Across all v0.x minor and patch bumps:
+
+* **Backwards-compatible:** breaking changes (signature changes, removed
+  exports, behaviour changes invalidating caller assumptions) require a
+  major version bump to v1.0.
+* **Additive changes** (new top-level algorithms, new kwargs with
+  backwards-compatible defaults, new CI tests via the registries, new
+  result-type fields with safe defaults) ship without notice.
+
+What's NOT frozen yet — additions allowed, but each must conform to its
+current §G / §H signature when implemented:
+
+* Unimplemented variants (`MaxPOrienter`, `ConservativeOrienter`,
+  `MajorityOrienter`, `DefiniteMaxPOrienter`, `conservative_pc`,
+  `majority_pc`, `mvpc`, `cdnod`, `jci`, `iod`, `pcmci_plus`, `lpcmci`,
+  `tsfci`, `svar_fci`, `j_pcmci`).
+* `MAG` methods currently raising `NotImplementedError`.
+* `pc_alpha=None` auto-tune (open question O4).
+* `RunRecorder` semantics beyond the `NullRecorder` no-op (gated on
+  `InMemoryRecorder` / `FileRecorder` / `.cbcd` archive landing).
+* Internal modules not exported from `cbcd/__init__.py`.
+* Open questions O1, O2, O3.
+
+The full breakdown of frozen vs. not-frozen lives in D15 alongside the
+other settled decisions. `README.md` and `CLAUDE.md` updated to reflect
+the commitment.
+
+No code changed; this is a documentation-only commit.
+
+---
+
 ## 2026-05-06 — Third implementation slice: end-to-end `pcmci()`
 
 Third vertical slice from `docs/design/api_v0.py`: vanilla PCMCI (Runge et

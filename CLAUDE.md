@@ -4,20 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-`cbcd` (constraint-based causal discovery) has **two vertical slices working end-to-end**: `pc()` (PC family) and `fci()` (FCI family — `fci()`, `rfci()`, `anytime_fci()`). FCI was the second pressure test on the §A–§G abstractions; the design has now been validated against both a CPDAG output (PC) and a PAG output (FCI with CIRCLE marks, Zhang R1–R10, Possible-D-Sep refinement). As of the latest journal entry, runtime code covers:
+`cbcd` (constraint-based causal discovery) has **three vertical slices working end-to-end**: `pc()` (PC family — i.i.d., CPDAG output), `fci()` (FCI family — i.i.d., PAG output), and `pcmci()` (PCMCI family — time-series, TimeSeriesCPDAG output). PCMCI was the third pressure test on the design; the §A–§G abstractions are validated against both CPDAG and PAG outputs in the i.i.d. layer, and §H is validated against the per-target search shape with a 3D endpoint matrix in the time-series layer. As of the latest journal entry, runtime code covers:
 
+**i.i.d. layer (§A–§G):**
 - `cbcd/graph/` — `EndpointMark`, `Edge`, `_GraphBase`, `DAG`, `CPDAG` + `PartialCPDAG` (Dor–Tarsi extension), `PAG` + `PartialPAG`, `MAG` (minimal stub — methods deferred), graph queries (`possible_dsep`, `find_uncovered_circle_path`, `find_uncovered_pd_path`, `find_discriminating_path`)
-- `cbcd/citest/` — `CITest` Protocol, `CITestResult`, `CachedCITest` (frozenset-keyed; fixes the `causal-learn` md5 cache bug), `FisherZ`, `make_ci_test` factory + `register_ci_test`
+- `cbcd/citest/` — `CITest` Protocol, `CITestResult`, `CachedCITest` (frozenset-keyed), `FisherZ`, `make_ci_test` factory + `register_ci_test`
 - `cbcd/background.py` — `BackgroundKnowledge` with D5 inconsistency validation
-- `cbcd/skeleton.py` — `Skeleton`, `PCStable`, `FAS` (composition over `PCStable`, FCI's default skeleton)
-- `cbcd/collider.py` — `ColliderDecisions` (with both `apply_to_cpdag` and `apply_to_pag`), `SepsetOrienter`
-- `cbcd/rules.py` — `MeekRules` R1–R4 for CPDAG, `FCIRules` R1–R10 (Zhang 2008) for PAG. Pure structural, single-mark writes via `_set_mark` for FCI (and `_try_orient` for Meek).
-- `cbcd/refinement.py` — `PAGSkeletonRefinement` Protocol + `PossibleDSepRefinement` (increasing-size enumeration with early break; replaces the exponential `removeByPossibleDsep` in `causal-learn`)
-- `cbcd/recording.py` — `RunRecorder` Protocol + `NullRecorder`
-- `cbcd/algorithms/pc.py` — `pc()` end-to-end
-- `cbcd/algorithms/fci.py` — `fci()` (two-pass: skeleton → collider → refinement → re-run collider → rules), `rfci()` (no refinement, R1–R4 only), `anytime_fci()` (depth-capped)
+- `cbcd/skeleton.py` — `Skeleton`, `PCStable`, `FAS`
+- `cbcd/collider.py` — `ColliderDecisions` (`apply_to_cpdag` and `apply_to_pag`), `SepsetOrienter`
+- `cbcd/rules.py` — `MeekRules` R1–R4 (CPDAG), `FCIRules` R1–R10 Zhang 2008 (PAG)
+- `cbcd/refinement.py` — `PAGSkeletonRefinement` + `PossibleDSepRefinement`
+- `cbcd/algorithms/pc.py` — `pc()`
+- `cbcd/algorithms/fci.py` — `fci()` (two-pass), `rfci()`, `anytime_fci()`
 
-Still stub-only in `docs/design/api_v0.py` (not yet implemented): `MaxPOrienter` / `ConservativeOrienter` / `MajorityOrienter` / `DefiniteMaxPOrienter`, `conservative_pc` / `majority_pc` / `mvpc`, `MAG` methods (`is_ancestor_of` / `m_separated` / `to_pag` — gated on the latent-projection slice), CDNOD / JCI / IOD / time-series, `InMemoryRecorder` / `FileRecorder` / `.cbcd` archive, joblib parallelism, additional CI tests (chisq, gsq, partialcorr, KCI). When asked to implement one of these, expect to be filling in stubs from `docs/design/api_v0.py` against the patterns established in the PC and FCI slices.
+**time-series layer (§H):**
+- `cbcd/timeseries/lagged.py` — `LaggedVar`, `LaggedDataset`, `LaggedBackgroundKnowledge`
+- `cbcd/timeseries/graph.py` — `LaggedEdge`, `_LaggedGraphBase`, `TimeSeriesDAG`, `TimeSeriesCPDAG`, `PartialTimeSeriesCPDAG` (stub for PCMCI+)
+- `cbcd/timeseries/citest.py` — `LaggedCITest` Protocol, `LaggedCITestResult`, `CachedLaggedCITest`, `ParCorr`, `make_lagged_ci_test` + `register_lagged_ci_test`
+- `cbcd/timeseries/skeleton.py` — `LaggedSkeleton`, `PC1Skeleton` (per-target lagged-parent pruning by association strength)
+- `cbcd/timeseries/algorithms.py` — `pcmci()` (PC₁ + MCI two-stage)
+
+**shared:**
+- `cbcd/exceptions.py`, `cbcd/recording.py`
+
+Still stub-only in `docs/design/api_v0.py` (not yet implemented): `MaxPOrienter` / `ConservativeOrienter` / `MajorityOrienter` / `DefiniteMaxPOrienter`, `conservative_pc` / `majority_pc` / `mvpc`, `MAG` methods, CDNOD / JCI / IOD, **PCMCI+ / LPCMCI / tsFCI / SVAR-FCI / J-PCMCI**, `PartialTimeSeriesPAG` / `TimeSeriesPAG` and time-series PAG rules, `InMemoryRecorder` / `FileRecorder` / `.cbcd` archive, joblib parallelism, additional CI tests (chisq, gsq, partialcorr, KCI for i.i.d.; gpdc, cmi_knn, regci for time-series), `pc_alpha=None` auto-tune (open question O4). When asked to implement one of these, expect to be filling in stubs from `docs/design/api_v0.py` against the patterns established in the PC, FCI, and PCMCI slices.
 
 ## Commands
 
@@ -70,9 +80,10 @@ The design is the source of truth before implementation. When a design decision 
 
 ## Correctness bar
 
-Every algorithm ships with structure-level regression tests (SHD against a d-separation oracle on standard graphs), not just smoke tests. Two reference patterns:
+Every algorithm ships with structure-level regression tests (SHD against a d-separation oracle on standard graphs), not just smoke tests. Three reference patterns:
 
 * **PC** (`tests/algorithms/test_pc_oracle.py`): runs `pc()` against a `networkx.is_d_separator` oracle on six fixtures (Y, fork, chain, M, diamond, bnlearn ASIA) and asserts SHD = 0 endpoint-by-endpoint.
 * **FCI** (`tests/algorithms/test_fci_oracle.py`): runs `fci()` against `DSeparationOracleProjected` (operates on a full DAG with latents, exposes only observed indices) on hand-written fixtures from `tests/fixtures_pag.py`, including a confounded chain that exercises Zhang R1, R2, and R4. Same SHD = 0 bar.
+* **PCMCI** (`tests/timeseries/test_pcmci_oracle.py`): runs `pcmci()` against `DSeparationOracleLagged` (unrolls a `TimeSeriesDAG` to a static `nx.DiGraph` over `(var, t)` and answers via `networkx.is_d_separator` at a stationary reference time) on three VAR fixtures (AR(1), 2-var VAR(1), sparse VAR(2)). Same SHD = 0 bar.
 
 New algorithm tests should follow one of these patterns.

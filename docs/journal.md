@@ -4,6 +4,134 @@ Append-only log of what's been done, when, and why. New entries at the **top**.
 
 ---
 
+## 2026-05-06 — Third implementation slice: end-to-end `pcmci()`
+
+Third vertical slice from `docs/design/api_v0.py`: vanilla PCMCI (Runge et
+al. 2019) implemented end-to-end. This is the first §H (time-series) slice
+and the third pressure test on the design overall — after PC (CPDAG output,
+i.i.d.) and FCI (PAG output, i.i.d.), PCMCI exercises the parallel
+time-series API with a per-target search shape and a 3D endpoint matrix.
+
+225 tests pass; ruff, mypy, and ruff format all clean. The slice was
+plan-approved as `~/.claude/plans/prancing-temporal-tigramite.md`.
+
+### M1 — Lagged primitives + time-series graph types
+
+- `cbcd/timeseries/lagged.py` — `LaggedVar` (frozen, hashable, `lag ≤ 0`
+  enforced at construction), `LaggedDataset` (`max_lag < T - 1` validated),
+  `LaggedBackgroundKnowledge` (D5 fail-fast: time-direction check
+  `src.lag ≤ dst.lag`, no overlap with `forbidden_lagged`, no required
+  contemporaneous edges that contradict `no_contemporaneous` or
+  `contemporaneous_tiers`, no required autoregressive edges when
+  `no_autoregressive` set).
+- `cbcd/timeseries/graph.py` — `LaggedEdge`, `_LaggedGraphBase` ABC,
+  `TimeSeriesDAG`, `TimeSeriesCPDAG`, `PartialTimeSeriesCPDAG` (stub for
+  PCMCI+). Storage convention codified: `endpoints[0]` is symmetric in
+  NO_EDGE (lag-0 edges follow the i.i.d. convention); `endpoints[τ ≥ 1]`
+  is *not* mirror-symmetric (the cell `endpoints[τ, j, i]` is a different
+  edge `j_{t-τ} → i_t`). Past-time mark on a lagged edge is implicitly
+  TAIL — sufficient for vanilla PCMCI; LPCMCI / SVAR-FCI will extend.
+- `to_summary_graph()` and `to_contemporaneous_graph()` projections on
+  both DAG and CPDAG variants — typed with subclass-pinned returns
+  (no union antipattern).
+
+### M2 — Lagged CI test layer + PC₁ skeleton
+
+- `cbcd/timeseries/citest.py` — `LaggedCITest` Protocol, `LaggedCITestResult`,
+  `CachedLaggedCITest` (per-instance cache keyed on
+  `(min, max, frozenset(S))` over `LaggedVar` tuples; mirrors the i.i.d.
+  cache fix from the PC slice), `ParCorr` (linear partial correlation on
+  the lagged design matrix: stack `data[ml-τ : T-τ, :]` blocks as columns,
+  Schur-complement of the correlation submatrix → r-to-z transform with
+  `df = T - max_lag - |S| - 3`), `make_lagged_ci_test` factory +
+  `register_lagged_ci_test` extension hook. Built-in registry: only
+  `"parcorr"` this slice.
+- `cbcd/timeseries/skeleton.py` — `LaggedSkeleton` dataclass (per-target
+  parent sets + sepsets), `LaggedSkeletonAlgorithm` Protocol,
+  `PC1Skeleton`. PC₁ is a per-target search rather than a global skeleton
+  scan: candidate parents `{(X, -τ) : τ ∈ [1, max_lag]}` (autocorrelation
+  included) are pruned by depth, ordered by `pval_max` (smallest p =
+  strongest evidence first → highest priority as a conditioning member).
+  Sepsets are recorded for every removed (Z, target) pair.
+
+### M3 — `pcmci()` composition + structural regression
+
+- `cbcd/timeseries/algorithms.py` — `pcmci()` runs PC₁ → MCI step (for
+  each candidate `(X, -τ)`-to-`Y` edge: condition on
+  `̂P(Y) ∪ shifted ̂P(X)` minus the candidate itself; shifted parents of
+  X at lag `-τ` are `{(Z, -(τ+σ)) : (Z, -σ) ∈ ̂P(X), τ+σ ≤ max_lag}`)
+  and formats the result as a `TimeSeriesCPDAG` with all lagged edges
+  directed past→present and no contemporaneous edges (vanilla PCMCI).
+  `pc_alpha=None` defaults to `alpha` per decision below.
+- `tests/timeseries/oracle.py` — `DSeparationOracleLagged` unrolls a
+  true `TimeSeriesDAG` into a static `nx.DiGraph` over `(var, t)` for
+  `t ∈ [0, T_horizon]` and answers `is_d_separator` queries via
+  `networkx.is_d_separator`. Stationarity is exploited: the oracle picks
+  a sufficiently-interior reference time `T_ref` and translates
+  `LaggedVar(v, -τ) → (v, T_ref - τ)`.
+- `tests/timeseries/fixtures.py` — three VAR fixtures: AR(1) on a
+  single var, 2-var VAR(1) (full autocorrelation + cross-effects), and
+  3-var sparse VAR(2) (mixed lags, no autocorrelation).
+
+### Verification
+
+- **Structural regression** (`tests/timeseries/test_pcmci_oracle.py`):
+  all three VAR fixtures recover the expected `TimeSeriesCPDAG` with
+  SHD = 0 endpoint-by-endpoint. Recovered marks are subsets of
+  `{NO_EDGE, ARROW}` (vanilla PCMCI never produces TAIL marks).
+- **PC₁** (`tests/timeseries/test_pc1.py`): per-target parent
+  recovery matches the truth on every fixture; sepsets recorded for
+  pairs PC₁ ruled out (the `X_{t-2} → Y_t` non-edge in `sparse_var2`).
+- **ParCorr math** (`tests/timeseries/test_citest_parcorr.py`):
+  unconditional, strong-lagged-dependence, and chain-blocked-by-mediator
+  cases all behave correctly on simulated VAR data; `n_effective =
+  T - max_lag` reported; rejects same-column queries, S overlap,
+  out-of-horizon lags, and zero-variance columns.
+- **CachedLaggedCITest** (`tests/timeseries/test_cached_lagged_ci.py`):
+  cache key is unordered in (x, y) and in S; pass-through when
+  `cache=False`; `is_cached(...)` works.
+- **Inputs** (`tests/timeseries/test_pcmci_inputs.py`): alpha bounds,
+  `pc_alpha=None` ≡ `pc_alpha=alpha`, `n_jobs != 1` rejection,
+  CI-test/dataset n_vars and max_lag mismatch, string CI-test
+  resolution to `ParCorr`.
+
+### Decisions taken in this slice
+
+- **D9 reaffirmed** (stationary-only v0): vanilla PCMCI assumes
+  stationarity; the `LaggedDataset` is the boundary.
+- **`pc_alpha=None` policy**: default to `alpha`. Open question O4
+  (tigramite's `{0.05, 0.1, 0.2, 0.3, 0.4}` grid + AIC) is left open
+  and will resurface when LPCMCI / PCMCI+ ship.
+- **CI test surface**: only `"parcorr"` registered. `gpdc`, `cmi_knn`,
+  `regci` deferred.
+- **Subpackage layout**: `cbcd/timeseries/` mirrors `cbcd/graph/` and
+  `cbcd/algorithms/`; lagged code is visibly parallel to the i.i.d.
+  side rather than scattered.
+
+### Out of scope (deferred)
+
+- **PCMCI+** (contemporaneous edges via a second PC step). Requires
+  `LaggedColliderOrienter`, `LaggedCPDAGRules`, `PartialTimeSeriesCPDAG`
+  flow.
+- **LPCMCI / tsFCI / SVAR-FCI** (latent-aware time-series; PAG output).
+  Requires `PartialTimeSeriesPAG`, `TimeSeriesPAG`, `LaggedPAGRules`.
+- **J-PCMCI** (multi-dataset).
+- **`pc_alpha=None` auto-tune** (open question O4).
+- **Additional lagged CI tests**: `gpdc`, `cmi_knn`, `regci`.
+- **`recorder` integration** — accepted and validated, but no-op
+  (`NullRecorder`), matching PC/FCI.
+- **`n_jobs > 1`**: rejected.
+- **Regime-switching variants** (RPCMCI, regime-FCI): out per D9.
+- **`LaggedEdge.__str__`** pretty-printing.
+
+After this slice the design has been pressure-tested on three
+diverse algorithm shapes (CPDAG/i.i.d., PAG/i.i.d., CPDAG/time-series).
+Open question **O5** (committing to v0.x API stability) becomes
+addressable; resolution is its own decision and is not part of this
+slice.
+
+---
+
 ## 2026-05-06 — Second implementation slice: end-to-end `fci()`
 
 Implemented the FCI family end-to-end against `docs/design/api_v0.py`: PAG /

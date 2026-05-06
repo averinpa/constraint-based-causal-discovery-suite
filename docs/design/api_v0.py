@@ -1938,6 +1938,54 @@ class RunRecord:
 #        through the recorder once `RunRecorder` is fleshed out — not
 #        silently via mark preservation.  Settled during the FCI slice.
 #
+#   D15. v0.x API stability commitment (resolves O5).  After the PC, FCI,
+#        and PCMCI slices shipped end-to-end (2026-05-06), the public
+#        surface as exported from `cbcd/__init__.py` is committed to be
+#        backwards-compatible across all v0.x minor and patch bumps.
+#        Breaking changes — function/class removal, signature changes,
+#        behaviour changes that invalidate caller assumptions — require
+#        a major version bump (v1.0).
+#
+#        Additive changes ship without notice as minor v0.x bumps:
+#        new top-level algorithms, new keyword arguments with
+#        backwards-compatible defaults, new CI tests via the
+#        `register_ci_test` / `register_lagged_ci_test` registries,
+#        new fields on result types when added with safe defaults.
+#
+#        What is FROZEN as of D15:
+#          - Public surface of `cbcd/__init__.py` (current exports).
+#          - Endpoint storage convention for graph types (the
+#            `EndpointMark` enum, the `(n, n)` int8 matrix for i.i.d.
+#            graphs, the `(max_lag+1, n_vars, n_vars)` int8 array for
+#            time-series graphs, the lag-0 symmetry / lag>0 asymmetry
+#            invariants).
+#          - Signatures of `pc`, `fci`, `rfci`, `anytime_fci`, `pcmci`,
+#            `make_ci_test`, `register_ci_test`, `make_lagged_ci_test`,
+#            `register_lagged_ci_test`.
+#          - The `CITest` and `LaggedCITest` Protocols (so Protocol-
+#            conforming user code stays valid).
+#          - Decisions D1–D14 above.
+#
+#        What is NOT frozen yet (additions or changes are allowed):
+#          - Stubs and unimplemented variants on the design but absent
+#            from runtime: `MaxPOrienter`, `ConservativeOrienter`,
+#            `MajorityOrienter`, `DefiniteMaxPOrienter`,
+#            `conservative_pc`, `majority_pc`, `mvpc`, `cdnod`, `jci`,
+#            `iod`, `pcmci_plus`, `lpcmci`, `tsfci`, `svar_fci`,
+#            `j_pcmci`. When implemented, they must conform to their
+#            current §G/§H signatures.
+#          - `MAG` methods (`is_ancestor_of`, `m_separated`, `to_pag`)
+#            currently raising `NotImplementedError` — implementing them
+#            is purely additive.
+#          - Open question O4 (`pc_alpha=None` auto-tune): a future
+#            addition that does not break existing callers passing an
+#            explicit `pc_alpha`.
+#          - `RunRecorder` semantics beyond the `NullRecorder` no-op:
+#            will solidify when `InMemoryRecorder` / `FileRecorder` /
+#            the `.cbcd` archive land.
+#          - Internal modules not exported from `cbcd/__init__.py`.
+#          - Decisions O1, O2, O3 (still open).
+#
 # -----------------------------------------------------------------------------
 # OPEN — must be resolved before each item ships:
 #
@@ -1964,7 +2012,6 @@ class RunRecord:
 #       AIC of the residual model.  Adopt verbatim or pick a different
 #       criterion (BIC, cross-validated likelihood)?
 #
-#   O5. **API stability commitment.**  Proposed: freeze the v0.x surface
-#       after PC, FCI, and PCMCI are implemented end-to-end against this
-#       design (pressure-tested against three diverse algorithm shapes).
-#       Until then, breaking changes allowed at minor-version bumps.
+#   O5. RESOLVED → D15. v0.x API stability committed on 2026-05-06 after
+#       PC, FCI, and PCMCI shipped end-to-end. See D15 above for the
+#       frozen-vs-not-frozen breakdown.

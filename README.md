@@ -12,7 +12,17 @@ The package is being built from scratch (informed by, but not depending on, [`ca
 
 ## Status
 
-Early development. API not yet stable.
+The v0.x public API (everything re-exported from `cbcd`) is committed to
+backwards compatibility across all v0.x minor and patch bumps. Breaking
+changes will only appear at v1.0. Additive changes (new algorithms, new
+keyword arguments with safe defaults, new CI tests via the registries)
+may ship in any minor bump without notice.
+
+Implemented end-to-end so far: `pc()` (PC family), `fci()` / `rfci()` /
+`anytime_fci()` (FCI family), `pcmci()` (vanilla PCMCI). Other entries
+in the design (PCMCI+, LPCMCI, conservative-/majority-PC, CDNOD, J-PCMCI,
+…) are still stub-level — when they land, their signatures will conform
+to the v0 design they're already specced against.
 
 ## Installation
 

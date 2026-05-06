@@ -5,12 +5,30 @@ import json
 import os
 import time
 import warnings
+from dataclasses import dataclass, field
 from typing import Any, Iterable, List, Mapping, Optional, Tuple
 
 import numpy as np
 from causallearn.utils.cit import CIT_Base, NO_SPECIFIED_PARAMETERS_MSG
 
 from citk.exceptions import CITKComputationError, CITKError
+
+
+@dataclass(frozen=True, slots=True)
+class CITKResult:
+    """Outcome of a single conditional-independence call.
+
+    Field-compatible with ``cbcd.CITestResult`` so cbcd's algorithms can
+    consume citk tests via the cbcd ``CITest`` Protocol without any
+    cross-package import. cbcd reads only ``.p_value`` from cached
+    results; the other fields are optional diagnostics.
+    """
+
+    p_value: float
+    statistic: float | None = None
+    df: int | None = None
+    n_effective: int | None = None
+    extra: dict[str, float] = field(default_factory=dict)
 
 CACHE_FORMAT_VERSION = "1.0"
 
@@ -231,6 +249,32 @@ class CITKTest(CIT_Base):
         **kwargs: Any,
     ) -> float:
         raise NotImplementedError("Subclasses must implement _compute.")
+
+    @property
+    def n_vars(self) -> int:
+        """Alias for :attr:`num_features`. Required by the structural
+        ``cbcd.CITest`` Protocol so any citk test plugs into a cbcd
+        algorithm directly: ``cbcd.pc(data, ci_test=citk.tests.FisherZ(data))``.
+        """
+        return int(self.num_features)
+
+    def details(
+        self,
+        X: int,
+        Y: int,
+        condition_set: Optional[Iterable[int]] = None,
+        **kwargs: Any,
+    ) -> CITKResult:
+        """Return a structured ``CITKResult`` for one CI query.
+
+        Default implementation calls :meth:`__call__` and wraps the float
+        p-value in a ``CITKResult``. Subclasses with richer diagnostics
+        (test statistic, df, n_effective) can override to populate those
+        fields. cbcd's algorithms only read ``.p_value`` from cached
+        results, so this default is sufficient for cbcd interop.
+        """
+        p = self(X, Y, condition_set, **kwargs)
+        return CITKResult(p_value=float(p))
 
     @classmethod
     def validate_data(cls, data: np.ndarray) -> Tuple[bool, str]:

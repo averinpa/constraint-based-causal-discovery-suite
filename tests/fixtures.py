@@ -113,7 +113,7 @@ def _expected_cpdag_from_dag(dag: DAG) -> CPDAG:
         ]
         for i in range(n)
     }
-    adj_dag = (dag.endpoints != EndpointMark.NO_EDGE)
+    adj_dag = dag.endpoints != EndpointMark.NO_EDGE
     for w in range(n):
         ps = parents_in_dag[w]
         for i, u in enumerate(ps):

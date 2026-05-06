@@ -1923,6 +1923,21 @@ class RunRecord:
 #        disables caching while keeping the wrapper as a recording
 #        adapter (rare).
 #
+#   D13. Two-pass FCI shape.  After `PossibleDSepRefinement` removes edges,
+#        `fci()` re-runs the collider step on the refined skeleton before
+#        invoking `FCIRules`.  Matches Zhang/Spirtes pseudocode and the
+#        causal-learn reference: refinement can drop edges that change
+#        which triples are unshielded, so the prior collider classification
+#        is stale.  `rfci()` skips both refinement and the second collider
+#        pass.  Settled during the FCI slice (2026-05-06).
+#
+#   D14. PAG collider conflict semantics.  `ColliderDecisions.apply_to_pag`
+#        uses last-write semantics on the Z-endpoint mark when collider
+#        triples overlap, mirroring `apply_to_cpdag`.  Conflicting writes
+#        imply skeleton/sepset inconsistency upstream and should surface
+#        through the recorder once `RunRecorder` is fleshed out — not
+#        silently via mark preservation.  Settled during the FCI slice.
+#
 # -----------------------------------------------------------------------------
 # OPEN — must be resolved before each item ships:
 #

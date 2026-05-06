@@ -56,9 +56,7 @@ class BackgroundKnowledge:
 
         for edge in required:
             if edge in forbidden:
-                raise CBCDInputError(
-                    f"required_directed edge {edge} is also in forbidden_directed"
-                )
+                raise CBCDInputError(f"required_directed edge {edge} is also in forbidden_directed")
 
         for u, v in required:
             pair = frozenset({u, v})

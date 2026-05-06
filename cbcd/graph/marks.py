@@ -34,9 +34,7 @@ class Edge:
 
     @property
     def is_directed(self) -> bool:
-        return (
-            self.mark_at_i is EndpointMark.TAIL and self.mark_at_j is EndpointMark.ARROW
-        ) or (
+        return (self.mark_at_i is EndpointMark.TAIL and self.mark_at_j is EndpointMark.ARROW) or (
             self.mark_at_i is EndpointMark.ARROW and self.mark_at_j is EndpointMark.TAIL
         )
 
@@ -50,6 +48,4 @@ class Edge:
 
     @property
     def is_circle_circle(self) -> bool:
-        return (
-            self.mark_at_i is EndpointMark.CIRCLE and self.mark_at_j is EndpointMark.CIRCLE
-        )
+        return self.mark_at_i is EndpointMark.CIRCLE and self.mark_at_j is EndpointMark.CIRCLE

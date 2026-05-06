@@ -40,9 +40,7 @@ class DAG(_GraphBase):
                 (mij == EndpointMark.ARROW and mji == EndpointMark.TAIL)
                 or (mij == EndpointMark.TAIL and mji == EndpointMark.ARROW)
             ):
-                raise CBCDInputError(
-                    f"DAG edge ({i_}, {j_}) is not directed: marks=({mji}, {mij})"
-                )
+                raise CBCDInputError(f"DAG edge ({i_}, {j_}) is not directed: marks=({mji}, {mij})")
 
         if _has_directed_cycle(self.endpoints):
             raise CBCDInputError("DAG must be acyclic")
@@ -78,8 +76,7 @@ def _has_directed_cycle(endpoints: NDArray[np.int8]) -> bool:
     n = endpoints.shape[0]
     # Build child adjacency.
     children = [
-        list(int(j) for j in np.where(endpoints[i, :] == EndpointMark.ARROW)[0])
-        for i in range(n)
+        list(int(j) for j in np.where(endpoints[i, :] == EndpointMark.ARROW)[0]) for i in range(n)
     ]
     indegree = [0] * n
     for u in range(n):

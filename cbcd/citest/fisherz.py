@@ -71,9 +71,7 @@ class FisherZ:
 
         df = self.n_samples - len(S_tuple) - 3
         if df <= 0:
-            return CITestResult(
-                p_value=1.0, statistic=0.0, df=df, n_effective=self.n_samples
-            )
+            return CITestResult(p_value=1.0, statistic=0.0, df=df, n_effective=self.n_samples)
 
         if not S_tuple:
             r = float(self._corr[x, y])
@@ -83,14 +81,10 @@ class FisherZ:
             try:
                 inv = np.linalg.inv(sub)
             except np.linalg.LinAlgError:
-                return CITestResult(
-                    p_value=1.0, statistic=0.0, df=df, n_effective=self.n_samples
-                )
+                return CITestResult(p_value=1.0, statistic=0.0, df=df, n_effective=self.n_samples)
             denom = inv[0, 0] * inv[1, 1]
             if denom <= 0:
-                return CITestResult(
-                    p_value=1.0, statistic=0.0, df=df, n_effective=self.n_samples
-                )
+                return CITestResult(p_value=1.0, statistic=0.0, df=df, n_effective=self.n_samples)
             r = float(-inv[0, 1] / np.sqrt(denom))
 
         r = max(min(r, _R_CLIP), -_R_CLIP)

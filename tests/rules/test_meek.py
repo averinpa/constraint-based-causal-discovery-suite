@@ -22,16 +22,12 @@ def _ep(n: int, dirs: list[tuple[int, int]], unds: list[tuple[int, int]]) -> np.
 
 def _is_directed(cpdag, u: int, v: int) -> bool:  # type: ignore[no-untyped-def]
     return (
-        cpdag.endpoints[u, v] == EndpointMark.ARROW
-        and cpdag.endpoints[v, u] == EndpointMark.TAIL
+        cpdag.endpoints[u, v] == EndpointMark.ARROW and cpdag.endpoints[v, u] == EndpointMark.TAIL
     )
 
 
 def _is_undirected(cpdag, u: int, v: int) -> bool:  # type: ignore[no-untyped-def]
-    return (
-        cpdag.endpoints[u, v] == EndpointMark.TAIL
-        and cpdag.endpoints[v, u] == EndpointMark.TAIL
-    )
+    return cpdag.endpoints[u, v] == EndpointMark.TAIL and cpdag.endpoints[v, u] == EndpointMark.TAIL
 
 
 def test_r1_fires() -> None:

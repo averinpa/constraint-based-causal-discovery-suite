@@ -11,6 +11,7 @@ from cbcd.background import BackgroundKnowledge
 from cbcd.citest.protocol import CITest
 from cbcd.graph.cpdag import PartialCPDAG
 from cbcd.graph.marks import EndpointMark
+from cbcd.graph.pag import PartialPAG
 from cbcd.skeleton import Skeleton
 
 
@@ -77,6 +78,40 @@ class ColliderDecisions:
             endpoints=endpoints,
             var_names=var_names,
             ambiguous_triples=self.ambiguous,
+        )
+
+    def apply_to_pag(
+        self,
+        skeleton: Skeleton,
+        var_names: tuple[str, ...] | None = None,
+    ) -> PartialPAG:
+        """Lay collider arrows onto a PAG canvas.
+
+        Initializes every skeleton edge as ``CIRCLE—CIRCLE``; for each collider
+        triple ``(X, Z, Y)`` writes ``ARROW`` at Z on both arms (mark at X and
+        Y stays CIRCLE). Last-write semantics on the Z-endpoint mark when
+        triples overlap, mirroring ``apply_to_cpdag``.
+        """
+        n = skeleton.n_vars
+        endpoints = np.zeros((n, n), dtype=np.int8)
+        for i in range(n):
+            for j in range(i + 1, n):
+                if skeleton.adj[i, j]:
+                    endpoints[i, j] = EndpointMark.CIRCLE
+                    endpoints[j, i] = EndpointMark.CIRCLE
+
+        for x, z, y in self.colliders:
+            if endpoints[x, z] != EndpointMark.NO_EDGE:
+                endpoints[x, z] = EndpointMark.ARROW
+            if endpoints[y, z] != EndpointMark.NO_EDGE:
+                endpoints[y, z] = EndpointMark.ARROW
+
+        sepsets = dict(skeleton.sepsets) if skeleton.sepsets else None
+        return PartialPAG(
+            n_vars=n,
+            endpoints=endpoints,
+            var_names=var_names,
+            sepsets=sepsets,
         )
 
 

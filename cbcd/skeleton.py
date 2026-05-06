@@ -65,9 +65,7 @@ class PCStable:
         n_jobs: int = 1,
     ) -> Skeleton:
         if n_jobs != 1:
-            raise CBCDInputError(
-                "n_jobs != 1 not yet implemented in this slice; pass n_jobs=1"
-            )
+            raise CBCDInputError("n_jobs != 1 not yet implemented in this slice; pass n_jobs=1")
         n = ci.n_vars
         adj = np.ones((n, n), dtype=bool)
         np.fill_diagonal(adj, False)
@@ -147,3 +145,33 @@ def _conditioning_sets(candidates: Sequence[int], k: int) -> list[tuple[int, ...
     if k == 0:
         return [()]
     return [tuple(c) for c in combinations(candidates, k)]
+
+
+class FAS:
+    """Fast Adjacency Search (Spirtes et al.) — the FCI default skeleton.
+
+    Behaviourally identical to ``PCStable`` in the i.i.d. case; kept as its
+    own class so FCI-specific tweaks (augmented sepsets, time-series variants)
+    can attach here without affecting PC. Composition over inheritance: a
+    ``PCStable`` instance is held internally and its ``__call__`` is forwarded.
+    """
+
+    def __init__(self) -> None:
+        self._inner = PCStable(track_max_pvalue=False)
+
+    def __call__(
+        self,
+        ci: CITest,
+        *,
+        alpha: float,
+        max_cond_set: int | None = None,
+        background: BackgroundKnowledge | None = None,
+        n_jobs: int = 1,
+    ) -> Skeleton:
+        return self._inner(
+            ci,
+            alpha=alpha,
+            max_cond_set=max_cond_set,
+            background=background,
+            n_jobs=n_jobs,
+        )

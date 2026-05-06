@@ -4,6 +4,151 @@ Append-only log of what's been done, when, and why. New entries at the **top**.
 
 ---
 
+## 2026-05-06 — Second implementation slice: end-to-end `fci()`
+
+Implemented the FCI family end-to-end against `docs/design/api_v0.py`: PAG /
+PartialPAG / MAG graph types (§D), `apply_to_pag` (§E), `FCIRules` with all
+ten of Zhang's R1–R10 (§F), `PossibleDSepRefinement` (§F), `FAS` skeleton
+wrapper (§C), and `fci()` / `rfci()` / `anytime_fci()` composition (§G). 162
+tests pass; ruff, mypy, and ruff format all clean.
+
+This is the second pressure test on the §A–§G abstractions. Plan was written
+to `~/.claude/plans/glistening-jumping-catmull.md`.
+
+### M1 — PAG / PartialPAG / MAG + `apply_to_pag` + FAS
+
+- `cbcd/graph/pag.py`: `PartialPAG` (working canvas; carries optional
+  `sepsets` field per the plan), `PAG` (closed result; `definite_edges()`
+  surfaces edges with no CIRCLE on either end, `possibly_directed(i, j)`
+  reports whether a directed orientation `i → j` is consistent with the
+  marks). `MAG` is a minimal stub: TAIL/ARROW marks only, every edge must
+  be directed or bidirected; `is_ancestor_of` / `m_separated` / `to_pag`
+  raise `NotImplementedError` and are deferred to the latent-projection
+  slice.
+- `cbcd/collider.py`: `ColliderDecisions.apply_to_pag` mirrors
+  `apply_to_cpdag`. Initializes every skeleton edge as `CIRCLE—CIRCLE`,
+  writes `ARROW` at Z on both arms of each collider triple, and propagates
+  the skeleton's sepsets onto the resulting `PartialPAG`. Last-write
+  semantics on the Z-mark when collider triples overlap (D14, mirroring
+  `apply_to_cpdag`).
+- `cbcd/skeleton.py`: `FAS` class — composition over `PCStable`, forwards
+  `__call__`. Avoids leaking `track_max_pvalue` into FCI's default surface;
+  cheap extension point for future FCI-specific tweaks.
+- Re-exports updated on `cbcd/graph/__init__.py` and `cbcd/__init__.py`.
+
+### M2 — Graph queries + refinement + FCIRules R1–R10
+
+- `cbcd/graph/queries.py`: `possible_dsep(endpoints, x, y)` (BFS over
+  `(vertex, predecessor)` states; admit only collider-or-triangle
+  triples), `find_uncovered_circle_path`, `find_uncovered_pd_path`,
+  `find_discriminating_path`. "Uncovered" defined per the standard:
+  every consecutive triple unshielded (path *endpoints* may themselves
+  be adjacent — needed for R5 and R9). The discriminating-path search
+  grows backwards from `a` toward θ, requiring intermediate vertices to
+  be parents of `c` AND colliders on the path; the θ candidate is
+  required only to be non-adjacent to `c` (corrected during M2 — initial
+  implementation incorrectly required θ to be a parent of `c` too).
+- `cbcd/refinement.py`: `PAGSkeletonRefinement` Protocol +
+  `PossibleDSepRefinement`. Increasing-size enumeration over
+  Possible-D-Sep with early break — replaces causal-learn's
+  `removeByPossibleDsep` (audit FCI.py:1000–1058) which enumerated the
+  full powerset twice per edge. Removed edges have their orientations
+  wiped back to `CIRCLE—CIRCLE` so the caller can re-run collider
+  classification on the refined skeleton (D13 — see below).
+- `cbcd/rules.py`: `PAGRules` Protocol + `FCIRules` class with R1–R10.
+  Mirrors `MeekRules` shape: `__call__(graph, *, background, max_iterations)
+  -> PAG`, copy endpoints once at entry, one `_apply_zhang_rN` helper per
+  rule, fixpoint loop filters by `self.rules`. Rule names typed as
+  `frozenset[str]` (loose, matching §F's design). New helper `_set_mark`
+  is the PAG analogue of `_try_orient`: writes a *single* endpoint mark
+  with a background-knowledge guard that refuses writes which would
+  result in a forbidden directed orientation.
+
+### M3 — `fci()` / `rfci()` / `anytime_fci()` + structural regression
+
+- `cbcd/algorithms/fci.py`: `fci()` runs the two-pass pipeline (D13):
+  `_normalize_data → make_ci_test → CachedCITest → FAS → SepsetOrienter
+  → apply_to_pag → PossibleDSepRefinement → re-run SepsetOrienter on the
+  refined skeleton → apply_to_pag → FCIRules → PAG`. After refinement,
+  the second collider pass uses a freshly-constructed `Skeleton` from
+  the refined `PartialPAG`'s adjacency, carrying through the witness
+  sepsets recorded by refinement. `rfci()` is `fci(refinement=None,
+  rules=FCIRules({R1..R4}))`. `anytime_fci(data, max_cond_set, ...)` is
+  `fci(max_cond_set=...)` with `max_cond_set` positional + required.
+- `tests/fixtures_pag.py`: 4 hand-written DAG-with-latent fixtures with
+  expected PAG matrices: Y-structure, chain, fork, and a confounded
+  4-node case (`0 → 2, 1 → 2, 2 → 3, L → 1, L → 3`) that exercises R1,
+  R2, and R4. The R4 case is particularly load-bearing — the R4
+  discriminating-path orientation `1 → 3` is correct (not `1 ↔ 3`)
+  because `1 → 2 → 3` makes 1 an ancestor of 3 in the original DAG, so
+  ancestrality forces the MAG edge to be directed, not bidirected.
+- `tests/oracle_pag.py`: `DSeparationOracleProjected` answers d-sep on a
+  full DAG (latents + observed) but exposes only `n_observed` to the
+  algorithm — gives FCI the right CI surface without revealing latents.
+
+### Verification
+
+- **Structural regression** (`tests/algorithms/test_fci_oracle.py`): all
+  four PAG fixtures recover with SHD = 0 endpoint-by-endpoint. Recovered
+  marks are subsets of `{NO_EDGE, TAIL, ARROW, CIRCLE}` on every fixture.
+- **Inputs** (`tests/algorithms/test_fci_inputs.py`): alpha bounds,
+  `n_jobs != 1` rejection, ci_test dim mismatch, DataFrame ≡ ndarray.
+- **rfci** (`tests/algorithms/test_rfci.py`): on no-latent fixtures
+  (where R5+ would not fire and refinement is a no-op) `rfci()` and
+  `fci()` produce the same PAG.
+- **anytime_fci** (`tests/algorithms/test_anytime_fci.py`): with
+  `max_cond_set=0` on the confounded-chain fixture, the recovered PAG
+  has strictly more adjacencies than the unbounded `fci()` (since the
+  `(0, 3)` sepset has size 2 and is unreachable under the cap).
+- **Per-rule unit tests** (`tests/rules/test_fci.py`): R1, R2, R3, R4
+  (both branches), R5, R6, R7, R8 (both patterns), R9 each have a
+  minimal-firing test plus a non-firing pattern; R1 has a
+  background-knowledge block. Plus subsetting via `rules=frozenset(...)`
+  and convergence on a closed PAG.
+- **Graph queries** (`tests/graph/test_queries.py`): uncovered circle
+  paths, PD paths (including a "blocked by arrow at start" negative
+  case), Possible-D-Sep over collider chains, discriminating paths
+  (minimal `p=0` case + two negatives).
+- **Refinement** (`tests/refinement/test_possible_dsep.py`): with a
+  stub CI test that returns `p > alpha` only for the size-2 sepset
+  `{1, 2}`, refinement removes the spurious `(0, 3)` edge and records
+  the witness; with `max_cond_set=1` the same edge is *not* removed.
+
+162 tests, ruff clean, mypy clean, ruff format clean.
+
+### Decisions taken during this slice (added to §I)
+
+- **D13. Two-pass FCI shape.** After `PossibleDSepRefinement` removes
+  edges, `fci()` re-runs the collider step on the refined skeleton
+  before invoking `FCIRules`. This matches Zhang/Spirtes pseudocode
+  and the `causal-learn` reference: PossibleDSep can drop edges that
+  change which triples are unshielded, so the prior collider
+  classification is stale.
+- **D14. PAG collider conflict semantics.** `apply_to_pag` uses
+  last-write semantics on the Z-endpoint mark when collider triples
+  overlap, mirroring `apply_to_cpdag`. Any conflict implies the
+  skeleton + sepsets are mutually inconsistent — surfacing it via the
+  recorder (when `RunRecorder` is fleshed out) is the right place to
+  detect it, not by silently preserving a CIRCLE mark.
+
+### Out of scope (deferred to next slice)
+
+- `MAG.is_ancestor_of` / `m_separated` / `to_pag` — minimal class only.
+- Programmatic `DAG → MAG → PAG` projection oracle (hand-written
+  fixtures used here).
+- `n_jobs > 1` in `PossibleDSepRefinement` and `FAS` (rejected, matching
+  `PCStable`'s policy).
+- `MaxPOrienter` / `ConservativeOrienter` / `MajorityOrienter` integration
+  with `apply_to_pag`.
+- GFCI (score-based skeleton; design line 641).
+- `recorder` integration in `FCIRules` / `PossibleDSepRefinement` —
+  accepted and validated, but no-op (`NullRecorder`), matching the PC
+  slice.
+- `Edge.__str__` PAG-aware glyphs (`o-o`, `o->`).
+- Selection-bias / m-separation handling beyond MAG's mark validation.
+
+---
+
 ## 2026-05-06 — First implementation slice: end-to-end `pc()`
 
 Implemented the first vertical slice of the design from `docs/design/api_v0.py`: a working `pc()` that exercises §A–§G and §J at minimal scope. Plan was written to `~/.claude/plans/goofy-finding-lemon.md`. 84 tests pass, ruff + mypy clean.

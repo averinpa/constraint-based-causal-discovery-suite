@@ -40,6 +40,13 @@ class LaggedCITest(Protocol):
     Conditioning sets are sequences of ``LaggedVar``. Implementations must
     be deterministic for fixed ``(x, y, S)`` and stationary in the sense
     that the result depends on relative lags, not absolute time.
+
+    Conformance is **structural, not nominal** — same contract as the i.i.d.
+    ``cbcd.CITest``: any object with ``n_vars: int``, ``max_lag: int``,
+    ``__call__(x, y, S) -> float``, and ``details(x, y, S)`` returning any
+    object with a ``.p_value: float`` attribute satisfies the Protocol. No
+    import of ``cbcd`` is required to conform — third-party libraries like
+    ``citk`` plug in by exposing classes with this shape.
     """
 
     n_vars: int

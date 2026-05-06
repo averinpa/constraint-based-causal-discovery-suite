@@ -1,0 +1,34 @@
+"""CITest Protocol and result type."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+from typing import Protocol, runtime_checkable
+
+
+@dataclass(frozen=True, slots=True)
+class CITestResult:
+    """Outcome of a single conditional-independence call."""
+
+    p_value: float
+    statistic: float | None = None
+    df: int | None = None
+    n_effective: int | None = None
+    extra: dict[str, float] = field(default_factory=dict)
+
+
+@runtime_checkable
+class CITest(Protocol):
+    """Conditional-independence test interface.
+
+    A ``CITest`` answers ``X ⫫ Y | S`` queries on integer variable indices in
+    ``[0, n_vars)``. ``__call__`` returns the p-value; ``details`` returns the
+    full ``CITestResult``.
+    """
+
+    n_vars: int
+
+    def __call__(self, x: int, y: int, S: Sequence[int]) -> float: ...
+
+    def details(self, x: int, y: int, S: Sequence[int]) -> CITestResult: ...

@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bnm"
+version = "0.2.0.dev0"
+authors = [
+  { name="Pavel Averin" },
+]
+description = "Bayesian network metrics: SHD, F1, SID, and per-Markov-blanket comparisons over DAGs, CPDAGs, and PAGs."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT License" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy",
+]
+
+[project.optional-dependencies]
+pandas = ["pandas"]
+networkx = ["networkx"]
+viz = ["graphviz", "plotly", "ipython"]
+docs = ["sphinx", "furo", "myst-parser"]
+dev = ["pytest", "pytest-xdist", "ruff", "mypy", "ipython", "networkx", "pandas"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["bnm"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["pandas.*", "networkx.*", "graphviz.*", "plotly.*", "IPython.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["docs", "scripts/legacy_0_1_x"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.2.0",
+    "kaleido>=1.3.0",
+    "nbformat>=5.10.4",
+]

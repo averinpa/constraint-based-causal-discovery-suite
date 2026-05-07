@@ -2,7 +2,7 @@
 
 **BNM** is a Python package for evaluating, comparing, and visualizing
 DAGs, CPDAGs, and PAGs. It is part of the
-[constraint-based causal-discovery suite](../) alongside
+[constraint-based causal discovery suite](../) alongside
 [`cbcd`](../cbcd/) (algorithms), [`citk`](../citk/) (CI tests), and
 [`dagsampler`](../dagsampler/) (simulator).
 

@@ -1,5 +1,8 @@
 # BNM — Bayesian Network Metrics
 
+[![CI](https://github.com/averinpa/bnm/actions/workflows/ci.yml/badge.svg)](https://github.com/averinpa/bnm/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+
 **BNM** is a Python package for evaluating, comparing, and visualizing
 DAGs, CPDAGs, and PAGs. It is part of the
 [constraint-based causal discovery suite](../) alongside

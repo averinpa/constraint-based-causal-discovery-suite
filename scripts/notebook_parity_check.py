@@ -16,13 +16,11 @@ failures — those are intentional v0.2 corrections.
 from __future__ import annotations
 
 import random
-import sys
 
 import networkx as nx
 import numpy as np
 
 import bnm
-
 
 # ---- 0.1.x generate_random_dag, byte-for-byte ----------------------
 

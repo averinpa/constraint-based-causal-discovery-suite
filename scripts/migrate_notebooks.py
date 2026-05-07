@@ -285,7 +285,7 @@ EVAL_CELLS = [
     md_cell("## Setup"),
     md_cell(
         "Let's assume we have a Directed Acyclic Graph (DAG), either "
-        "produced by a causal-discovery algorithm or hand-built. We "
+        "produced by a causal discovery algorithm or hand-built. We "
         "want to characterise its structure both globally and at the "
         "Markov-blanket level."
     ),
@@ -480,7 +480,7 @@ CMP2_CELLS = [
     md_cell(
         "## Case 2 — validating a learned DAG against the truth\n\n"
         "Generate a true DAG, fabricate a 'learned' graph by "
-        "perturbing it (a stand-in for a real causal-discovery "
+        "perturbing it (a stand-in for a real causal discovery "
         "output), and compare the truth's CPDAG to the learned one. "
         "For a real PC run, swap `perturb(...)` for "
         "`cbcd.pc(data, ...)` (the suite's PC implementation) — "

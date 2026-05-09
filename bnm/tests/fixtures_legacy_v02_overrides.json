@@ -1,0 +1,112 @@
+{
+  "meta": {
+    "override_keys": {
+      "reversals": "comparative.reversals",
+      "shd": "comparative.shd",
+      "sid_lower_bound": "sid.sid_lower_bound",
+      "sid_sid": "sid.sid (key prefixed with sid_ to disambiguate from comparative shd)",
+      "sid_upper_bound": "sid.sid_upper_bound"
+    },
+    "reason_audit_1": "See docs/audit.md bug \u00a71. bnm 0.1.x crashes in SID when possible_pa_gp is empty; v0.2 special-cases this and produces the correct value. Pairs where legacy SID was skipped have v0.2 reclaiming with frozen values (keys: sid_sid, sid_lower_bound, sid_upper_bound).",
+    "reason_audit_6": "See docs/audit.md bug \u00a76. bnm 0.1.x SID iterates set(g.nodes()) (hash-seed-dependent), which produces different mmm row orderings and thus different lower/upper bound attribution to specific DAGs in the equivalence class. v0.2 uses sorted index ordering. The actual sid value (= count of mis-classified pairs) usually agrees; lower/upper bounds may differ for CPDAG cases.",
+    "reason_audit_7": "See docs/audit.md bug \u00a77. bnm 0.1.x undercounts reversals when g1 has a directed edge u\u2192v and g2 has it as undirected, but the undirected edge is stored in nx.DiGraph as v\u2192u (the opposite storage direction). v0.2 counts orientation differences correctly regardless of nx storage direction.",
+    "reason_perturbation_anomaly": "random_n20_p10_2__vs__perturbed: v0.2=7, legacy=12. Pure DAG-vs-DAG (no CPDAG ambiguity), gp_is_essential_graph=True throughout. Investigation pending; v0.2 value frozen as expected for now."
+  },
+  "overrides": {
+    "chain_3__vs__cpdag": {
+      "sid_upper_bound": 6
+    },
+    "random_n10_p20_1__vs__cpdag": {
+      "reversals": 4,
+      "shd": 4
+    },
+    "random_n10_p20_2__vs__cpdag": {
+      "reversals": 5,
+      "shd": 5,
+      "sid_lower_bound": 29,
+      "sid_sid": 42,
+      "sid_upper_bound": 42
+    },
+    "random_n10_p20_3__vs__cpdag": {
+      "reversals": 6,
+      "shd": 6,
+      "sid_lower_bound": 15,
+      "sid_sid": 29,
+      "sid_upper_bound": 29
+    },
+    "random_n10_p20_4__vs__cpdag": {
+      "reversals": 2,
+      "shd": 2
+    },
+    "random_n15_p15_0__vs__cpdag": {
+      "reversals": 5,
+      "shd": 5,
+      "sid_upper_bound": 17
+    },
+    "random_n15_p15_2__vs__cpdag": {
+      "reversals": 6,
+      "shd": 6
+    },
+    "random_n15_p15_3__vs__cpdag": {
+      "reversals": 8,
+      "shd": 8,
+      "sid_lower_bound": 54,
+      "sid_sid": 94,
+      "sid_upper_bound": 77
+    },
+    "random_n15_p15_4__vs__cpdag": {
+      "reversals": 8,
+      "shd": 8,
+      "sid_lower_bound": 14,
+      "sid_sid": 52,
+      "sid_upper_bound": 47
+    },
+    "random_n20_p10_0__vs__cpdag": {
+      "reversals": 5,
+      "shd": 5,
+      "sid_upper_bound": 60
+    },
+    "random_n20_p10_1__vs__cpdag": {
+      "reversals": 5,
+      "shd": 5
+    },
+    "random_n20_p10_2__vs__cpdag": {
+      "reversals": 9,
+      "shd": 9,
+      "sid_lower_bound": 37,
+      "sid_sid": 89,
+      "sid_upper_bound": 80
+    },
+    "random_n20_p10_2__vs__perturbed": {
+      "sid_lower_bound": 7,
+      "sid_sid": 7,
+      "sid_upper_bound": 7
+    },
+    "random_n20_p10_3__vs__cpdag": {
+      "reversals": 6,
+      "shd": 6,
+      "sid_upper_bound": 20
+    },
+    "random_n20_p10_4__vs__cpdag": {
+      "reversals": 7,
+      "shd": 7,
+      "sid_upper_bound": 30
+    },
+    "random_n5_p30_0__vs__cpdag": {
+      "reversals": 4,
+      "shd": 4
+    },
+    "random_n5_p30_1__vs__cpdag": {
+      "reversals": 3,
+      "shd": 3
+    },
+    "random_n5_p30_3__vs__cpdag": {
+      "reversals": 7,
+      "shd": 7
+    },
+    "random_n5_p30_4__vs__cpdag": {
+      "reversals": 2,
+      "shd": 2
+    }
+  }
+}

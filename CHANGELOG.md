@@ -1,5 +1,84 @@
 # Changelog
 
+## 0.2.2 (in development)
+
+Viz polish. No metric-layer changes; suite parity numerically
+unchanged (5/5 fixtures still within bounds).
+
+### Changed (breaking — pre-release only)
+
+- **`bnm.plot_side_by_side`**: the `highlight_true_positives: bool`
+  kwarg is replaced by `mode: Literal["matches", "diff", "none"] =
+  "matches"`. Migration:
+
+  | v0.2.0/0.2.1 | v0.2.2 |
+  |---|---|
+  | `highlight_true_positives=True` (default) | `mode="matches"` (default) |
+  | `highlight_true_positives=False` | `mode="none"` |
+  | *(no equivalent)* | `mode="diff"` |
+
+  Since v0.2.x is still pre-release (no PyPI publication yet), this
+  is a clean rename rather than a deprecation alias.
+
+### Added
+
+- **`bnm.plot_side_by_side(..., mode="diff")`** — highlights edges
+  that *differ* between g1 and g2 (additions, deletions, reversals,
+  kind changes). Each side's edge is highlighted in whichever panel
+  contains it. Useful for "show me what changed" diffs.
+- **`highlight_node_color` / `highlight_edge_color` kwargs** on both
+  `plot_graph` and `plot_side_by_side`. Defaults preserve the v0.2
+  pastel palette (`#c8e6c9` node fill, `#f08080` edge stroke); pass
+  any graphviz-accepted colour string to override per-call.
+
+### Fixed
+
+- **CIRCLE-edge matching granularity** in `plot_side_by_side(mode=
+  "matches")`. Pre-fix, `_matching_edges` collapsed every CIRCLE-
+  bearing edge into a single `"circle"` bucket, so a `(CIRCLE,
+  ARROW)` edge in g1 and a `(CIRCLE, CIRCLE)` edge in g2 — different
+  PAG topologies — were incorrectly reported as matching. Matching
+  now compares the full `(mij, mji)` mark pair for CIRCLE edges.
+- Resolves design-doc open questions **O1** and **O2**.
+
+### Tests
+
+- 12 new tests in `tests/viz/test_viz_v0_2_2.py` covering the colour
+  kwargs, CIRCLE matching granularity, and `mode="matches" / "diff"
+  / "none" / invalid`.
+
+## 0.2.1 (in development)
+
+Pure performance follow-up to 0.2.0. No public API changes.
+
+### Changed
+
+- **`bnm.compare`** now normalises `g1` / `g2` to internal `_Graph`
+  instances exactly once. Downstream metric calls reuse the
+  normalised inputs and skip the per-call O(n²) endpoint validation.
+  In v0.2.0 the per-node loop revalidated each external graph on
+  every metric and every variable, so `compare(per_node=True)` on a
+  1000-node external GraphLike took minutes; the demo notebook
+  `evaluate single DAG.ipynb` was downsized from `n_nodes=1000` to
+  `n_nodes=200` to compensate. This release restores the original
+  scale: `compare(per_node=True)` at n=200 now completes in
+  hundreds of milliseconds; n=1000 is back in the seconds range.
+- **`bnm.adapter._validate_endpoints`** is now fully vectorised over
+  the `(n, n)` matrix (no Python `for i, j` loop). Single-shot
+  metric calls — `bnm.shd(g1, g2)`, `bnm.sid(g1, g2)`, etc. — pick
+  up a free speedup on every external GraphLike input.
+
+### Tests
+
+- 4 new regression tests in `tests/compare/test_compare_perf.py`:
+  - `_validate_endpoints` runs at most once per distinct external
+    GraphLike across a full `compare(per_node=True)` call (= 1 in
+    single-graph mode, 2 in two-graph mode).
+  - Wall-clock bound: `compare(per_node=True)` on a 200-node
+    external GraphLike completes in under one second.
+  - Wall-clock bound: `_validate_endpoints` on a 1000×1000 valid
+    matrix completes in under half a second.
+
 ## 0.2.0 (in development)
 
 **Breaking rewrite.** v0.2 is a full rewrite around a canonical int8
@@ -14,7 +93,7 @@ notes below.
 | `BNMetrics(g1, g2).shd` | `bnm.shd(g1, g2)` |
 | `BNMetrics(g1, g2).f1_score` | `bnm.f1(g1, g2)` |
 | `BNMetrics(g1, g2).sid()` | `bnm.sid(g1, g2)` (returns `SIDResult` dataclass) |
-| `BNMetrics(g1, g2).compare_df(...)` | `bnm.compare(g1, g2, ...)` (planned) |
+| `BNMetrics(g1, g2).compare_df(...)` | `bnm.compare(g1, g2, ...)` + `bnm.to_dataframe(c)` |
 | `bnm.generate_random_dag(...)` | use `dagsampler.CausalDataGenerator` |
 | `bnm.generate_synthetic_data_from_dag(...)` | use `dagsampler.CausalDataGenerator` |
 | `bnm.utils.dag_to_cpdag(...)` | use cbcd's `DAG.to_cpdag()` |

@@ -5,6 +5,183 @@ Per-package implementation history. Cross-package decisions live in
 
 ---
 
+## 2026-05-09 — v0.2.2 viz polish: diff mode, CIRCLE matching, colour kwargs
+
+Closed design-doc open questions O1 (CIRCLE-mark rendering) and O2
+(diff mode), plus the highlight-colour kwarg note from the
+2026-05-08 pastel-palette entry. All v0.2.x viz items from the
+suite-level scoping conversation are now landed.
+
+**The three threads:**
+
+1. **`plot_side_by_side(mode=...)` replaces `highlight_true_positives`.**
+   New tri-state knob: `mode: Literal["matches", "diff", "none"] =
+   "matches"`. `"diff"` highlights edges that differ between g1 and
+   g2 (additions, deletions, reversals, kind changes); each side's
+   edge highlights in whichever panel contains it. `"none"` covers
+   the previous `highlight_true_positives=False` use case.
+
+   Pre-release rename rather than deprecation alias — bnm is still
+   `0.2.x.dev0` (no PyPI release), so the cleanest move is to drop
+   the old kwarg outright. Only one internal caller existed
+   (`tests/viz/test_viz_smoke.py`); migrated to `mode="none"`.
+
+2. **CIRCLE-edge matching granularity (O1 polish).** Pre-fix,
+   `_matching_edges` returned a single `"circle"` kind for every
+   CIRCLE-bearing edge, so a `(CIRCLE, ARROW)` edge in g1 and a
+   `(CIRCLE, CIRCLE)` edge in g2 — different PAG topologies —
+   incorrectly reported as matching. Fixed: matching compares the
+   full `(mij, mji)` mark pair for CIRCLE edges; the highlighted-set
+   tuple type widens from `tuple[int, int, str]` to also accept
+   `tuple[int, int, str, int, int]` for the CIRCLE case.
+
+   Note: the rendering side of O1 (mapping CIRCLE → graphviz `odot`)
+   was already shipped in Slice 4 — this entry only closes the
+   matching-side polish that was missed at the time.
+
+3. **`highlight_node_color` / `highlight_edge_color` kwargs on
+   `plot_graph` and `plot_side_by_side`.** Defaults still resolve to
+   the v0.2 pastel constants `_HIGHLIGHT_NODE_FILL` (`#c8e6c9`) and
+   `_HIGHLIGHT_EDGE_COLOR` (`#f08080`) — purely additive. Closes the
+   "one knob can be added later if a non-pastel preset is needed"
+   line from the 2026-05-08 palette entry.
+
+**Tests.** 12 new in `tests/viz/test_viz_v0_2_2.py`:
+
+- `mode="matches"` (default) preserves v0.2.0 behaviour on chain ↔
+  chain self-comparison.
+- `mode="diff"` correctly highlights reversed edges in both panels;
+  additions in g2 only; deletions in g1 only; nothing on identical
+  graphs; raises on invalid mode strings.
+- CIRCLE granularity: `(CIRCLE, ARROW)` vs `(CIRCLE, CIRCLE)` no
+  longer false-matches; `(CIRCLE, ARROW)` vs `(CIRCLE, ARROW)` still
+  matches.
+- Colour kwargs: non-default values reach the rendered DOT source
+  for both `plot_graph` and `plot_side_by_side`; default behaviour
+  unchanged when kwargs aren't passed.
+
+**Test totals.** 535 pass (up from 523), full bnm suite in 4.7s.
+mypy clean, ruff clean. Suite parity harness 5/5 fixtures within
+bounds — viz changes don't touch the metric layer, numerics
+unaffected.
+
+**Design doc.** `docs/design/api_v0.py` §L: O1 and O2 marked
+*resolved 2026-05-09, v0.2.2*. The `plot_side_by_side` signature in
+§J updated to the new shape (mode kwarg, colour kwargs).
+
+**Version.** `pyproject.toml` and `bnm.__version__`
+`0.2.1.dev0` → `0.2.2.dev0`. CHANGELOG gains a
+`## 0.2.2 (in development)` section; the rename is documented in a
+migration table since this is technically a breaking API change
+(kwarg removed) — though pre-release-only, no PyPI users affected.
+
+**Push policy unchanged.** No public push without explicit user
+instruction.
+
+---
+
+## 2026-05-09 — v0.2.1 perf: `compare()` no longer revalidates per metric
+
+Closed the v0.2.1 anchor item flagged in the 2026-05-07 notebook entry:
+"thread the `_to_endpoints` result through the compare loop so per-node
+calls don't re-validate."
+
+**The bug.** `bnm.compare(g1, g2, per_node=True)` over an external
+GraphLike (e.g. cbcd's `DAG`) was running `_validate_endpoints` on the
+*same* matrices `O(metrics × n_vars)` times — every metric inside the
+per-node loop called `_to_endpoints(g1)` from scratch, which on a
+non-`_Graph` instance triggered the full O(n²) Python-loop validator.
+At n=1000 the demo notebook took minutes; that's why
+`evaluate single DAG.ipynb` was downsized to n=200 in the 2026-05-07
+migration.
+
+**The fix.** Two compounding changes:
+
+1. **`bnm.compare`** now calls `to_graphlike(g1)` (and `g2` if given)
+   exactly once at the top, before any metric dispatch. The resulting
+   `_Graph` instances flow through every downstream call. Each
+   downstream `_to_endpoints` invocation hits the existing `_Graph`
+   fast path and skips validation entirely. End-to-end:
+   `_validate_endpoints` runs **once per distinct external input**,
+   regardless of `n_vars` or how many metrics / per-node iterations
+   are in flight.
+
+2. **`bnm.adapter._validate_endpoints`** is now fully vectorised over
+   the (n, n) matrix. The old `for i in range(n): for j in range(i+1,
+   n): ...` Python loop is replaced with `np.diagonal`, a symmetry
+   mask comparison (`no_edge_mask != no_edge_mask.T`), and a single
+   `np.triu` to find the first violating pair. Single-shot calls like
+   `bnm.shd(external_graph_a, external_graph_b)` pick this up for
+   free — no longer paying the Python-loop tax on every external
+   input.
+
+**Test additions.** 4 new tests in
+`tests/compare/test_compare_perf.py`:
+
+- `_validate_endpoints` runs at most once per distinct external
+  GraphLike across a full `compare(per_node=True)` call. A regression
+  that re-validates inside a metric or inside the per-node loop would
+  push this count to O(n_vars × n_metrics) and trip the test.
+- Wall-clock bound: `compare(per_node=True)` on a 200-node external
+  GraphLike completes in under one second. (Pre-fix: several seconds
+  at this size.)
+- Wall-clock bound: `_validate_endpoints` on a 1000×1000 valid matrix
+  completes in under 0.5s.
+- Single-graph mode (`compare(g)`) revalidates exactly once.
+
+**Test totals.** 523 pass (up from 519), full suite in 4.9s. mypy
+clean, ruff clean. Suite parity harness re-run still 5/5 fixtures
+within bounds — the optimisation produces identical numeric output;
+only the time budget changed.
+
+**API stability.** No public surface change. The optimisation is
+purely internal: `compare()`'s parameter list, `Comparison`'s field
+shape, and every metric function's signature are unchanged. Callers
+who passed cbcd graphs / nx.DiGraph / ndarray / list-of-lists into
+any bnm function get the same numeric output, faster.
+
+**Version.** `pyproject.toml` and `bnm.__version__` bumped from
+`0.2.0.dev0` to `0.2.1.dev0`. CHANGELOG gains a `## 0.2.1 (in
+development)` section above `## 0.2.0 (in development)`. The
+"`bnm.compare(...)` (planned)" annotation on the 0.2.0 migration
+table is corrected — it shipped on 2026-05-07.
+
+**Remaining v0.2.x viz work** (see `docs/design/api_v0.py` §L) is
+unchanged: O1 (CIRCLE-mark rendering convention), O2
+(`plot_side_by_side` difference mode), highlight-color kwarg.
+Tracked for v0.2.2 per the suite-level scoping conversation.
+
+---
+
+## 2026-05-08 — Pastel highlight palette in `bnm.viz`
+
+Swapped the two highlight colors in `bnm/bnm/viz/_graphviz.py` from
+the original vivid set to a pastel pair so figures read better in
+light-themed docs without overwhelming the rest of the diagram:
+
+- node fill (highlighted nodes): `lightgreen` → `#c8e6c9`
+  (pastel green, Material lime 100).
+- edge stroke (matching edges in `plot_side_by_side`): `crimson` →
+  `#f08080` (pastel red / light coral).
+
+Both values now live as module-level constants
+`_HIGHLIGHT_NODE_FILL` and `_HIGHLIGHT_EDGE_COLOR` so future tweaks
+land in one place. Docstrings on `plot_graph` and `plot_side_by_side`
+updated to say "pastel" instead of the literal old names. Six viz
+smoke tests in `bnm/tests/viz/test_viz_smoke.py` updated to match.
+
+**Test impact:** all 519 bnm tests still pass, including the 82 in
+`tests/viz/`. Suite integration harness (`parity/suite/run.py`)
+unaffected (5/5 fixtures still within bounds). The suite tutorial
+now embeds two paired figures generated with the new palette.
+
+This is the v0.2 default; not exposed as a kwarg yet (one knob can
+be added later if a non-pastel preset is needed). v0.2.x API
+stability is unaffected — the highlight colours were never part of
+the public contract.
+
+---
+
 ## 2026-05-07 — `use cases/` notebooks migrated to v0.2
 
 All four notebooks now run end-to-end against the v0.2 API. Smoke-

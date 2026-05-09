@@ -32,34 +32,40 @@ def _is_graphlike(obj: object) -> bool:
 
 
 def _validate_endpoints(endpoints: NDArray[np.int8], *, source: str) -> None:
-    """Common shape/mark validation. Raises BNMInputError on failure."""
+    """Common shape/mark validation. Raises BNMInputError on failure.
+
+    Vectorised over the full (n, n) matrix — O(n²) numpy ops, no Python
+    loop over indices. Hot-pathed by every external GraphLike call.
+    """
     if endpoints.ndim != 2 or endpoints.shape[0] != endpoints.shape[1]:
         raise BNMInputError(
             f"{source}: endpoints must be a square 2D matrix, got shape {endpoints.shape}"
         )
-    n = endpoints.shape[0]
-    unique = set(int(v) for v in np.unique(endpoints))
-    bad = unique - _VALID_MARKS
-    if bad:
+    unique = np.unique(endpoints)
+    bad_marks = [int(v) for v in unique if int(v) not in _VALID_MARKS]
+    if bad_marks:
         raise BNMInputError(
             f"{source}: endpoint marks must be in {sorted(_VALID_MARKS)}; "
-            f"got unexpected marks {sorted(bad)}"
+            f"got unexpected marks {bad_marks}"
         )
-    # Both ends must be NO_EDGE or both non-NO_EDGE.
     no_edge = int(EndpointMark.NO_EDGE)
-    for i in range(n):
-        if endpoints[i, i] != no_edge:
-            raise BNMInputError(
-                f"{source}: diagonal must be NO_EDGE; got {endpoints[i, i]} at ({i}, {i})"
-            )
-        for j in range(i + 1, n):
-            mij = endpoints[i, j]
-            mji = endpoints[j, i]
-            if (mij == no_edge) != (mji == no_edge):
-                raise BNMInputError(
-                    f"{source}: edge ({i}, {j}) has one NO_EDGE end and one non-NO_EDGE end; "
-                    f"marks=({mji}, {mij})"
-                )
+    diag = np.diagonal(endpoints)
+    bad_diag = np.flatnonzero(diag != no_edge)
+    if bad_diag.size:
+        i = int(bad_diag[0])
+        raise BNMInputError(
+            f"{source}: diagonal must be NO_EDGE; got {int(endpoints[i, i])} at ({i}, {i})"
+        )
+    no_edge_mask = endpoints == no_edge
+    asymmetric = no_edge_mask != no_edge_mask.T
+    if asymmetric.any():
+        upper = np.triu(asymmetric, k=1)
+        ii, jj = np.where(upper)
+        i, j = int(ii[0]), int(jj[0])
+        raise BNMInputError(
+            f"{source}: edge ({i}, {j}) has one NO_EDGE end and one non-NO_EDGE end; "
+            f"marks=({int(endpoints[j, i])}, {int(endpoints[i, j])})"
+        )
 
 
 def _resolve_var_names(

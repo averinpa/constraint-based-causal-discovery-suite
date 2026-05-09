@@ -35,7 +35,7 @@ from typing import Any, Literal
 import numpy as np
 
 from bnm._graph import _Graph
-from bnm.adapter import _resolve_var, _to_endpoints
+from bnm.adapter import _resolve_var, _to_endpoints, to_graphlike
 from bnm.comparative import (
     count_additions,
     count_deletions,
@@ -307,6 +307,14 @@ def compare(
     """
     desc_names = _resolve_metric_set(descriptive, DESCRIPTIVE_METRIC_NAMES, kind="descriptive")
     comp_names = _resolve_metric_set(comparative, COMPARATIVE_METRIC_NAMES, kind="comparative")
+
+    # Normalise once. Downstream metric calls pass the resulting `_Graph`
+    # instances through `_to_endpoints`, which short-circuits validation
+    # for `_Graph` inputs — so a per-node sweep over n variables runs
+    # validation O(1) instead of O(n × metrics).
+    g1 = to_graphlike(g1)
+    if g2 is not None:
+        g2 = to_graphlike(g2)
 
     # When g2 is omitted, the implicit default ``comparative="all"`` is
     # treated as "skip" rather than an error — single-graph mode just

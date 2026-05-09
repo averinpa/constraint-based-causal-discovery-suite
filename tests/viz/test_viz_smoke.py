@@ -36,19 +36,19 @@ def test_plot_graph_undirected_edge_renders_with_dir_none() -> None:
     assert "B -> C" in src
 
 
-def test_plot_graph_highlight_node_filled_lightgreen() -> None:
+def test_plot_graph_highlight_node_filled_pastel_green() -> None:
     g = collider_3()
     dot = bnm.plot_graph(g, highlight=["C"])
     src = dot.source
-    assert "lightgreen" in src
-    assert "fillcolor=lightgreen" in src.replace('"', "")
+    assert "#c8e6c9" in src
+    assert "fillcolor=#c8e6c9" in src.replace('"', "")
 
 
 def test_plot_graph_with_int_indices() -> None:
     g = collider_3()
     dot = bnm.plot_graph(g, highlight=[2])
     src = dot.source
-    assert "lightgreen" in src
+    assert "#c8e6c9" in src
 
 
 def test_plot_graph_renders_svg() -> None:
@@ -63,24 +63,24 @@ def test_plot_side_by_side_returns_two_dots() -> None:
     dot1, dot2 = bnm.plot_side_by_side(g, g, name1="A", name2="B")
     assert "A -> B" in dot1.source
     assert "A -> B" in dot2.source
-    # Self-comparison: every edge is a TP → all crimson.
-    assert "crimson" in dot1.source
-    assert "crimson" in dot2.source
+    # Self-comparison: every edge is a TP → all painted pastel red.
+    assert "#f08080" in dot1.source
+    assert "#f08080" in dot2.source
 
 
-def test_plot_side_by_side_no_tp_highlighting_when_disabled() -> None:
+def test_plot_side_by_side_mode_none_skips_edge_highlighting() -> None:
     g = chain_3()
-    dot1, dot2 = bnm.plot_side_by_side(g, g, highlight_true_positives=False)
-    assert "crimson" not in dot1.source
-    assert "crimson" not in dot2.source
+    dot1, dot2 = bnm.plot_side_by_side(g, g, mode="none")
+    assert "#f08080" not in dot1.source
+    assert "#f08080" not in dot2.source
 
 
 def test_plot_side_by_side_highlight_node_in_both() -> None:
     g1 = chain_3()
     g2 = fork_3()
     dot1, dot2 = bnm.plot_side_by_side(g1, g2, highlight_nodes=["A"])
-    assert "lightgreen" in dot1.source
-    assert "lightgreen" in dot2.source
+    assert "#c8e6c9" in dot1.source
+    assert "#c8e6c9" in dot2.source
 
 
 def test_plot_side_by_side_n_vars_mismatch_raises() -> None:
@@ -163,12 +163,12 @@ def test_subtle_style_in_side_by_side() -> None:
 
 
 def test_highlight_overrides_style_node_fill() -> None:
-    """Highlighting paints the node lightgreen, overriding the
+    """Highlighting paints the node pastel green, overriding the
     style's default fill."""
     g = collider_3()
     dot = bnm.plot_graph(g, highlight=["C"])
     src = dot.source
-    assert "lightgreen" in src
+    assert "#c8e6c9" in src
     assert "shape=ellipse" in src  # style is still applied to other nodes
 
 

@@ -1,17 +1,101 @@
-# BNM Documentation
-
-Welcome to the **BNM** (Bayesian Network Metrics) documentation.
-
-BNM is a Python package for evaluating, comparing, and visualizing DAGs, originally developed as [DAGMetrics in R](https://github.com/averinpa/DAGMetrics).
-
-## 📖 Sections
-
-- [Getting Started](https://github.com/averinpa/bnm/blob/main/docs/getting_strated.md)
-- [API Reference](https://github.com/averinpa/bnm/blob/main/docs/api_reference.md)
-- Use Cases: 
-    - [Evaluate Single DAG](https://github.com/averinpa/bnm/blob/main/use%20cases/evaluate%20single%20DAG.ipynb)
-    - [Compare Two DAGs](https://github.com/averinpa/bnm/blob/main/use%20cases/compare%20two%20DAGs.ipynb)
-    - [Compare Algorithms](https://github.com/averinpa/bnm/blob/main/use%20cases/compare%20algorithms.ipynb)  
-    - [SID](https://github.com/averinpa/bnm/blob/main/use%20cases/sid.ipynb)
-
 ---
+sd_hide_title: true
+---
+
+# bnm
+
+`bnm` (Bayesian network metrics) is a Python library for comparing
+and visualising directed acyclic graphs (DAGs), completed partially
+directed acyclic graphs (CPDAGs), and partial ancestral graphs
+(PAGs). It implements the standard structural-distance metrics
+(SHD, HD, F1, precision, recall, structural intervention distance),
+local Markov-blanket comparison, and side-by-side graph
+visualisation.
+
+## Scope
+
+The package implements:
+
+- **Descriptive metrics** — `bnm.count_edges`, `bnm.count_colliders`,
+  `bnm.count_directed_arcs`, etc. — over a single graph.
+- **Comparative metrics** — `bnm.shd`, `bnm.hd`, `bnm.f1`,
+  `bnm.precision`, `bnm.recall` (Tsamardinos et al., 2006), plus
+  fine-grained additions / deletions / reversals counts.
+- **Structural Intervention Distance** — `bnm.sid` (Peters &
+  Bühlmann, 2015), with both lower and upper bounds when comparing
+  a DAG to a CPDAG.
+- **Markov-blanket comparison** — `bnm.markov_blanket`, returning
+  the parents, children, and spouses of a node.
+- **Visualisation** — `bnm.plot_graph`, `bnm.plot_side_by_side`,
+  `bnm.plot_sid_matrix` (gated behind the optional `[viz]` extra).
+
+Inputs are accepted through the structural `bnm.GraphLike` Protocol,
+which is satisfied by every graph type in the sister package
+[`cbcd`](https://github.com/averinpa/cbcd) (DAG, CPDAG, PAG, MAG)
+without conversion. Plain `networkx.DiGraph` instances and raw
+`int8` endpoint matrices are also accepted via `bnm.to_graphlike`.
+
+## Architectural commitments
+
+`bnm` does not depend on `cbcd`, `dagsampler`, or `causal-learn`.
+Cross-package interoperability is mediated by the
+`bnm.GraphLike` Protocol — any object exposing `n_vars: int`,
+`endpoints: ndarray[int8]`, and `var_names: tuple[str, ...]`
+satisfies it. Validation is performed by `bnm.to_graphlike` at the
+input boundary; downstream metric functions trust the normalised
+representation.
+
+The endpoint-mark convention (decision **D5** of bnm's design
+document) follows cbcd's: `0` for no edge, `1` for TAIL, `2` for
+ARROW, `3` for CIRCLE.
+
+## Reading this documentation
+
+The site follows the **Diátaxis** layout. New users should start
+with the [Tutorial](tutorial.md). Practitioners with a specific
+goal should consult the [How-to](howto/index.md) section. The
+[Reference](reference/index.md) is regenerated from docstrings on
+every build. The [Explanation](explanation/index.md) section
+discusses the mathematical foundations of the metrics, the
+`GraphLike` Protocol, and the v0.2 audit findings.
+
+```{toctree}
+:maxdepth: 1
+:caption: Tutorial
+:hidden:
+
+tutorial
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: How-to
+:hidden:
+
+howto/index
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: Reference
+:hidden:
+
+reference/index
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: Explanation
+:hidden:
+
+explanation/index
+```
+
+## References
+
+- Peters, J., & Bühlmann, P. (2015). Structural intervention
+  distance for evaluating causal graphs. *Neural Computation*,
+  27(3), 771–799.
+- Tsamardinos, I., Brown, L. E., & Aliferis, C. F. (2006). The
+  max-min hill-climbing Bayesian network structure learning
+  algorithm. *Machine Learning*, 65(1), 31–78.

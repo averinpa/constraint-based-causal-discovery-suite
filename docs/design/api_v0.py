@@ -675,11 +675,21 @@ def plot_side_by_side(
     *,
     name1: str = "G1",
     name2: str = "G2",
-    highlight_true_positives: bool = True,
+    mode: 'Literal["matches", "diff", "none"]' = "matches",
     highlight_nodes: Iterable[int | str] = (),
+    highlight_node_color: str = "#c8e6c9",  # pastel green default
+    highlight_edge_color: str = "#f08080",  # pastel red default
 ) -> "Any":
-    """Side-by-side render of g1 and g2, highlighting matching edges in
-    crimson (the 0.1.x behaviour)."""
+    """Side-by-side render of g1 and g2 with edge highlighting.
+
+    ``mode`` selects which edges receive the highlight stroke:
+      * ``"matches"`` (default) — true-positive edges (same kind, same
+        direction; CIRCLE-bearing edges must agree on the full mark
+        pair). Mirrors the 0.1.x behaviour.
+      * ``"diff"`` — additions, deletions, reversals, and kind changes.
+        Each side's edge is highlighted in whichever panel contains it.
+      * ``"none"`` — no edge highlighting (only ``highlight_nodes``).
+    """
     ...
 
 
@@ -810,13 +820,18 @@ PUBLIC_API_v0: tuple[str, ...] = (
 #   Stubs (e.g. PAG-specific viz) are not yet frozen until the
 #   implementing slice lands.
 #
-# OPEN QUESTIONS (resolve before the relevant slice):
+# OPEN QUESTIONS (resolved or deferred):
 #
-#   O1 (Slice 4): visualization convention for CIRCLE marks in PAG
-#       inputs — small open circle on the relevant endpoint?
-#   O2 (Slice 4): does `plot_side_by_side` need a third "diff" mode
-#       that highlights only the differences (rather than only the
-#       true-positive matches)? 0.1.x has the matching-mode only.
+#   O1 (resolved 2026-05-09, v0.2.2): CIRCLE marks render as graphviz
+#       `odot` arrowheads (the "small open circle on the relevant
+#       endpoint" question — answer: yes). Edge-matching for CIRCLE-
+#       bearing edges compares the full ``(mij, mji)`` mark pair so
+#       different PAG topologies don't false-match.
+#   O2 (resolved 2026-05-09, v0.2.2): `plot_side_by_side` gained
+#       ``mode: Literal["matches", "diff", "none"] = "matches"``.
+#       ``"diff"`` highlights additions, deletions, reversals, and
+#       kind changes. ``"none"`` disables edge highlighting (covers
+#       the previous `highlight_true_positives=False` use case).
 #   O3 (deferred): SID generalisation to PAGs is research-open. Not
 #       in scope for v0.2; revisit when a referenced extension is
 #       published.

@@ -14,18 +14,16 @@ from enum import IntEnum
 class EndpointMark(IntEnum):
     """Mark on one end of an edge.
 
-    `endpoints[i, j]` is the mark at node `j` of the edge between `i`
-    and `j`. The pair `(endpoints[j, i], endpoints[i, j])` together
-    specifies the edge type:
+    ``endpoints[i, j]`` is the mark at node ``j`` of the edge between
+    ``i`` and ``j``. The pair ``(endpoints[j, i], endpoints[i, j])``
+    together specifies the edge type:
 
-    | (mark at i, mark at j) | edge type        |
-    |------------------------|------------------|
-    | (TAIL, ARROW)          | i → j (directed) |
-    | (ARROW, TAIL)          | i ← j (directed) |
-    | (TAIL, TAIL)           | i — j (undirected) |
-    | (ARROW, ARROW)         | i ↔ j (bidirected) |
-    | (CIRCLE, *)            | PAG circle endpoint |
-    | (NO_EDGE, NO_EDGE)     | no edge          |
+    - ``(TAIL, ARROW)`` — directed edge ``i -> j``.
+    - ``(ARROW, TAIL)`` — directed edge ``i <- j``.
+    - ``(TAIL, TAIL)`` — undirected edge ``i -- j``.
+    - ``(ARROW, ARROW)`` — bidirected edge ``i <-> j``.
+    - ``(CIRCLE, *)`` — PAG circle endpoint.
+    - ``(NO_EDGE, NO_EDGE)`` — no edge.
 
     NO_EDGE on either end means no edge exists; both ends must be
     NO_EDGE or both non-NO_EDGE.

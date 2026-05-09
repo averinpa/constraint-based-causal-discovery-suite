@@ -44,6 +44,18 @@ coverage.xml
 # Logs
 *.log
 
+# Sphinx documentation build output
+docs/_build/
+docs/build/
+
+# Type checker / linter caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# macOS
+.DS_Store
+
 # My local notebook
 bnmetrics_rename.ipynb
 test_bnmetrics.py

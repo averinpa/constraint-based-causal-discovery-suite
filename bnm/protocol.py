@@ -17,17 +17,16 @@ class GraphLike(Protocol):
     of bnm required. cbcd's ``DAG``, ``CPDAG``, ``PAG`` instances
     conform with zero adaptation.
 
-    Attributes
-    ----------
-    n_vars : int
-        Number of variables (rows/columns of `endpoints`).
-    endpoints : NDArray[np.int8]
-        Square ``(n_vars, n_vars)`` endpoint-mark matrix. Marks follow
-        the bnm.EndpointMark convention. Must be an attribute, not a
-        property — bnm metric code reads this in hot loops.
-    var_names : tuple[str, ...] | None
-        Optional human-readable variable names; ``None`` means
-        index-only.
+    The required attributes are:
+
+    - ``n_vars`` — number of variables (rows / columns of
+      ``endpoints``).
+    - ``endpoints`` — square ``(n_vars, n_vars)`` endpoint-mark matrix
+      following the :class:`bnm.EndpointMark` convention. Must be an
+      attribute, not a property — bnm metric code reads this in hot
+      loops.
+    - ``var_names`` — optional human-readable variable names; ``None``
+      means index-only.
     """
 
     n_vars: int

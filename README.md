@@ -1,5 +1,17 @@
 # dagsampler
 
+> [!IMPORTANT]
+> **This repository is archived.** `dagsampler` has moved to the
+> [constraint-based-causal-discovery-suite](https://github.com/averinpa/constraint-based-causal-discovery-suite)
+> umbrella, where it lives at
+> [`dagsampler/`](https://github.com/averinpa/constraint-based-causal-discovery-suite/tree/main/dagsampler).
+>
+> The PyPI package name **`dagsampler`** is unchanged — `pip install
+> dagsampler` continues to work, with future releases (0.2.0+)
+> published from the suite repo. This archive is kept read-only for
+> historical reference; the v0.1.0 source remains here at the last
+> commit before the move.
+
 [![PyPI version](https://img.shields.io/pypi/v/dagsampler.svg)](https://pypi.org/project/dagsampler/)
 [![Python versions](https://img.shields.io/pypi/pyversions/dagsampler.svg)](https://pypi.org/project/dagsampler/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

@@ -1,7 +1,7 @@
 # Audit of `bnm` 0.1.x
 
 **Date:** 2026-05-07
-**Source tree audited:** `/Users/pavelaverin/Projects/suite/bnm/` at git
+**Source tree audited:** `bnm/` at git
 `b2d591e1fb22550d94b82391c7304077a7a3ec07` (branch `main`).
 **Scope:** all of `bnm/bnm/` (`__init__.py`, `core.py`, `metrics.py`,
 `sid.py`, `utils.py`, `viz.py`) plus packaging/setup.py.

@@ -1,5 +1,15 @@
 # BNM — Bayesian Network Metrics
 
+> [!IMPORTANT]
+> **This repository is archived.** `bnm` has moved to the
+> [constraint-based-causal-discovery-suite](https://github.com/averinpa/constraint-based-causal-discovery-suite)
+> umbrella, where it lives at
+> [`bnm/`](https://github.com/averinpa/constraint-based-causal-discovery-suite/tree/main/bnm).
+> All future development happens there. This archive is kept
+> read-only for historical reference; v0.2 onwards is in the suite
+> repo, with a Python-native int8 endpoint-mark matrix
+> representation and a 535-test suite.
+
 [![CI](https://github.com/averinpa/bnm/actions/workflows/ci.yml/badge.svg)](https://github.com/averinpa/bnm/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 

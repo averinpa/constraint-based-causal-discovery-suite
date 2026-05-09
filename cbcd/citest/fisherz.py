@@ -20,7 +20,7 @@ class FisherZ:
 
     Pre-computes the sample correlation matrix once. Each query inverts the
     relevant submatrix to obtain the partial correlation, then applies Fisher's
-    r-to-z transform with df = n - |S| - 3.
+    r-to-z transform with ``df = n - len(S) - 3``.
 
     Strict Gaussian assumption; for mixed-data, use a different test.
     """

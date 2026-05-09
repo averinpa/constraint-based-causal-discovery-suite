@@ -5,6 +5,19 @@ All notable changes to `dagsampler` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-05-08
+
+### Added
+
+- `CausalDataGenerator.as_ci_oracle()` returning a `DSeparationOracle`
+  that conforms structurally to the `cbcd.CITest` Protocol
+  (`n_vars`, `__call__(x, y, S) -> float`, `details(x, y, S)` with
+  `.p_value`). Variable indices map to the alphabetically-sorted column
+  order of the generated dataframe; p-values are 1.0 for d-separated
+  pairs and 0.0 otherwise. No dependency on `cbcd` — conformance is
+  purely structural.
+- `DSeparationOracle` exported from the top-level `dagsampler` package.
+
 ## [0.1.0] - 2026-04-23
 
 First public release.

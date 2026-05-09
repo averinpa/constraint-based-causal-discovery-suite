@@ -9,6 +9,8 @@ from networkx.algorithms.d_separation import is_d_separator
 from scipy.special import expit
 from scipy.stats import norm
 
+from .oracle import DSeparationOracle
+
 # Safety guards to avoid exploding values that can cause Inf/NaN
 SAFE_PARENT_CLIP = 1e3
 SAFE_OUTPUT_CLIP = 1e12
@@ -1081,3 +1083,18 @@ class CausalDataGenerator:
                         )
 
         return oracle
+
+    def as_ci_oracle(self) -> DSeparationOracle:
+        """Return a d-separation CI oracle conforming to ``cbcd.CITest``.
+
+        The oracle answers queries on integer variable indices in
+        ``[0, n_vars)`` matching the alphabetically-sorted column order
+        of the generated dataframe. Call :meth:`simulate` first — the
+        canonical variable order is finalized at the end of
+        ``simulate()``.
+        """
+        if self.graph is None or self.data is None:
+            raise RuntimeError(
+                "as_ci_oracle() requires a simulated graph; call simulate() first."
+            )
+        return DSeparationOracle(self.graph, list(self.data.columns))

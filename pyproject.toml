@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dagsampler"
-version = "0.1.0"
+version = "0.2.0"
 description = "Configurable causal DAG simulator for synthetic mixed-type data and CI test benchmarks"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -57,8 +57,11 @@ dev = [
   "ipykernel>=6.29.0"
 ]
 docs = [
-  "sphinx>=7.2,<8",
-  "furo>=2024.8.6"
+  "sphinx>=7",
+  "furo>=2024.1",
+  "myst-parser>=2",
+  "sphinx-autoapi>=3",
+  "linkify-it-py>=2",
 ]
 examples = [
   "jupyter>=1.0",

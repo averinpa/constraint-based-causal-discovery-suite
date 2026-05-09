@@ -6,6 +6,7 @@ Provides the main public API surface for consumers of the package.
 from importlib.metadata import PackageNotFoundError, version
 
 from .causal_sim import CausalDataGenerator
+from .oracle import DSeparationOracle
 from .templates import (
     chain_config,
     collider_config,
@@ -16,6 +17,7 @@ from .templates import (
 
 __all__ = [
     "CausalDataGenerator",
+    "DSeparationOracle",
     "indep_config",
     "independence_config",
     "chain_config",

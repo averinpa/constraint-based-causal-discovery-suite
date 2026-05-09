@@ -114,7 +114,7 @@ class ParCorr:
     Each ``ci(x, y, S)`` call maps the ``LaggedVar`` arguments to design-
     column indices, takes the Schur-complement of the relevant submatrix
     to obtain the partial correlation, and applies the Fisher-Z transform
-    with ``df = n_effective - |S| - 3``.
+    with ``df = n_effective - len(S) - 3``.
     """
 
     n_vars: int

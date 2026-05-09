@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from citk.tests.adapter_tests import DiscChiSq, DiscGSq, DummyFisherZ
-from citk.tests.external_repo_tests import MCMIknn
+from citk.tests.nearest_neighbor_tests import MCMIknn
 from citk.tests.contingency_table_tests import GSq, ChiSq
 from citk.tests.partial_correlation_tests import FisherZ, Spearman
 
@@ -144,7 +144,7 @@ def test_cimm_k5_factor_dispatch():
     # Regression for ci_mm.md G2: K>=3 nominal columns must hit nnet::multinom
     # (df=(K-1)^2), not lm (df=1). Audit fixture: n=500, seed=42, K=5 -> df=16.
     ro = _load_mxm_or_skip()
-    from citk.tests.r_based_tests import CiMM
+    from citk.tests.regression_tests import CiMM
 
     rng = np.random.default_rng(42)
     n = 500
@@ -194,7 +194,7 @@ def test_cimm_k2_binary_short_circuit_unchanged():
     # K=2 hits MXM's `length(unique(y))==2` short-circuit (glm binomial) regardless
     # of column class, so the factor patch must not change behaviour here.
     ro = _load_mxm_or_skip()
-    from citk.tests.r_based_tests import CiMM
+    from citk.tests.regression_tests import CiMM
 
     rng = np.random.default_rng(7)
     n = 500

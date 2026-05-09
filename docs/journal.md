@@ -7,6 +7,83 @@ dagsampler, see `~/Projects/suite/journal.md`.
 
 ---
 
+## 2026-05-08 — Taxonomic restructure of `citk/tests/`
+
+`citk/tests/` is now organized strictly by **survey family**, not by
+backend. Family modules — `partial_correlation_tests`,
+`contingency_table_tests`, `regression_tests`, `nearest_neighbor_tests`,
+`kernel_tests`, `ml_based_tests`, `adapter_tests` — are the canonical
+homes; the backend-named modules that previously held the
+implementations have been deleted.
+
+**Deleted:**
+
+- `simple_tests.py`
+- `extended_tests.py`
+- `r_based_tests.py`
+- `tigramite_based_tests.py`
+- `pycomets_tests.py`
+- `external_repo_tests.py`
+
+**Class moves:**
+
+| class | old file | new file |
+|---|---|---|
+| `FisherZ`, `Spearman` | `simple_tests.py` | `partial_correlation_tests.py` |
+| `ChiSq`, `GSq` | `simple_tests.py` | `contingency_table_tests.py` |
+| `RegressionCI` | `tigramite_based_tests.py` | `regression_tests.py` |
+| `CiMM` | `r_based_tests.py` | `regression_tests.py` |
+| `CMIknn`, `CMIknnMixed` | `tigramite_based_tests.py` | `nearest_neighbor_tests.py` |
+| `MCMIknn` | `external_repo_tests.py` | `nearest_neighbor_tests.py` |
+| `RCoT`, `RCIT` | `r_based_tests.py` | `kernel_tests.py` |
+| `KCI` | (already in `kernel_tests.py`) | unchanged |
+| `GCM`, `WGCM`, `PCM` | `pycomets_tests.py` | `ml_based_tests.py` |
+| `DiscChiSq`, `DiscGSq`, `DummyFisherZ` | `extended_tests.py` | `adapter_tests.py` |
+| `HarteminkChiSq` | `r_based_tests.py` | `adapter_tests.py` |
+
+**New private module: `_backends.py`** — holds the cross-cutting
+loaders that used to live duplicated in backend files:
+`_load_rcit_package`, `_load_bnlearn_package`, `_load_mxm_package`
+(rpy2-side); `_load_tigramite`, `_load_tigramite_test_class`,
+`_extract_tigramite_pvalue`, and the shared `_TigramiteBase`
+(tigramite-side); plus the small R conversion helpers `_to_r_vector`,
+`_to_r_matrix`, `_extract_rcit_p_value`. Family modules import only
+what they need.
+
+**Public API: unchanged.** `citk.tests.__init__` already re-exported
+every test class by family, and the family-named modules already
+existed as thin re-export shims, so all canonical user-facing imports
+(`from citk.tests import FisherZ`, `from citk.tests.kernel_tests import
+KCI`, etc.) continue to work without change.
+
+**Internal stragglers updated:**
+
+- `tests/test_ci_smoke.py`: `external_repo_tests.MCMIknn` →
+  `nearest_neighbor_tests.MCMIknn`; `r_based_tests.CiMM` →
+  `regression_tests.CiMM` (two call sites).
+- `examples/run_fisherz_spearman_synthetic.py`: `simple_tests.FisherZ` →
+  `partial_correlation_tests.FisherZ`.
+- `citk/tests/base.py`: docstring reference to `extended_tests` →
+  `adapter_tests`.
+- `docs/source/tests/{fisher_z_test,spearman,chi_sq_test,g_sq_test}.md`:
+  `:class:` references updated to point at the family modules.
+
+**Tests:** 38 passing, 11 skipped, 3 failing — same numbers as before
+the refactor. The 3 failures are a pre-existing tigramite/numpy
+version drift (`corrcoef() got an unexpected keyword argument 'ddof'`),
+verified by running the same tests against the pre-refactor tree via
+`git stash`. Not introduced here.
+
+**Suite-tutorial verbatim re-run:** `SHD: 0, F1: 1.0` unchanged on the
+canonical 3-node collider example. The user-facing tutorial path
+(`from citk.tests.partial_correlation_tests import FisherZ`) is now
+the canonical taxonomic home, not a re-export.
+
+**Not yet pushed.** Per the no-push contract, citk waits on explicit
+user instruction before any first push to its remote.
+
+---
+
 ## 2026-05-06 — Suite migration
 
 citk moved from `~/Projects/citk/` to `~/Projects/suite/citk/` as part

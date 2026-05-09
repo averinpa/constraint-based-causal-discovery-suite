@@ -31,7 +31,13 @@ causallearn = ["causal-learn"]
 r = ["rpy2"]
 tigramite = ["tigramite"]
 pycomets = ["pycomets @ git+https://github.com/shimenghuang/pycomets.git", "xgboost"]
-docs = ["sphinx", "furo", "myst-parser"]
+docs = [
+    "sphinx>=7",
+    "furo>=2024.1",
+    "myst-parser>=2",
+    "sphinx-autoapi>=3",
+    "linkify-it-py>=2",
+]
 dev = ["pytest", "ipython", "jupyterlab", "ipykernel"]
 
 [tool.hatch.metadata]

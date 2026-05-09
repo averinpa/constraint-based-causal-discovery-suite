@@ -5,7 +5,7 @@ import time
 # By importing the citk.tests module, we ensure that all custom tests
 # defined within it are registered with causal-learn.
 import citk.tests
-from citk.tests.simple_tests import FisherZ, Spearman
+from citk.tests.partial_correlation_tests import FisherZ, Spearman
 
 # Import the PC algorithm from causal-learn
 from causallearn.search.ConstraintBased.PC import pc

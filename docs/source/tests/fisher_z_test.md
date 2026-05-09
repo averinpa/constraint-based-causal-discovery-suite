@@ -57,7 +57,7 @@ print(f"P-value for X _||_ Y: {p_value_unconditional:.4f}")
 
 ## API Reference
 
-For a full list of parameters, see the API documentation: :class:`citk.tests.simple_tests.FisherZ`.
+For a full list of parameters, see the API documentation: :class:`citk.tests.partial_correlation_tests.FisherZ`.
 
 ## References
 

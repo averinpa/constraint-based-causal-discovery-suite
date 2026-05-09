@@ -110,6 +110,16 @@ print("MB(B) F1:", bnm.f1(mb_true, mb_est))
 - [Per-package journal](docs/journal.md)
 - [CHANGELOG](CHANGELOG.md)
 
+## Acknowledgements
+
+`bnm` v0.1.0 was a port of the [DAGMetrics R
+package](https://github.com/averinpa/DAGMetrics) by the same author.
+v0.2.x is a full Python rewrite around an int8 endpoint-mark matrix
+matching `cbcd`'s convention; the metric definitions remain
+derivative of the R original. The audit at
+[`docs/audit.md`](docs/audit.md) catalogues the eight bugs found in
+the 0.1.x implementation; v0.2 fixes all of them.
+
 ## License
 
 [MIT License](LICENSE).

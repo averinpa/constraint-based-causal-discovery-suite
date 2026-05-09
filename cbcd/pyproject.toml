@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cbcd"
+version = "0.1.0"
+authors = [
+  { name="Pavel Averin" },
+]
+description = "Constraint-based causal discovery: a comprehensive library of constraint-based algorithms (PC, FCI, CDNOD, RFCI, PCMCI, LPCMCI, ...)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT License" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "pandas",
+    "networkx",
+    "scikit-learn",
+]
+
+[project.optional-dependencies]
+parallel = ["joblib"]
+viz = ["matplotlib", "pydot", "graphviz"]
+docs = [
+  "sphinx>=7",
+  "furo>=2024.1",
+  "myst-parser>=2",
+  "sphinx-autoapi>=3",
+  "linkify-it-py>=2",
+]
+dev = ["pytest", "pytest-xdist", "ruff", "mypy", "ipython", "jupyterlab", "ipykernel"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["cbcd"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["pandas.*", "scipy.*", "scipy.stats", "joblib.*", "networkx.*", "sklearn.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]

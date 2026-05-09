@@ -1,0 +1,47 @@
+# Vendored read-only reference repos. NOT distributed with the suite;
+# users who want to run the parity harness clone these locally per
+# vendor/README.md.
+vendor/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments — each package has its own .venv via uv;
+# parity/suite has its own as well.
+.venv/
+env/
+venv/
+ENV/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Type checkers / linters
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.dmypy.json
+
+# Sphinx build output (each package has its own docs/_build/)
+docs/_build/
+docs/build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

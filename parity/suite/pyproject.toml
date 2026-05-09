@@ -1,0 +1,23 @@
+[project]
+name = "suite-parity"
+version = "0.0.0"
+description = "Suite-level integration harness chaining dagsampler → citk → cbcd → bnm."
+requires-python = ">=3.11"
+# Path dependencies wire each sister package in editable mode so changes
+# in any of them are picked up without re-installing.
+dependencies = [
+    "dagsampler",
+    "citk",
+    "cbcd",
+    "bnm",
+]
+
+[tool.uv]
+# Runner project, not a distributable — uv must not try to build it.
+package = false
+
+[tool.uv.sources]
+dagsampler = { path = "../../dagsampler", editable = true }
+citk       = { path = "../../citk",       editable = true }
+cbcd       = { path = "../../cbcd",       editable = true }
+bnm        = { path = "../../bnm",        editable = true }

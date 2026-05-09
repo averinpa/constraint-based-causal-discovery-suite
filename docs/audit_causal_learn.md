@@ -1,7 +1,7 @@
 # Audit of `causal-learn` constraint-based code
 
 **Date:** 2026-05-05
-**Source tree audited:** `/Users/pavelaverin/Projects/vendor/causal-learn/` (commit `070d5ea`)
+**Source tree audited:** `vendor/causal-learn/` (commit `070d5ea`)
 **Scope:** files under `causallearn/search/ConstraintBased/`, `causallearn/utils/PCUtils/`, `causallearn/utils/cit.py`, and `causallearn/utils/FAS.py`. Test files in `tests/Test{PC,FCI,CDNOD,CIT}.py` reviewed for coverage.
 
 This audit informs `cbcd`'s clean-room rewrite. References are `file:line` against the audited tree.

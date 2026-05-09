@@ -46,6 +46,11 @@ TAIL = int(EndpointMark.TAIL)
 ARROW = int(EndpointMark.ARROW)
 CIRCLE = int(EndpointMark.CIRCLE)
 
+# Highlight palette — pastel by design so figures read well in light-themed
+# docs without overwhelming the rest of the diagram.
+_HIGHLIGHT_NODE_FILL = "#c8e6c9"  # pastel green (Material lime 100)
+_HIGHLIGHT_EDGE_COLOR = "#f08080"  # pastel red (light coral)
+
 
 # Aesthetic presets. Each entry is ``(graph_attr, node_attr, edge_attr)``
 # applied as Digraph-wide defaults. Per-node / per-edge overrides
@@ -172,9 +177,11 @@ def _build_dot(
     *,
     name: str,
     highlighted_nodes: set[int],
-    highlighted_edges: set[tuple[int, int, str]],
+    highlighted_edges: set[tuple[int, int, str] | tuple[int, int, str, int, int]],
     style: StyleName,
     direction: Direction,
+    highlight_node_color: str = _HIGHLIGHT_NODE_FILL,
+    highlight_edge_color: str = _HIGHLIGHT_EDGE_COLOR,
 ) -> Any:
     """Build a graphviz.Digraph from an int8 endpoint matrix.
 
@@ -184,10 +191,10 @@ def _build_dot(
       - i↔j bidirected: arrowhead at both.
       - CIRCLE marks: rendered as `odot` arrowheads (PAG convention).
 
-    `highlighted_edges` contains entries `(i, j, kind)` where kind is
-    'directed', 'undirected', or 'bidirected'; matching edges get a
-    crimson stroke. Highlighted nodes get a lightgreen fill (overrides
-    the style's default node fill).
+    Highlighted nodes are filled with ``highlight_node_color`` (defaults
+    to pastel green ``_HIGHLIGHT_NODE_FILL``). Highlighted edges get a
+    ``highlight_edge_color`` stroke (defaults to pastel red
+    ``_HIGHLIGHT_EDGE_COLOR``).
     """
     graphviz = _require_graphviz()
     graph_attr, node_attr, edge_attr = _resolve_style(style)
@@ -201,7 +208,7 @@ def _build_dot(
         attrs: dict[str, str] = {}
         if v in highlighted_nodes:
             attrs["style"] = "filled"
-            attrs["fillcolor"] = "lightgreen"
+            attrs["fillcolor"] = highlight_node_color
         dot.node(_label_of(v, var_names), **attrs)
 
     for i in range(n_vars):
@@ -216,7 +223,10 @@ def _build_dot(
             arrowtail = _mark_to_graphviz_arrow(mji)
 
             edge_kind = _classify_edge(mij, mji)
-            colour = "crimson" if (i, j, edge_kind) in highlighted_edges else None
+            edge_key: tuple[int, int, str] | tuple[int, int, str, int, int] = (
+                (i, j, edge_kind, mij, mji) if edge_kind == "circle" else (i, j, edge_kind)
+            )
+            colour = highlight_edge_color if edge_key in highlighted_edges else None
 
             edge_attrs: dict[str, str] = {}
             if edge_kind == "directed-fwd":
@@ -289,6 +299,8 @@ def plot_graph(
     highlight: Iterable[int | str] = (),
     style: StyleName = "subtle",
     direction: Direction = "TB",
+    highlight_node_color: str = _HIGHLIGHT_NODE_FILL,
+    highlight_edge_color: str = _HIGHLIGHT_EDGE_COLOR,
     save: PathLike | None = None,
 ) -> Any:
     """Render a single graph as a graphviz.Digraph.
@@ -297,7 +309,7 @@ def plot_graph(
         g: any GraphLikeInput (cbcd graph, ndarray, list, nx.DiGraph,
             internal `_Graph`).
         title: graph name (visible if you call `.render(...)` to a file).
-        highlight: variables to fill lightgreen.
+        highlight: variables to fill with ``highlight_node_color``.
         style: aesthetic preset. Currently ``"subtle"`` (the v0.2
             default — ellipse with light grey fill, thin border,
             Helvetica).
@@ -305,6 +317,12 @@ def plot_graph(
             ``"LR"`` for left-to-right (better for chain-shaped or
             long-named graphs), or ``"auto"`` to switch based on
             graph shape (LR for tall thin graphs, TB otherwise).
+        highlight_node_color: fill colour for highlighted nodes (any
+            graphviz-accepted colour string; defaults to pastel green).
+        highlight_edge_color: stroke colour for highlighted edges
+            (defaults to pastel red). Unused for ``plot_graph`` since
+            single-graph rendering has no matching/diff edges; kept on
+            the signature for symmetry with ``plot_side_by_side``.
         save: optional path. Format is inferred from the file extension
             (``svg``, ``png``, ``pdf``, ``jpg``, ``jpeg``, ``ps``,
             ``json``, or raw DOT source via ``dot``/``gv``). The
@@ -327,20 +345,31 @@ def plot_graph(
         highlighted_edges=set(),
         style=style,
         direction=direction,
+        highlight_node_color=highlight_node_color,
+        highlight_edge_color=highlight_edge_color,
     )
     if save is not None:
         _save_dot(dot, save)
     return dot
 
 
+HighlightMode = Literal["matches", "diff", "none"]
+
+
 def _matching_edges(
     n_vars: int,
     endpoints1,
     endpoints2,
-) -> set[tuple[int, int, str]]:
+) -> set[tuple[int, int, str] | tuple[int, int, str, int, int]]:
     """Edges that match exactly between g1 and g2 (same kind, same
-    direction). Used for true-positive highlighting."""
-    out: set[tuple[int, int, str]] = set()
+    direction). Used for true-positive highlighting.
+
+    For CIRCLE-bearing edges the match must agree on the full mark pair
+    ``(mij, mji)`` — a ``(CIRCLE, ARROW)`` edge in g1 and a
+    ``(CIRCLE, CIRCLE)`` edge in g2 are different PAG topologies and
+    must NOT be reported as matching.
+    """
+    out: set[tuple[int, int, str] | tuple[int, int, str, int, int]] = set()
     for i in range(n_vars):
         for j in range(i + 1, n_vars):
             mij1, mji1 = int(endpoints1[i, j]), int(endpoints1[j, i])
@@ -349,8 +378,47 @@ def _matching_edges(
                 continue
             kind1 = _classify_edge(mij1, mji1)
             kind2 = _classify_edge(mij2, mji2)
-            if kind1 == kind2:
+            if kind1 != kind2:
+                continue
+            if kind1 == "circle":
+                if (mij1, mji1) != (mij2, mji2):
+                    continue
+                out.add((i, j, kind1, mij1, mji1))
+            else:
                 out.add((i, j, kind1))
+    return out
+
+
+def _diff_edges(
+    n_vars: int,
+    endpoints1,
+    endpoints2,
+) -> set[tuple[int, int, str] | tuple[int, int, str, int, int]]:
+    """Edges that differ between g1 and g2 — additions, deletions, and
+    reversals / kind changes.
+
+    For each differing slot, the keys for *both* sides are added so the
+    edge is highlighted in whichever graph contains it. An addition
+    contributes only g2's key (g1 has no edge there); a deletion only
+    g1's; a reversal/kind-change contributes both.
+    """
+    out: set[tuple[int, int, str] | tuple[int, int, str, int, int]] = set()
+    for i in range(n_vars):
+        for j in range(i + 1, n_vars):
+            mij1, mji1 = int(endpoints1[i, j]), int(endpoints1[j, i])
+            mij2, mji2 = int(endpoints2[i, j]), int(endpoints2[j, i])
+            if (mij1, mji1) == (mij2, mji2):
+                continue
+            if mij1 != NO_EDGE:
+                kind1 = _classify_edge(mij1, mji1)
+                out.add(
+                    (i, j, kind1, mij1, mji1) if kind1 == "circle" else (i, j, kind1)
+                )
+            if mij2 != NO_EDGE:
+                kind2 = _classify_edge(mij2, mji2)
+                out.add(
+                    (i, j, kind2, mij2, mji2) if kind2 == "circle" else (i, j, kind2)
+                )
     return out
 
 
@@ -402,17 +470,30 @@ def plot_side_by_side(
     *,
     name1: str = "G1",
     name2: str = "G2",
-    highlight_true_positives: bool = True,
+    mode: HighlightMode = "matches",
     highlight_nodes: Iterable[int | str] = (),
     style: StyleName = "subtle",
     direction: Direction = "TB",
+    highlight_node_color: str = _HIGHLIGHT_NODE_FILL,
+    highlight_edge_color: str = _HIGHLIGHT_EDGE_COLOR,
     save: PathLike | tuple[PathLike, PathLike] | None = None,
 ) -> _SideBySideDot:
     """Render g1 and g2 as two side-by-side graphviz.Digraphs.
 
-    Variables in `highlight_nodes` are filled lightgreen in both. If
-    `highlight_true_positives`, edges that match exactly (same kind,
-    same direction) get a crimson stroke in both.
+    Variables in ``highlight_nodes`` are filled with
+    ``highlight_node_color`` in both panels. The ``mode`` knob chooses
+    which edges get the ``highlight_edge_color`` stroke:
+
+      * ``"matches"`` (default) — edges that match exactly between g1
+        and g2 (same kind, same direction; CIRCLE-bearing edges must
+        agree on the full mark pair). Useful for "show me what we got
+        right".
+      * ``"diff"`` — edges that *differ* between g1 and g2 (additions,
+        deletions, reversals, kind changes). Each side's edge is
+        highlighted in whichever panel contains it. Useful for "show
+        me what changed".
+      * ``"none"`` — no edge highlighting; only ``highlight_nodes`` is
+        applied.
 
     ``style`` selects the aesthetic preset (default ``"subtle"``).
     ``direction`` is ``"TB"`` (default), ``"LR"``, or ``"auto"``;
@@ -439,7 +520,18 @@ def plot_side_by_side(
         raise BNMDataError("plot_side_by_side: g1.var_names and g2.var_names differ")
     var_names = names1 if names1 is not None else names2
     highlighted_nodes = _normalise_node_set(highlight_nodes, var_names, n1)
-    highlighted_edges = _matching_edges(n1, ep1, ep2) if highlight_true_positives else set()
+
+    if mode == "matches":
+        highlighted_edges = _matching_edges(n1, ep1, ep2)
+    elif mode == "diff":
+        highlighted_edges = _diff_edges(n1, ep1, ep2)
+    elif mode == "none":
+        highlighted_edges = set()
+    else:
+        raise BNMInputError(
+            f"plot_side_by_side: unknown mode {mode!r}; "
+            f"allowed: 'matches', 'diff', 'none'."
+        )
 
     dot1 = _build_dot(
         n1,
@@ -450,6 +542,8 @@ def plot_side_by_side(
         highlighted_edges=highlighted_edges,
         style=style,
         direction=direction,
+        highlight_node_color=highlight_node_color,
+        highlight_edge_color=highlight_edge_color,
     )
     dot2 = _build_dot(
         n2,
@@ -460,6 +554,8 @@ def plot_side_by_side(
         highlighted_edges=highlighted_edges,
         style=style,
         direction=direction,
+        highlight_node_color=highlight_node_color,
+        highlight_edge_color=highlight_edge_color,
     )
     if save is not None:
         _save_side_by_side(dot1, dot2, name1=name1, name2=name2, save=save)

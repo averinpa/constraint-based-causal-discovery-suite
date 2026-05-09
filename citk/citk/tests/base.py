@@ -1,0 +1,401 @@
+"""Base class and cache helpers for citk conditional independence tests.
+
+``CITKTest`` is a standalone base class — it does NOT inherit from
+``causal-learn``'s ``CIT_Base``. The methods originally provided by
+``CIT_Base`` (``get_formatted_XYZ_and_cachekey``,
+``check_cache_method_consistent``, ``assert_input_data_is_valid``,
+``save_to_local_cache``) are reimplemented here so citk can be installed
+and used without ``causal-learn`` pulled in.
+
+Causal-learn is still useful as an *optional* backend for adapter-style
+tests (``ChiSq``, ``GSq``, ``KCI``, etc.) and for auto-registration with
+``causallearn.search.ConstraintBased.PC``. Those integrations live in
+the optional ``[causallearn]`` extra and the ``citk.adapters.causallearn``
+helper, gated behind try/except imports in the individual test modules.
+"""
+import codecs
+import hashlib
+import json
+import os
+import time
+import warnings
+from dataclasses import dataclass, field
+from typing import Any, Iterable, List, Mapping, Optional, Tuple
+
+import numpy as np
+
+from citk.exceptions import CITKComputationError, CITKError
+
+#: Sentinel matching causal-learn's ``NO_SPECIFIED_PARAMETERS_MSG`` so cache
+#: files written by either ecosystem remain interchangeable.
+NO_SPECIFIED_PARAMETERS_MSG = "NO SPECIFIED PARAMETERS"
+
+
+@dataclass(frozen=True, slots=True)
+class CITKResult:
+    """Outcome of a single conditional-independence call.
+
+    Field-compatible with ``cbcd.CITestResult`` so cbcd's algorithms can
+    consume citk tests via the cbcd ``CITest`` Protocol without any
+    cross-package import. cbcd reads only ``.p_value`` from cached
+    results; the other fields are optional diagnostics.
+    """
+
+    p_value: float
+    statistic: float | None = None
+    df: int | None = None
+    n_effective: int | None = None
+    extra: dict[str, float] = field(default_factory=dict)
+
+CACHE_FORMAT_VERSION = "1.0"
+
+
+def _is_categorical_column(values: np.ndarray, max_levels: int = 10) -> bool:
+    """Heuristic: is ``values`` a categorical column?
+
+    True if integer-dtype with at most ``max_levels`` unique values, or
+    float-dtype whose values are all integer-valued with at most
+    ``max_levels`` unique values. False otherwise.
+
+    Used by :meth:`CITKTest.validate_data` and by the discretising adapter
+    tests in ``adapter_tests``.
+    """
+    unique_vals = (
+        np.unique(values[~np.isnan(values)])
+        if np.issubdtype(values.dtype, np.number)
+        else np.unique(values)
+    )
+    if len(unique_vals) <= max_levels:
+        if np.issubdtype(values.dtype, np.integer):
+            return True
+        if np.issubdtype(values.dtype, np.floating):
+            return np.allclose(values, np.round(values), equal_nan=True)
+    return False
+
+
+def _canonicalize_for_hash(value: Any) -> Any:
+    """Convert a parameter value into a JSON-serialisable form that hashes
+    identically across runs (numpy arrays → typed dict, mappings → sorted dict)."""
+    if isinstance(value, np.ndarray):
+        return {
+            "__ndarray__": True,
+            "shape": list(value.shape),
+            "dtype": value.dtype.str,
+            "data": value.tolist(),
+        }
+    if isinstance(value, Mapping):
+        return {str(k): _canonicalize_for_hash(value[k]) for k in sorted(value, key=str)}
+    if isinstance(value, (list, tuple)):
+        return [_canonicalize_for_hash(v) for v in value]
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
+def inner_test_kwargs(kwargs: Mapping[str, Any]) -> dict:
+    """Return ``kwargs`` filtered for forwarding to a wrapped upstream test
+    instance. The citk outer wrapper owns the cache, so ``cache_path`` must
+    not leak through to an inner instance whose hashing scheme may differ.
+    """
+    return {k: v for k, v in kwargs.items() if k != "cache_path"}
+
+
+def hash_parameters(params: Optional[Mapping[str, Any]]) -> str:
+    """Return a stable sha256 hex digest of `params`, or the
+    ``NO_SPECIFIED_PARAMETERS_MSG`` sentinel if `params` is empty / None.
+
+    Used by every test class to fingerprint its constructor kwargs into the
+    cache's ``parameters_hash`` field. The hash is key-order independent and
+    handles numpy arrays.
+    """
+    if not params:
+        return NO_SPECIFIED_PARAMETERS_MSG
+    canonical = _canonicalize_for_hash(dict(params))
+    payload = json.dumps(canonical, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+class CITKTest:
+    """Abstract base class for all conditional independence tests in citk.
+
+    Standalone — does not inherit from causal-learn. Subclasses implement
+    :meth:`_compute` and use the inherited :meth:`__call__` for caching.
+
+    Conforms to the structural ``cbcd.CITest`` Protocol (see
+    :attr:`n_vars` and :meth:`details`), so any citk test instance can be
+    passed straight to a cbcd algorithm: ``cbcd.pc(data, ci_test=cit)``.
+    """
+
+    SAVE_CACHE_CYCLE_SECONDS: float = 30.0
+
+    #: Declared compatible data kinds; informational only — citk does not
+    #: enforce this at construction. Use :meth:`validate_data` to check.
+    supported_dtypes: set = set()
+
+    #: Protocol-level kwargs forwarded by causal-learn's ``pc(...)`` dispatch.
+    #: Tolerated on every test for harness compatibility, but consumed only by
+    #: tests that list them in their own :attr:`accepted_kwargs`.
+    _protocol_kwargs: set = {"data_type"}
+
+    #: Per-test API kwargs consumed by this specific test. Subclasses declare;
+    #: ``cache_path`` is always accepted because it is an explicit ``__init__``
+    #: parameter, not a ``**kwargs`` entry.
+    accepted_kwargs: set = set()
+
+    def __init__(
+        self,
+        data: np.ndarray,
+        cache_path: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        """Initialise the test and (optionally) load a JSON p-value cache.
+
+        Parameters
+        ----------
+        data
+            Sample matrix in shape ``(n, p)``.
+        cache_path
+            Optional path to a JSON cache file used to memoise p-values across
+            calls. The cache is keyed by ``(data_hash, method_name,
+            parameters_hash)`` and stamped with ``format_version`` so v0.1.0
+            caches can be detected and invalidated by future releases.
+
+        Raises
+        ------
+        TypeError
+            If ``kwargs`` contains keys outside ``cls.accepted_kwargs`` and
+            ``cls._protocol_kwargs``.
+        """
+        allowed = self._protocol_kwargs | type(self).accepted_kwargs
+        unknown = set(kwargs.keys()) - allowed
+        if unknown:
+            consumed = sorted(type(self).accepted_kwargs | {"cache_path"})
+            tolerated = sorted(self._protocol_kwargs)
+            raise TypeError(
+                f"{type(self).__name__} got unexpected keyword arguments: "
+                f"{sorted(unknown)}. "
+                f"Accepted (consumed): {consumed}. "
+                f"Accepted (protocol-tolerated): {tolerated}."
+            )
+        if not isinstance(data, np.ndarray):
+            raise TypeError("CITKTest data must be a numpy ndarray")
+        self.data = data
+        self.sample_size, self.num_features = data.shape
+        self.data_hash = hashlib.sha256(
+            np.ascontiguousarray(data).tobytes()
+        ).hexdigest()
+        self.cache_path = cache_path
+        self.last_time_cache_saved = time.time()
+        self.method: Optional[str] = None
+        self.pvalue_cache = {
+            "format_version": CACHE_FORMAT_VERSION,
+            "data_hash": self.data_hash,
+        }
+        if cache_path is not None:
+            assert cache_path.endswith(".json"), "Cache must be stored as .json file."
+            if os.path.exists(cache_path) and os.path.getsize(cache_path) > 0:
+                try:
+                    with codecs.open(cache_path, "r") as fin:
+                        loaded = json.load(fin)
+                except json.JSONDecodeError:
+                    loaded = {}
+                if (
+                    loaded.get("format_version") == CACHE_FORMAT_VERSION
+                    and loaded.get("data_hash") == self.data_hash
+                ):
+                    self.pvalue_cache = loaded
+                else:
+                    # Stale, pre-versioned, or unreadable cache. Regenerate
+                    # rather than raise — but warn so debugging is possible.
+                    warnings.warn(
+                        f"Cache {cache_path} format/hash mismatch; regenerating.",
+                        RuntimeWarning,
+                        stacklevel=2,
+                    )
+            else:
+                parent_dir = os.path.dirname(cache_path)
+                if parent_dir:
+                    os.makedirs(parent_dir, exist_ok=True)
+
+    def _normalize_condition_set(
+        self, condition_set: Optional[Iterable[int]]
+    ) -> List[int]:
+        if condition_set is None:
+            return []
+        return list(condition_set)
+
+    # ------------------------------------------------------------------
+    # Methods previously inherited from causallearn.utils.cit.CIT_Base.
+    # Reimplemented locally so citk does not require causal-learn.
+    # ------------------------------------------------------------------
+
+    def assert_input_data_is_valid(
+        self, allow_nan: bool = False, allow_inf: bool = False
+    ) -> None:
+        """Validate the bound dataset against NaN / Inf entries."""
+        if not allow_nan and np.isnan(self.data).any():
+            raise ValueError("Input data contains NaN. Please check.")
+        if not allow_inf and np.isinf(self.data).any():
+            raise ValueError("Input data contains Inf. Please check.")
+
+    def check_cache_method_consistent(
+        self, method_name: str, parameters_hash: str
+    ) -> None:
+        """Stamp the cache with this test's identity; assert consistency on reload."""
+        self.method = method_name
+        if method_name not in self.pvalue_cache:
+            self.pvalue_cache["method_name"] = method_name
+            self.pvalue_cache["parameters_hash"] = parameters_hash
+        else:
+            assert (
+                self.pvalue_cache["method_name"] == method_name
+            ), "CI test method name mismatch."
+            assert (
+                self.pvalue_cache["parameters_hash"] == parameters_hash
+            ), "CI test method parameters mismatch."
+
+    def save_to_local_cache(self) -> None:
+        """Persist the cache to ``cache_path`` if more than
+        ``SAVE_CACHE_CYCLE_SECONDS`` have elapsed since the last save."""
+        if (
+            self.cache_path is not None
+            and time.time() - self.last_time_cache_saved
+            > self.SAVE_CACHE_CYCLE_SECONDS
+        ):
+            with codecs.open(self.cache_path, "w") as fout:
+                fout.write(json.dumps(self.pvalue_cache, indent=2))
+            self.last_time_cache_saved = time.time()
+
+    def get_formatted_XYZ_and_cachekey(
+        self, X: int, Y: int, condition_set: Optional[Iterable[int]]
+    ) -> Tuple[List[int], List[int], List[int], str]:
+        """Reformat ``X, Y, condition_set`` and return a stable cache key.
+
+        Behaviour mirrors causal-learn's ``CIT_Base.get_formatted_XYZ_and_cachekey``:
+        ``X`` and ``Y`` are sorted (smaller first) so the key is symmetric
+        in the test direction; conditioning indices are sorted and
+        deduplicated; ``X``/``Y`` cannot overlap with the conditioning set.
+        """
+        self.save_to_local_cache()
+        if condition_set is None:
+            condition_set = []
+        condition_set = sorted(set(int(s) for s in condition_set))
+        X, Y = (int(X), int(Y)) if X < Y else (int(Y), int(X))
+        if X in condition_set or Y in condition_set:
+            raise ValueError("X, Y cannot be in condition_set.")
+
+        def _strlst(lst: List[int]) -> str:
+            return ".".join(str(v) for v in lst)
+
+        if condition_set:
+            cache_key = f"{_strlst([X])};{_strlst([Y])}|{_strlst(condition_set)}"
+        else:
+            cache_key = f"{_strlst([X])};{_strlst([Y])}"
+        return [X], [Y], condition_set, cache_key
+
+    def save_cache(self) -> None:
+        """Explicitly save the p-value cache to ``cache_path``.
+
+        More reliable than relying on the garbage collector via ``__del__`` or
+        on the parent's 30-second auto-save interval.
+        """
+        if hasattr(self, "cache_path") and self.cache_path is not None:
+            try:
+                if hasattr(self, "pvalue_cache"):
+                    with codecs.open(self.cache_path, "w") as fout:
+                        fout.write(json.dumps(self.pvalue_cache, indent=2))
+            except Exception as e:
+                print(f"Error saving cache for {self.__class__.__name__}: {e}")
+
+    def __del__(self):
+        """Save the cache on garbage collection as a last-chance flush."""
+        self.save_cache()
+
+    def __call__(
+        self,
+        X: int,
+        Y: int,
+        condition_set: Optional[Iterable[int]] = None,
+        **kwargs: Any,
+    ) -> float:
+        condition_set = self._normalize_condition_set(condition_set)
+        _, _, _, cache_key = self.get_formatted_XYZ_and_cachekey(X, Y, condition_set)
+        if cache_key in self.pvalue_cache:
+            return float(self.pvalue_cache[cache_key])
+
+        try:
+            p_value = float(self._compute(X, Y, condition_set, **kwargs))
+        except CITKError:
+            # Already a typed citk exception (e.g. CITKDependencyError); re-raise.
+            raise
+        except Exception as exc:
+            raise CITKComputationError(
+                f"{type(self).__name__} failed for X={X}, Y={Y}, "
+                f"S={condition_set}: {exc}"
+            ) from exc
+        self.pvalue_cache[cache_key] = str(p_value)
+        return p_value
+
+    def _compute(
+        self,
+        X: int,
+        Y: int,
+        condition_set: Optional[List[int]] = None,
+        **kwargs: Any,
+    ) -> float:
+        raise NotImplementedError("Subclasses must implement _compute.")
+
+    @property
+    def n_vars(self) -> int:
+        """Alias for :attr:`num_features`. Required by the structural
+        ``cbcd.CITest`` Protocol so any citk test plugs into a cbcd
+        algorithm directly: ``cbcd.pc(data, ci_test=citk.tests.FisherZ(data))``.
+        """
+        return int(self.num_features)
+
+    def details(
+        self,
+        X: int,
+        Y: int,
+        condition_set: Optional[Iterable[int]] = None,
+        **kwargs: Any,
+    ) -> CITKResult:
+        """Return a structured ``CITKResult`` for one CI query.
+
+        Default implementation calls :meth:`__call__` and wraps the float
+        p-value in a ``CITKResult``. Subclasses with richer diagnostics
+        (test statistic, df, n_effective) can override to populate those
+        fields. cbcd's algorithms only read ``.p_value`` from cached
+        results, so this default is sufficient for cbcd interop.
+        """
+        p = self(X, Y, condition_set, **kwargs)
+        return CITKResult(p_value=float(p))
+
+    @classmethod
+    def validate_data(cls, data: np.ndarray) -> Tuple[bool, str]:
+        """Heuristic check: is ``data`` compatible with ``cls.supported_dtypes``?
+
+        Returns ``(True, "")`` if compatible, ``(False, reason)`` otherwise.
+        Does **not** raise.
+
+        citk does not call this from ``__init__`` because Paper 1 benchmarking
+        depends on running every test on every data kind to characterise
+        failure modes. Users wanting protection should call this before
+        constructing the test. Per-column heuristic:
+
+        - "discrete": integer dtype with ≤10 unique values, or float dtype
+          with all-integer values and ≤10 unique values.
+        - "continuous": anything else.
+        """
+        if not cls.supported_dtypes or cls.supported_dtypes == {"continuous", "discrete"}:
+            return True, ""
+        for j in range(data.shape[1]):
+            col_is_discrete = _is_categorical_column(data[:, j])
+            col_kind = "discrete" if col_is_discrete else "continuous"
+            if col_kind not in cls.supported_dtypes:
+                supported = sorted(cls.supported_dtypes)
+                return False, (
+                    f"column {j} is {col_kind}; "
+                    f"{cls.__name__} only supports {supported}"
+                )
+        return True, ""

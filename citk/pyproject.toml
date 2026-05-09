@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "citk"
+version = "0.1.0"
+authors = [
+  { name="Pavel Averin" },
+]
+description = "A toolkit for robust conditional independence testing in causal discovery."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT License" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "pandas",
+    "scikit-learn",
+    "statsmodels",
+]
+
+[project.optional-dependencies]
+causallearn = ["causal-learn"]
+r = ["rpy2"]
+tigramite = ["tigramite"]
+pycomets = ["pycomets @ git+https://github.com/shimenghuang/pycomets.git", "xgboost"]
+docs = [
+    "sphinx>=7",
+    "furo>=2024.1",
+    "myst-parser>=2",
+    "sphinx-autoapi>=3",
+    "linkify-it-py>=2",
+]
+dev = ["pytest", "ipython", "jupyterlab", "ipykernel"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["citk"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,11 @@
+{
+  "data_hash": "fce136b0944dd1f5af5fd9e994009ef7",
+  "method_name": "spearman",
+  "parameters_hash": "NO SPECIFIED PARAMETERS",
+  "0;1": "0.0",
+  "0;2": "0.0",
+  "1;2": "0.0",
+  "0;1|2": "0.0",
+  "0;2|1": "0.09312186825628732",
+  "1;2|0": "0.0"
+}

@@ -91,3 +91,39 @@ print(cg.G.get_edges())
 - `citk/tests/adapter_tests.py`
 
 For detailed documentation on each test and its parameters, please see our full documentation page [HERE](https://averinpa.github.io/citk/).
+
+## Acknowledgements
+
+`citk` is a toolkit-style assembly. Several tests are adapters over
+upstream implementations:
+
+- **KCI** wraps `causallearn.utils.cit.KCI` from
+  [causal-learn](https://github.com/py-why/causal-learn) (MIT) under
+  the optional `[causallearn]` extra.
+- **disc_chisq / disc_gsq / dummy_fisherz** route discretised /
+  one-hot data through causal-learn's Chi-Square, G-Square, and
+  Fisher-Z back-ends respectively.
+- **mCMIkNN** is vendored verbatim from
+  [hpi-epic/mCMIkNN](https://github.com/hpi-epic/mCMIkNN) (MIT). See
+  [`citk/_vendor/NOTICE.md`](citk/_vendor/NOTICE.md) for the full
+  attribution including authors, paper citation, and vendored
+  revision SHA.
+- **hartemink_chisq** uses `bnlearn` (R) for Hartemink discretisation
+  via `rpy2`, paired with causal-learn's Chi-Square test.
+- **RCIT / RCoT** wrap the R [RCIT
+  package](https://CRAN.R-project.org/package=RCIT) via `rpy2` under
+  the optional `[r]` extra.
+- **CMIknn / RegressionCI** wrap
+  [tigramite](https://github.com/jakobrunge/tigramite) (GPL-3) under
+  the optional `[tigramite]` extra; tigramite is invoked at the
+  user's installation rather than vendored, so the GPL-3 boundary
+  remains in the user's environment.
+
+Native `citk` tests (FisherZ, Spearman, χ²/G², regression-based) are
+independent implementations. Cross-package interop with `cbcd` is via
+the structural `cbcd.CITest` Protocol — neither package imports the
+other.
+
+## License
+
+[MIT License](LICENSE).

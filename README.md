@@ -32,6 +32,31 @@ For local development with extras:
 uv sync --all-extras
 ```
 
+## Acknowledgements
+
+`cbcd` is based on
+[causal-learn](https://github.com/py-why/causal-learn). The starting
+point for the design was a careful study of causal-learn's source,
+captured in
+[`docs/audit_causal_learn.md`](docs/audit_causal_learn.md). The core
+algorithmic content — PC-stable skeleton, Fisher-Z and χ²/G² CI
+tests, FCI orientation rules, and the test-fixture set (Y-structure,
+fork, chain, M-structure, diamond, plus the ASIA Bayesian network) —
+comes from causal-learn (and from the constraint-based discovery
+literature it implements). What `cbcd` adds is structural: a
+composition-first design with explicit Protocol abstractions,
+joblib-based parallelism, PAG-aware graph types, and a time-series
+PCMCI slice.
+
+`cbcd` is a clean-room re-implementation in code; no causal-learn
+source is vendored or imported at runtime. Behavioural parity
+against causal-learn (and against
+[tigramite](https://github.com/jakobrunge/tigramite) for PCMCI) is
+verified by the parity harness — see
+[`docs/parity_report.md`](docs/parity_report.md) for the comparison
+summary (13/13 fixtures match). The intellectual debt to
+causal-learn is substantial; this work would not exist without it.
+
 ## License
 
 MIT

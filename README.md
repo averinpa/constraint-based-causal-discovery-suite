@@ -1,4 +1,4 @@
-# constraint-based-causal-discovery-suite
+# Constraint-Based Causal Discovery Suite
 
 A four-package Python suite for constraint-based causal discovery —
 simulation, conditional independence testing, structure learning, and

@@ -25,7 +25,6 @@ Design priorities, in order:
 | `README.md` (this) | Orientation and pointers |
 | `audit_causal_learn.md` | Full audit of `causal-learn`'s constraint-based code: what to keep, refactor, rewrite. Includes file:line references to specific bugs and design issues. |
 | `design/api_v0.py` | The Phase-1 API design as Python stubs (Protocols, ABCs, dataclasses, function signatures). Nothing executes — it's a contract document. Section §I inside the file is the **decisions log + open questions**. |
-| `journal.md` | What's been done, when, and why. Append-only session log. |
 
 ## How to read `design/api_v0.py`
 
@@ -45,5 +44,4 @@ Sections are lettered A–J. Read top to bottom on first pass; the design builds
 ## When the design changes
 
 1. Update `design/api_v0.py` — both the affected section and the §I decisions log.
-2. Append a `journal.md` entry with date, what changed, and why.
-3. If the change invalidates a finding from `audit_causal_learn.md`, note it there too.
+2. If the change invalidates a finding from `audit_causal_learn.md`, note it there too.

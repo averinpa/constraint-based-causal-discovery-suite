@@ -3,9 +3,9 @@
 # vendor/README.md.
 vendor/
 
-# Suite-level dev journal — local-only working file. Per-package
-# journals at <pkg>/docs/journal.md remain tracked.
-/journal.md
+# Dev journals — local-only maintainer working files at any depth
+# (suite/journal.md and <pkg>/docs/journal.md).
+journal.md
 
 # Python bytecode and caches
 __pycache__/

@@ -52,10 +52,10 @@ fixture; a contract break trips the harness.
 
 - **`suite/journal.md`** *(local-only — gitignored)*: cross-package
   decisions, push/release coordination, audit findings that affect
-  more than one package. Newest entry on top, dated. The file is
-  retained for maintainer use; not committed.
-- **`<pkg>/docs/journal.md`** *(tracked)*: per-package implementation
-  history. All four packages have one.
+  more than one package. Newest entry on top, dated.
+- **`<pkg>/docs/journal.md`** *(local-only — gitignored)*: per-package
+  implementation history. Maintainer working file; retained on disk
+  per developer but not committed.
 - **`<pkg>/docs/design/api_v0.py`** *(tracked, where present)*:
   per-package design source-of-truth, pressure-tested before
   implementation. cbcd's is the canonical reference

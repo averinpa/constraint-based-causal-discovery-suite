@@ -117,7 +117,6 @@ print("MB(B) F1:", bnm.f1(mb_true, mb_est))
 
 - [v0.1.x → v0.2 audit](docs/audit.md)
 - [Design doc (Protocols, signatures, decisions)](docs/design/api_v0.py)
-- [Per-package journal](docs/journal.md)
 - [CHANGELOG](CHANGELOG.md)
 
 ## Acknowledgements

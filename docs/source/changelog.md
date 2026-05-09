@@ -42,8 +42,7 @@ survey taxonomy.
   families plus a Base Class section.
 - `:undoc-members:` removed from `autodoc_default_options` so missing public
   docstrings surface during build instead of being papered over.
-- Local-wrapper paths moved from `/Users/pavelaverin/Projects/<repo>` to
-  `/Users/pavelaverin/Projects/vendor/<repo>` for `mcmiknn`.
+- Local-wrapper paths moved from `<repo>` to `vendor/<repo>` for `mcmiknn`.
 
 ### Removed
 

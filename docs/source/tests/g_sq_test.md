@@ -57,7 +57,7 @@ print(f"P-value (conditional) for X _||_ Y | Z: {p_value_conditional:.4f}")
 
 ## API Reference
 
-For a full list of parameters, see the API documentation: :class:`citk.tests.simple_tests.GSq`.
+For a full list of parameters, see the API documentation: :class:`citk.tests.contingency_table_tests.GSq`.
 
 ## References
 

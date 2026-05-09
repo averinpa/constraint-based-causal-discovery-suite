@@ -42,7 +42,7 @@ Per-test constructor kwargs are documented on the test's reference page under :d
 
 ### Base class
 
-`citk.tests.base.CITKTest` is the abstract base. It is technically importable but **not** part of the v0.1.0 contract — its private implementation may change. Subclassing `CITKTest` to register a custom CI test is supported via `causallearn.utils.cit.register_ci_test`.
+`citk.tests.base.CITKTest` is the abstract base. It is technically importable but **not** part of the v0.1.0 contract — its private implementation may change. Subclassing `CITKTest` to register a custom CI test is supported via the bundled `citk.tests._register.maybe_register` helper, which silently no-ops when the optional `[causallearn]` extra is not installed.
 
 ### Exception hierarchy
 
@@ -112,7 +112,7 @@ ChiSq(data, methodname="chisq")  # TypeError: typo on method_name
 DiscChiSq(data, n_bin=3)         # TypeError: typo on n_bins
 ```
 
-citk also tolerates a small set of `_protocol_kwargs` (currently: `data_type`) on every test. These are forwarded by causal-learn's `pc(...)` dispatch to every CI test class, regardless of whether the test consumes them. Tests that do not list a protocol kwarg in their own `accepted_kwargs` silently ignore it.
+citk also tolerates a small set of `_protocol_kwargs` (currently: `data_type`) on every test. These are forwarded uniformly by some constraint-based dispatchers to every CI test class regardless of whether the test consumes them; tests that do not list a protocol kwarg in their own `accepted_kwargs` silently ignore it. The `cbcd.CITest` Protocol does not pass these kwargs through, so cbcd-driven workflows are unaffected.
 
 | Test | `accepted_kwargs` (consumed) |
 |---|---|
@@ -140,16 +140,16 @@ if not ok:
 
 `validate_data` returns `(True, "")` if compatible and `(False, "column j is X; ClsName only supports [Y]")` for the first violation. It does not raise.
 
-## Out-of-contract: causal-learn-inherited methods
+## Out-of-contract: re-implemented helper methods
 
-`CITKTest` inherits four public methods from `causallearn.utils.cit.CIT_Base` that are visible on every test instance:
+`CITKTest` exposes four public helper methods that exist for parity with the conventions of older CI-test libraries:
 
 - `assert_input_data_is_valid(allow_nan=False, allow_inf=False)`
 - `check_cache_method_consistent(method_name, parameters_hash)`
 - `get_formatted_XYZ_and_cachekey(X, Y, condition_set)`
 - `save_to_local_cache()`
 
-These are **inherited from causal-learn upstream** and are not part of citk's v0.1.0 contract. Their signatures and behaviour follow whatever version of `causal-learn` is installed; citk does not guarantee stability across causal-learn upgrades for these methods. If you need stable behaviour, vendor or pin causal-learn explicitly.
+In citk versions prior to the Phase-2 decoupling these methods were inherited from `causallearn.utils.cit.CIT_Base`. They are now **re-implemented natively in `citk.tests.base`** so that citk no longer depends on `causal-learn` at runtime; the signatures match the upstream conventions for backwards compatibility but are **not** part of citk's v0.1.0 contract — their internal behaviour may change in future v0.x releases. Cache files written by either ecosystem remain interchangeable.
 
 ## Per-test edges
 

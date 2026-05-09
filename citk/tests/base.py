@@ -58,7 +58,7 @@ def _is_categorical_column(values: np.ndarray, max_levels: int = 10) -> bool:
     ``max_levels`` unique values. False otherwise.
 
     Used by :meth:`CITKTest.validate_data` and by the discretising adapter
-    tests in ``extended_tests``.
+    tests in ``adapter_tests``.
     """
     unique_vals = (
         np.unique(values[~np.isnan(values)])

@@ -42,10 +42,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/averinpa/dagsampler"
-Documentation = "https://averinpa.github.io/dagsampler/"
-Issues = "https://github.com/averinpa/dagsampler/issues"
-Source = "https://github.com/averinpa/dagsampler"
+Homepage = "https://github.com/averinpa/constraint-based-causal-discovery-suite"
+Documentation = "https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/"
+Issues = "https://github.com/averinpa/constraint-based-causal-discovery-suite/issues"
+Source = "https://github.com/averinpa/constraint-based-causal-discovery-suite/tree/main/dagsampler"
 Changelog = "https://github.com/averinpa/dagsampler/blob/main/CHANGELOG.md"
 
 [project.scripts]

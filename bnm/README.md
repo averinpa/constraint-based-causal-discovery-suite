@@ -14,6 +14,7 @@ metric without imports between the packages.
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Documentation](https://img.shields.io/badge/docs-averinpa.github.io-blue.svg)](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/)
 
 ## Status
 
@@ -61,6 +62,8 @@ pip install bnm[pandas]        # + pandas (compare().to_dataframe())
 ```
 
 ## Documentation
+
+Full hosted documentation: <https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/>
 
 - [Tutorial](docs/tutorial.md) — narrative walkthrough.
 - [How-to guides](docs/howto/index.md) — task-focused recipes.

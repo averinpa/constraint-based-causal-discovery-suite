@@ -1,0 +1,98 @@
+name: docs
+
+# Builds each package's Sphinx site and assembles them into a single
+# GitHub Pages deployment under per-package subpaths:
+#
+#   /                         <- docs/index.html (suite landing page)
+#   /bnm/, /cbcd/, /citk/, /dagsampler/   <- per-package Sphinx output
+#
+# Pages must be enabled in repo settings (Source: GitHub Actions) for
+# the deploy step to publish.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "bnm/**"
+      - "cbcd/**"
+      - "citk/**"
+      - "dagsampler/**"
+      - "docs/index.html"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build all package docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install graphviz (bnm visualisation extras)
+        run: sudo apt-get update && sudo apt-get install -y graphviz
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build bnm docs
+        working-directory: bnm
+        run: |
+          uv sync --extra docs
+          uv run sphinx-build -b html --keep-going docs docs/_build/html
+
+      - name: Build cbcd docs
+        working-directory: cbcd
+        run: |
+          uv sync --extra docs
+          uv run sphinx-build -b html --keep-going docs docs/_build/html
+
+      - name: Build citk docs
+        working-directory: citk
+        run: |
+          uv sync --extra docs
+          uv run sphinx-build -b html --keep-going docs/source docs/_build/html
+
+      - name: Build dagsampler docs
+        working-directory: dagsampler
+        run: |
+          uv sync --extra docs
+          uv run sphinx-build -b html --keep-going docs docs/_build/html
+
+      - name: Assemble suite site
+        run: |
+          mkdir -p _site
+          cp docs/index.html _site/index.html
+          cp -r bnm/docs/_build/html        _site/bnm
+          cp -r cbcd/docs/_build/html       _site/cbcd
+          cp -r citk/docs/_build/html       _site/citk
+          cp -r dagsampler/docs/_build/html _site/dagsampler
+          touch _site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

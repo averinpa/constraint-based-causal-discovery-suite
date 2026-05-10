@@ -12,23 +12,21 @@ Full [documentation](https://averinpa.github.io/constraint-based-causal-discover
 
 | package | purpose | status | docs |
 |---|---|---|---|
-| **[`dagsampler`](dagsampler/)** | Configurable DAG / SCM simulator producing synthetic mixed-type data and an optional CI oracle. | On PyPI as `dagsampler`. | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/) |
-| **[`cbcd`](cbcd/)** | Constraint-based causal discovery algorithms: PC, FCI, RFCI, anytime-FCI, PCMCI. | v0.x API stable per cbcd's design doc. | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/) |
-| **[`citk`](citk/)** | Conditional independence test toolkit: FisherZ and Spearman native; KCI / CMIknn / RegressionCI / GCM and others via optional extras. | Stable API. | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/) |
-| **[`bnm`](bnm/)** | DAG / CPDAG / PAG comparison metrics and visualisation: SHD, HD, F1, SID, per-Markov-blanket comparisons. | v0.2.x. | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/) |
+| **[`dagsampler`](dagsampler/)** | Configurable DAG / SCM simulator producing synthetic mixed-type data and an optional CI oracle. | v0.2.0, on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/) |
+| **[`cbcd`](cbcd/)** | Constraint-based causal discovery algorithms: PC, FCI, RFCI, anytime-FCI, PCMCI. | v0.1.0, not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/) |
+| **[`citk`](citk/)** | Conditional independence test toolkit: FisherZ and Spearman native; KCI / CMIknn / RegressionCI / GCM and others via optional extras. | v0.1.0, not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/) |
+| **[`bnm`](bnm/)** | DAG / CPDAG / PAG comparison metrics and visualisation: SHD, HD, F1, SID, per-Markov-blanket comparisons. | v0.2.2 (in development), not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/) |
 
 ## Architecture
 
 Cross-package interaction passes through three structural Protocols.
 No package imports another.
 
-```
-dagsampler ─── true_dag, data, ci_oracle ──▶ cbcd ─── recovered ──▶ bnm
-                                              ▲                     ▲
-                                              │ Protocol            │ Protocol
-                                            citk                  (graph)
-                                              │
-                                          (CI tests via cbcd.CITest)
+```mermaid
+flowchart LR
+    dagsampler -- "true_dag, data, ci_oracle" --> cbcd
+    citk -- "cbcd.CITest" --> cbcd
+    cbcd -- "bnm.GraphLike" --> bnm
 ```
 
 | boundary | contract | defined by |

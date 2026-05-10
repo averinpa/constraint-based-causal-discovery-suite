@@ -123,15 +123,17 @@ jobs:
           use-public-rspm: true
 
       - name: Install R packages
-        # citk[r] tests exercise RCIT (GitHub), MXM (CRAN, archived;
-        # tryCatch keeps the run going if it fails), bnlearn (CRAN).
-        # GITHUB_PAT lifts the unauthenticated GitHub API rate limit
-        # that remotes::install_github otherwise hits.
+        # citk[r] tests exercise RCIT (GitHub), MXM (CRAN-archived;
+        # remotes::install_version falls back to the CRAN archive
+        # automatically when the package isn't on the live repo),
+        # and bnlearn (CRAN). GITHUB_PAT lifts the unauthenticated
+        # GitHub API rate limit that remotes::install_github
+        # otherwise hits.
         env:
           GITHUB_PAT: ${{ github.token }}
         run: |
           R -e "install.packages(c('remotes', 'bnlearn'))"
-          R -e "tryCatch(install.packages('MXM'), error = function(e) message('MXM not available: ', e\$message))"
+          R -e "tryCatch(remotes::install_version('MXM'), error = function(e) message('MXM unavailable: ', e\$message))"
           R -e "remotes::install_github('ericstrobl/RCIT')"
 
       - name: Install uv

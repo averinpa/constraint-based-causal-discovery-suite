@@ -104,6 +104,12 @@ jobs:
           cache-dependency-glob: "citk/uv.lock"
 
       - name: Sync deps
+        # rpy2 (pulled by citk[r]) builds in API mode by default and
+        # needs R on the runner. ABI mode defers the R lookup to
+        # runtime, so the install succeeds without R; tests that
+        # actually use R packages skip when R isn't present.
+        env:
+          RPY2_CFFI_MODE: ABI
         run: uv sync --all-extras
 
       - name: pytest

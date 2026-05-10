@@ -6,14 +6,16 @@ metric / visualisation. Each package is independent and stands on its
 own; cross-package interoperability is via structural Protocols, not
 imports.
 
+**Documentation:** <https://averinpa.github.io/constraint-based-causal-discovery-suite/>
+
 ## Packages
 
-| package | purpose | status |
-|---|---|---|
-| **[`dagsampler`](dagsampler/)** | Configurable DAG / SCM simulator producing synthetic mixed-type data and an optional CI oracle. | On PyPI as `dagsampler`. |
-| **[`cbcd`](cbcd/)** | Constraint-based causal discovery algorithms: PC, FCI, RFCI, anytime-FCI, PCMCI. | v0.x API stable per cbcd's design doc. |
-| **[`citk`](citk/)** | Conditional independence test toolkit: FisherZ and Spearman native; KCI / CMIknn / RegressionCI / GCM and others via optional extras. | Stable API. |
-| **[`bnm`](bnm/)** | DAG / CPDAG / PAG comparison metrics and visualisation: SHD, HD, F1, SID, per-Markov-blanket comparisons. | v0.2.x. |
+| package | purpose | status | docs |
+|---|---|---|---|
+| **[`dagsampler`](dagsampler/)** | Configurable DAG / SCM simulator producing synthetic mixed-type data and an optional CI oracle. | On PyPI as `dagsampler`. | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/) |
+| **[`cbcd`](cbcd/)** | Constraint-based causal discovery algorithms: PC, FCI, RFCI, anytime-FCI, PCMCI. | v0.x API stable per cbcd's design doc. | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/) |
+| **[`citk`](citk/)** | Conditional independence test toolkit: FisherZ and Spearman native; KCI / CMIknn / RegressionCI / GCM and others via optional extras. | Stable API. | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/) |
+| **[`bnm`](bnm/)** | DAG / CPDAG / PAG comparison metrics and visualisation: SHD, HD, F1, SID, per-Markov-blanket comparisons. | v0.2.x. | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/) |
 
 ## Architecture
 

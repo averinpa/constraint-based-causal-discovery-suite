@@ -15,11 +15,11 @@
 [![PyPI version](https://img.shields.io/pypi/v/dagsampler.svg)](https://pypi.org/project/dagsampler/)
 [![Python versions](https://img.shields.io/pypi/pyversions/dagsampler.svg)](https://pypi.org/project/dagsampler/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Documentation](https://img.shields.io/badge/docs-averinpa.github.io-blue.svg)](https://averinpa.github.io/dagsampler/)
+[![Documentation](https://img.shields.io/badge/docs-averinpa.github.io-blue.svg)](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/)
 
 Configurable causal DAG simulator for synthetic mixed-type data and CI test benchmarks.
 
-[Documentation](https://averinpa.github.io/dagsampler/) · [Changelog](CHANGELOG.md)
+[Documentation](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/) · [Changelog](CHANGELOG.md)
 
 ## What it provides
 
@@ -99,10 +99,11 @@ dagsampler-generate \
 
 ## Learn more
 
-- [Documentation](https://averinpa.github.io/dagsampler/) — full reference for every config option, mechanism, and noise model.
-- [Configuration examples](https://averinpa.github.io/dagsampler/config_examples.html) — JSON snippets for each feature.
-- [Model formulations](https://averinpa.github.io/dagsampler/formulations.html) — mathematical definitions.
-- [Template configurations](https://averinpa.github.io/dagsampler/templates.html) — `chain_config`, `fork_config`, `collider_config` helpers.
+- [Documentation](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/) — full reference for every config option, mechanism, and noise model.
+- [Tutorial](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/tutorial.html) — narrative walkthrough.
+- [How-to guides](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/howto/) — task-focused recipes.
+- [Explanation](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/explanation/) — model formulations and design rationale.
+- [API reference](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/reference/) — every public function and class.
 - [`examples/`](examples/) — runnable notebooks.
 
 ## Development

@@ -105,11 +105,13 @@ jobs:
       - name: Install system build deps
         # libtirpc-dev is required to link rpy2-rinterface's C extension;
         # the libcurl/libssl/libxml2 dev packages cover R-package
-        # compilation (e.g. remotes, bnlearn dependencies).
+        # compilation (e.g. remotes, bnlearn dependencies). libgsl-dev
+        # ships libgsl.so, which the R `gsl` package (an MXM dep) loads
+        # at runtime.
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            libcurl4-openssl-dev libssl-dev libxml2-dev libtirpc-dev
+            libcurl4-openssl-dev libssl-dev libxml2-dev libtirpc-dev libgsl-dev
 
       - name: Install R
         # rpy2 3.6.x requires R 4.5+ (uses the R_getVar symbol). The

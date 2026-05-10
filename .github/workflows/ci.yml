@@ -102,28 +102,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install R + system build deps
-        # citk[r] tests load R packages (RCIT, MXM, bnlearn) at runtime
-        # via rpy2. Without R installed, rpy2 imports fail with
-        # `r_home is None`. r-base-dev + libcurl/libssl/libxml2 cover
-        # compilation of the R packages installed below; libtirpc-dev
-        # is required to link rpy2-rinterface's C extension.
+      - name: Install system build deps
+        # libtirpc-dev is required to link rpy2-rinterface's C extension;
+        # the libcurl/libssl/libxml2 dev packages cover R-package
+        # compilation (e.g. remotes, bnlearn dependencies).
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            r-base r-base-dev \
             libcurl4-openssl-dev libssl-dev libxml2-dev libtirpc-dev
 
+      - name: Install R
+        # rpy2 3.6.x requires R 4.5+ (uses the R_getVar symbol). The
+        # apt r-base on Ubuntu noble is 4.3.3 and lacks that symbol;
+        # setup-r installs the current R release and wires up
+        # user-writable libraries + Posit Public Package Manager so
+        # install.packages pulls binary builds.
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "release"
+          use-public-rspm: true
+
       - name: Install R packages
-        # Posit Public Package Manager serves binary packages for Ubuntu,
-        # avoiding source compilation for bnlearn and friends. R is run
-        # under sudo so install.packages() can write to the site library
-        # at /usr/local/lib/R/site-library (world-readable thereafter).
+        # citk[r] tests exercise RCIT (GitHub), MXM (CRAN, archived;
+        # tryCatch keeps the run going if it fails), bnlearn (CRAN).
         run: |
-          R_REPO="https://packagemanager.posit.co/cran/__linux__/$(. /etc/os-release && echo $VERSION_CODENAME)/latest"
-          sudo R -e "install.packages(c('remotes', 'bnlearn'), repos='$R_REPO')"
-          sudo R -e "tryCatch(install.packages('MXM', repos='$R_REPO'), error = function(e) message('MXM not available: ', e\$message))"
-          sudo R -e "remotes::install_github('ericstrobl/RCIT')"
+          R -e "install.packages(c('remotes', 'bnlearn'))"
+          R -e "tryCatch(install.packages('MXM'), error = function(e) message('MXM not available: ', e\$message))"
+          R -e "remotes::install_github('ericstrobl/RCIT')"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5

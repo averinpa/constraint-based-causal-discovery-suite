@@ -106,12 +106,13 @@ jobs:
         # citk[r] tests load R packages (RCIT, MXM, bnlearn) at runtime
         # via rpy2. Without R installed, rpy2 imports fail with
         # `r_home is None`. r-base-dev + libcurl/libssl/libxml2 cover
-        # compilation of the R packages installed below.
+        # compilation of the R packages installed below; libtirpc-dev
+        # is required to link rpy2-rinterface's C extension.
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             r-base r-base-dev \
-            libcurl4-openssl-dev libssl-dev libxml2-dev
+            libcurl4-openssl-dev libssl-dev libxml2-dev libtirpc-dev
 
       - name: Install R packages
         # Posit Public Package Manager serves binary packages for Ubuntu,

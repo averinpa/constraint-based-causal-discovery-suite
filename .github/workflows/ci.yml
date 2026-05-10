@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,12 +28,16 @@ jobs:
           filters: |
             bnm:
               - 'bnm/**'
+              - '.github/workflows/ci.yml'
             cbcd:
               - 'cbcd/**'
+              - '.github/workflows/ci.yml'
             citk:
               - 'citk/**'
+              - '.github/workflows/ci.yml'
             dagsampler:
               - 'dagsampler/**'
+              - '.github/workflows/ci.yml'
 
   bnm:
     name: bnm tests

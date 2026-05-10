@@ -116,33 +116,6 @@ separately. Practitioners citing F1 from `bnm` should be explicit
 about the orientation-aware definition.
 ```
 
-## Audit findings preserved from v0.1.x
-
-Several metric bugs in `bnm` v0.1.x were diagnosed during the
-v0.2 rewrite (see `docs/audit.md` in the repo for the full list
-with file:line references). The four most consequential:
-
-1. **§1 — SID empty-parents crash.** v0.1.x's SID raised a
-   `KeyError` on graphs with isolated nodes; v0.2 returns the
-   correct integer SID.
-2. **§6 — SID hash-seed non-determinism.** v0.1.x's SID iterated
-   over a Python `set` of v-structure components, producing
-   different outputs across `PYTHONHASHSEED` values; v0.2's
-   iteration is deterministic.
-3. **§7 — Reversal under-counting.** v0.1.x stored undirected
-   edges asymmetrically in its `nx.DiGraph` representation; the
-   reversal count under-reported by the count of asymmetric
-   storage events. v0.2 stores both directions and counts
-   correctly.
-4. **§8 — SID upper-bound under-counting on CPDAG inputs.** The
-   v0.1.x upper bound enumerated only a subset of the equivalence
-   class; v0.2 enumerates the full class as required by Peters &
-   Bühlmann (2015) Theorem 3.
-
-19 fixtures across the 87 v0.1.x snapshots have intentional
-v0.2-vs-v0.1.x semantic divergences; these are catalogued in
-`tests/fixtures_legacy_v02_overrides.json`.
-
 ## References
 
 - de Jongh, M., & Druzdzel, M. J. (2009). A comparison of

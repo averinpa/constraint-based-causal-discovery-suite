@@ -44,6 +44,23 @@ dagsampler additionally exposes an optional CI oracle (via
 data, but not part of the standard simulate → recover → compare
 pipeline.
 
+## Installation
+
+Each package installs independently. `dagsampler` is on PyPI; the
+other three install from this monorepo via `git+https`:
+
+```bash
+uv pip install \
+  dagsampler \
+  "cbcd @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=cbcd" \
+  "citk @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=citk" \
+  "bnm @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=bnm"
+```
+
+(Replace `uv pip` with `pip` if you don't use `uv`. Per-package
+READMEs document optional extras — kernel- and ML-based CI tests in
+`citk`, visualisation in `bnm`.)
+
 ## Quick start
 
 ```python

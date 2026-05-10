@@ -115,12 +115,14 @@ jobs:
 
       - name: Install R packages
         # Posit Public Package Manager serves binary packages for Ubuntu,
-        # avoiding source compilation for bnlearn and friends.
+        # avoiding source compilation for bnlearn and friends. R is run
+        # under sudo so install.packages() can write to the site library
+        # at /usr/local/lib/R/site-library (world-readable thereafter).
         run: |
           R_REPO="https://packagemanager.posit.co/cran/__linux__/$(. /etc/os-release && echo $VERSION_CODENAME)/latest"
-          R -e "install.packages(c('remotes', 'bnlearn'), repos='$R_REPO')"
-          R -e "tryCatch(install.packages('MXM', repos='$R_REPO'), error = function(e) message('MXM not available: ', e\$message))"
-          R -e "remotes::install_github('ericstrobl/RCIT')"
+          sudo R -e "install.packages(c('remotes', 'bnlearn'), repos='$R_REPO')"
+          sudo R -e "tryCatch(install.packages('MXM', repos='$R_REPO'), error = function(e) message('MXM not available: ', e\$message))"
+          sudo R -e "remotes::install_github('ericstrobl/RCIT')"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5

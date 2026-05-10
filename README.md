@@ -19,63 +19,82 @@ Full [documentation](https://averinpa.github.io/constraint-based-causal-discover
 
 ## Architecture
 
-Cross-package interaction passes through three structural Protocols.
-No package imports another.
+The four packages communicate only through **structural Protocols**
+(PEP 544 — small interfaces that any conforming object satisfies, no
+inheritance required). citk's CI tests and the graphs that cbcd and
+dagsampler produce cross package boundaries via these Protocols, so
+no package imports another at runtime. Each piece can therefore be
+installed and updated independently.
 
 ```mermaid
 flowchart LR
-    dagsampler -- "true_dag, data, ci_oracle" --> cbcd
+    dagsampler -- "true_dag, data" --> cbcd
     citk -- "cbcd.CITest" --> cbcd
     cbcd -- "bnm.GraphLike" --> bnm
 ```
 
-| boundary | contract | defined by |
-|---|---|---|
-| `citk → cbcd` | `cbcd.CITest` Protocol (`n_vars`, `__call__`, `details`) | `cbcd` |
-| `dagsampler → cbcd` (CI oracle) | `cbcd.CITest` Protocol — `dagsampler.CausalDataGenerator.as_ci_oracle()` returns a conforming object | `cbcd` |
-| `dagsampler → bnm` / `cbcd → bnm` | `bnm.GraphLike` Protocol (`n_vars`, `endpoints` int8 matrix, `var_names`) | `bnm` |
+| data flow | Protocol |
+|---|---|
+| `citk → cbcd` | `cbcd.CITest` |
+| `cbcd → bnm`, `dagsampler → bnm` | `bnm.GraphLike` |
 
-The Protocol contracts are verified at runtime in
-[`parity/suite/run.py`](parity/suite/run.py); finding `from cbcd
-import ...` inside `citk`, `bnm`, or `dagsampler` (or any reverse
-direction) is a contract violation.
+dagsampler additionally exposes an optional CI oracle (via
+`CausalDataGenerator.as_ci_oracle()`) that conforms to `cbcd.CITest`
+— useful when you want d-separation testing alongside simulated
+data, but not part of the standard simulate → recover → compare
+pipeline.
 
 ## Quick start
 
-The end-to-end story across all four packages — `dagsampler` →
-`citk` → `cbcd` → `bnm`, in roughly 10 lines — is at
-[`docs/tutorial.md`](docs/tutorial.md). It runs verbatim and yields
-`SHD: 0, F1: 1.0` on the canonical 3-node collider example.
+```python
+from dagsampler import CausalDataGenerator
+from citk.tests.partial_correlation_tests import FisherZ
+from cbcd import pc
+import bnm
 
-Each package has its own dev environment and tooling; no shared venv:
+# 1. Simulate a DAG and data, and grab a d-separation CI oracle.
+gen = CausalDataGenerator({
+    "simulation_params": {"n_samples": 3000, "seed_structure": 1,
+                          "seed_data": 2, "binary_proportion": 0.0},
+    "graph_params": {"type": "custom",
+                     "nodes": ["A", "B", "C"],
+                     "edges": [["A", "C"], ["B", "C"]]},  # collider A → C ← B
+})
+result = gen.simulate()
+
+# 2. Recover the CPDAG twice: once with dagsampler's oracle (gold standard),
+#    once with citk's FisherZ on the simulated data (empirical method).
+true_cpdag = pc(result["data"], ci_test=gen.as_ci_oracle(),     alpha=0.05)
+recovered  = pc(result["data"], ci_test=FisherZ(result["data"].to_numpy()), alpha=0.05)
+
+# 3. Score the empirical recovery against the gold standard.
+print("SHD:", bnm.shd(true_cpdag, recovered))   # 0
+print("F1: ", bnm.f1 (true_cpdag, recovered))   # 1.0
+```
+
+The full walkthrough — per-line breakdown, visualisation, and a
+noisier 4-node example — is at [`docs/tutorial.md`](docs/tutorial.md).
+
+## Development
+
+Each package has its own `uv` environment; there's no shared venv:
 
 ```bash
-# cbcd       (algorithms)
-cd cbcd       && uv sync --all-extras && uv run pytest
-
-# citk       (CI tests)
-cd citk       && uv sync --all-extras && uv run pytest
-
-# dagsampler (simulator)
 cd dagsampler && uv sync --all-extras && uv run pytest
-
-# bnm        (metrics + viz)
+cd cbcd       && uv sync --all-extras && uv run pytest
+cd citk       && uv sync --all-extras && uv run pytest
 cd bnm        && uv sync --all-extras && uv run pytest
 ```
 
-## Suite-level integration test
-
-[`parity/suite/run.py`](parity/suite/run.py) chains all four packages
-on a 5-fixture set (`collider_3`, `fork_3`, `chain_3`, `diamond_4`,
-`asia_like_5`) and asserts per-fixture SHD/F1 bounds calibrated as a
-regression detector (not an algorithmic-precision benchmark):
+The suite-level integration harness chains all four packages on a
+5-fixture set (`collider_3`, `fork_3`, `chain_3`, `diamond_4`,
+`asia_like_5`) and asserts per-fixture SHD/F1 bounds:
 
 ```bash
-cd parity/suite
-uv sync && uv run python run.py
+cd parity/suite && uv sync && uv run python run.py
 ```
 
-A failure here means either a real numerical regression or a broken
+A failure there means either a numerical regression or a broken
 Protocol contract between the packages.
 
 ## License and prior art

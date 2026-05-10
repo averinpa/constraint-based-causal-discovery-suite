@@ -29,7 +29,11 @@ dependencies = [
 [project.optional-dependencies]
 causallearn = ["causal-learn"]
 r = ["rpy2"]
-tigramite = ["tigramite"]
+tigramite = [
+    "tigramite",
+    "numba",        # cmiknn imports `from numba import jit` at module top
+    "numpy<2",      # cmiknn_mixed calls numpy.corrcoef(ddof=...), removed in numpy 2.0
+]
 pycomets = ["pycomets @ git+https://github.com/shimenghuang/pycomets.git", "xgboost"]
 docs = [
     "sphinx>=7",

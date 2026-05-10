@@ -90,12 +90,32 @@ jobs:
     needs: changes
     if: needs.changes.outputs.citk == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: citk
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install R + system build deps
+        # citk[r] tests load R packages (RCIT, MXM, bnlearn) at runtime
+        # via rpy2. Without R installed, rpy2 imports fail with
+        # `r_home is None`. r-base-dev + libcurl/libssl/libxml2 cover
+        # compilation of the R packages installed below.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            r-base r-base-dev \
+            libcurl4-openssl-dev libssl-dev libxml2-dev
+
+      - name: Install R packages
+        # Posit Public Package Manager serves binary packages for Ubuntu,
+        # avoiding source compilation for bnlearn and friends.
+        run: |
+          R_REPO="https://packagemanager.posit.co/cran/__linux__/$(. /etc/os-release && echo $VERSION_CODENAME)/latest"
+          R -e "install.packages(c('remotes', 'bnlearn'), repos='$R_REPO')"
+          R -e "tryCatch(install.packages('MXM', repos='$R_REPO'), error = function(e) message('MXM not available: ', e\$message))"
+          R -e "remotes::install_github('ericstrobl/RCIT')"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -104,12 +124,6 @@ jobs:
           cache-dependency-glob: "citk/uv.lock"
 
       - name: Sync deps
-        # rpy2 (pulled by citk[r]) builds in API mode by default and
-        # needs R on the runner. ABI mode defers the R lookup to
-        # runtime, so the install succeeds without R; tests that
-        # actually use R packages skip when R isn't present.
-        env:
-          RPY2_CFFI_MODE: ABI
         run: uv sync --all-extras
 
       - name: pytest

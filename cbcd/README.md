@@ -5,7 +5,7 @@
 
 `cbcd` is a Python library aiming to be a comprehensive home for **constraint-based causal discovery** algorithms — both i.i.d. and time-series.
 
-**Documentation:** <https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/>
+Full [documentation](https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/) is hosted on GitHub Pages.
 
 The package is being built from scratch (informed by, but not depending on, [`causal-learn`](https://github.com/cmu-phil/causal-learn)) with three goals:
 

@@ -3,7 +3,7 @@
 [![Documentation](https://img.shields.io/badge/docs-averinpa.github.io-blue.svg)](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Documentation:** <https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/>
+Full [documentation](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/) is hosted on GitHub Pages.
 
 `citk` is a Python library that provides a comprehensive toolkit for conditional independence (CI) testing. It is designed to be seamlessly integrated with the [`causal-learn`](https://github.com/cmu-phil/causal-learn) package and offers a collection of partial correlation, contingency table, regression, nearest neighbor, kernel, and machine-learning-based CI tests, plus adapter strategies.
 

@@ -63,7 +63,7 @@ pip install bnm[pandas]        # + pandas (compare().to_dataframe())
 
 ## Documentation
 
-Full hosted documentation: <https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/>
+Full [documentation](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/) is hosted on GitHub Pages.
 
 - [Tutorial](docs/tutorial.md) — narrative walkthrough.
 - [How-to guides](docs/howto/index.md) — task-focused recipes.

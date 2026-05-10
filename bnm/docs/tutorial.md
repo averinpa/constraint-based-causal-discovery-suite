@@ -45,7 +45,7 @@ recovered  = pc(result["data"], ci_test="fisherz", alpha=0.05)
 Note that `bnm` does not import `cbcd` or `dagsampler`. Both
 `true_cpdag` and `recovered` are instances of `cbcd.CPDAG`, which
 satisfies the structural `bnm.GraphLike` Protocol; `bnm`'s
-`to_endpoints` adapter normalises the input at the function
+`to_graphlike` adapter normalises the input at the function
 boundary.
 
 ## Comparative metrics

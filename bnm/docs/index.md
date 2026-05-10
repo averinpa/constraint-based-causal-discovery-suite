@@ -56,8 +56,8 @@ with the [Tutorial](tutorial.md). Practitioners with a specific
 goal should consult the [How-to](howto/index.md) section. The
 [Reference](reference/index.md) is regenerated from docstrings on
 every build. The [Explanation](explanation/index.md) section
-discusses the mathematical foundations of the metrics, the
-`GraphLike` Protocol, and the v0.2 audit findings.
+discusses the mathematical foundations of the metrics, the SID
+algorithm, the `GraphLike` Protocol, and Markov-blanket scoping.
 
 ```{toctree}
 :maxdepth: 1

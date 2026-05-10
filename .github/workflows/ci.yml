@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changed packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      bnm: ${{ steps.filter.outputs.bnm }}
+      cbcd: ${{ steps.filter.outputs.cbcd }}
+      citk: ${{ steps.filter.outputs.citk }}
+      dagsampler: ${{ steps.filter.outputs.dagsampler }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            bnm:
+              - 'bnm/**'
+            cbcd:
+              - 'cbcd/**'
+            citk:
+              - 'citk/**'
+            dagsampler:
+              - 'dagsampler/**'
+
+  bnm:
+    name: bnm tests
+    needs: changes
+    if: needs.changes.outputs.bnm == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: bnm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install graphviz binary
+        run: sudo apt-get update && sudo apt-get install -y graphviz
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "bnm/uv.lock"
+
+      - name: Sync deps
+        run: uv sync --all-extras
+
+      - name: pytest
+        run: uv run pytest -q
+
+  cbcd:
+    name: cbcd tests
+    needs: changes
+    if: needs.changes.outputs.cbcd == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: cbcd
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "cbcd/uv.lock"
+
+      - name: Sync deps
+        run: uv sync --all-extras
+
+      - name: pytest
+        run: uv run pytest -q
+
+  citk:
+    name: citk tests
+    needs: changes
+    if: needs.changes.outputs.citk == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: citk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "citk/uv.lock"
+
+      - name: Sync deps
+        run: uv sync --all-extras
+
+      - name: pytest
+        run: uv run pytest -q
+
+  dagsampler:
+    name: dagsampler tests
+    needs: changes
+    if: needs.changes.outputs.dagsampler == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: dagsampler
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "dagsampler/uv.lock"
+
+      - name: Sync deps
+        run: uv sync --all-extras
+
+      - name: pytest
+        run: uv run pytest -q

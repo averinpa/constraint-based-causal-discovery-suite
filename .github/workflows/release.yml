@@ -1,0 +1,93 @@
+name: Release to PyPI
+
+# Triggered by per-package version tags. Tag format: <pkg>-v<version>
+# (e.g. bnm-v0.2.0, dagsampler-v0.2.0). The job parses the tag prefix
+# to determine which subdirectory to build and publish from.
+#
+# PyPI publishing uses Trusted Publishing (OIDC) — each package's
+# PyPI project must be configured under "Trusted Publisher
+# management" to trust:
+#   Owner:       averinpa
+#   Repository:  constraint-based-causal-discovery-suite
+#   Workflow:    release.yml
+#   Environment: pypi
+
+on:
+  push:
+    tags:
+      - "bnm-v*"
+      - "cbcd-v*"
+      - "citk-v*"
+      - "dagsampler-v*"
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package to publish (bnm | cbcd | citk | dagsampler)"
+        required: true
+        type: choice
+        options: [bnm, cbcd, citk, dagsampler]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      package: ${{ steps.meta.outputs.package }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve package name
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            pkg="${{ inputs.package }}"
+          else
+            tag="${GITHUB_REF#refs/tags/}"
+            pkg="${tag%-v*}"
+          fi
+          case "$pkg" in
+            bnm|cbcd|citk|dagsampler) ;;
+            *) echo "Unknown package '$pkg'"; exit 1 ;;
+          esac
+          echo "package=$pkg" >> "$GITHUB_OUTPUT"
+          echo "Resolved package: $pkg"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "${{ steps.meta.outputs.package }}/uv.lock"
+
+      - name: Build sdist + wheel
+        working-directory: ${{ steps.meta.outputs.package }}
+        run: uv build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ steps.meta.outputs.package }}
+          path: ${{ steps.meta.outputs.package }}/dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: pypi
+      url: https://pypi.org/project/${{ needs.build.outputs.package }}/
+    permissions:
+      id-token: write  # OIDC token for Trusted Publishing
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-${{ needs.build.outputs.package }}
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

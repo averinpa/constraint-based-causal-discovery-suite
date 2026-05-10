@@ -6,7 +6,7 @@ metric / visualisation. Each package is independent and stands on its
 own; cross-package interoperability is via structural Protocols, not
 imports.
 
-**Documentation:** <https://averinpa.github.io/constraint-based-causal-discovery-suite/>
+Full [documentation](https://averinpa.github.io/constraint-based-causal-discovery-suite/) is hosted on GitHub Pages.
 
 ## Packages
 

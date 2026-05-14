@@ -12,7 +12,7 @@ DESIGN PRINCIPLES (consequences of the bnm 0.1.x audit):
 1. **Pure functions over a god-class.** 0.1.x routes everything through
    `BNMetrics(g1, g2).compile_*` methods. v0.2 exposes top-level
    functions: `bnm.shd(g1, g2)`, `bnm.sid(true, est)`,
-   `bnm.markov_blanket(g, var)`. A single `compare()` façade returns
+   `bnm.markov_blanket(g, var)`. A single `compare()` function returns
    a `Comparison` dataclass for the multi-metric workflow.
 
 2. **One graph contract: `GraphLike`.** A structural Protocol over
@@ -249,7 +249,7 @@ def _resolve_var(
 # Every descriptive metric is a free function over `GraphLikeInput`.
 # Per-node degree functions take a `var: int | str` (no 'All' sentinel
 # from 0.1.x). Aggregates over multiple nodes use the `compare()`
-# façade or are computed by the caller from per-node returns.
+# function or are computed by the caller from per-node returns.
 
 
 def count_edges(g: GraphLikeInput) -> int:
@@ -754,7 +754,7 @@ PUBLIC_API_v0: tuple[str, ...] = (
     # markov blanket
     "markov_blanket",
     "markov_blanket_indices",
-    # facade + view
+    # multi-metric comparison + view
     "compare",
     "Comparison",
     "to_dataframe",
@@ -771,7 +771,7 @@ PUBLIC_API_v0: tuple[str, ...] = (
 # L. DECISIONS LOG + OPEN QUESTIONS
 # =============================================================================
 #
-# D1 (2026-05-07). API shape: pure functions + thin façade. `BNMetrics`
+# D1 (2026-05-07). API shape: pure functions + a thin compare() wrapper. `BNMetrics`
 #   god-class dropped entirely. Migration cost paid once on the v0.1
 #   → v0.2 break; CHANGELOG documents the mapping (`BNMetrics(g1,g2)
 #   .shd` → `bnm.shd(g1, g2)`).

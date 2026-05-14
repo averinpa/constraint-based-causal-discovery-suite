@@ -114,7 +114,7 @@ notes below.
 - **`bnm.markov_blanket(g, var)`** — returns a sub-`GraphLike` over
   the blanket of `var`; usable directly with any other bnm function.
 - **`bnm.compare(g1, g2=None, ...)` + `Comparison` dataclass** —
-  multi-metric façade. Computes any subset of descriptive /
+  multi-metric comparison. Computes any subset of descriptive /
   comparative / SID / per-Markov-blanket metrics in one call and
   returns a frozen dataclass. `bnm.to_dataframe(c)` renders it as a
   wide-format pandas DataFrame (lazy pandas import).

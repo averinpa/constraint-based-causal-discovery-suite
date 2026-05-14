@@ -20,6 +20,9 @@ env/
 venv/
 ENV/
 
+# Local sandbox for trying published-style installs (PyPI / git+https).
+sandbox/
+
 # Distribution / packaging
 build/
 dist/

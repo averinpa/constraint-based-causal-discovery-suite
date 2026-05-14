@@ -12,4 +12,5 @@ compare_two_graphs
 working_with_cbcd_graphs
 working_with_networkx
 plotting_comparisons
+markov_blanket_visualisation
 ```

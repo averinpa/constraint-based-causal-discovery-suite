@@ -48,7 +48,7 @@ def test_public_api_importable() -> None:
         # markov blanket
         "markov_blanket",
         "markov_blanket_indices",
-        # multi-metric façade
+        # multi-metric comparison
         "compare",
         "Comparison",
         "to_dataframe",

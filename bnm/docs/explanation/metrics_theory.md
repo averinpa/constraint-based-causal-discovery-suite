@@ -9,8 +9,7 @@ Brown, & Aliferis (2006) and the survey in de Jongh & Druzdzel
 
 Let $G_1, G_2$ be two mixed graphs over the same vertex set $V$
 with $|V| = d$. Each graph is encoded by a pair of $d \times d$
-endpoint-mark matrices following the convention of decision **D5**
-(`docs/design/api_v0.py` §D): `endpoints[i, j]` is the mark at
+endpoint-mark matrices: `endpoints[i, j]` is the mark at
 vertex $j$ of the edge $\{i, j\}$, taking values in
 $\{0, 1, 2, 3\}$ (no edge / TAIL / ARROW / CIRCLE).
 
@@ -69,8 +68,8 @@ where
   edge kind.
 
 The decomposition is exposed by `bnm.count_additions`,
-`bnm.count_deletions`, `bnm.count_reversals` for fine-grained
-diagnostics. Implemented as `bnm.shd`.
+`bnm.count_deletions`, `bnm.count_reversals`. The aggregated SHD
+is `bnm.shd`.
 
 ```{admonition} Convention
 :class: note

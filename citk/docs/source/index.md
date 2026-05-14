@@ -7,9 +7,9 @@ sd_hide_title: true
 `citk` is a Python toolkit of conditional-independence tests covering
 the major families surveyed in the modern literature: partial-
 correlation, contingency-table, regression-based, nearest-neighbour,
-kernel, and machine-learning–based tests. It targets the research
-and applied-causal-inference setting where the choice of CI test is
-a first-class modelling decision.
+kernel, and machine-learning–based tests. It targets the
+constraint-based causal-discovery setting, where the choice of CI
+test is a first-class modelling decision.
 
 ## Scope
 
@@ -49,8 +49,8 @@ package installs only the partial-correlation and (when
 
 ## Reading this documentation
 
-The site follows the **Diátaxis** layout. New users should start
-with the [Tutorial](tutorial.md). Practitioners with a specific
+New users should start with the [Tutorial](tutorial.md).
+Practitioners with a specific
 goal should consult the [How-to](howto/index.md) section, especially
 [How to choose a CI test](howto/choosing_a_test.md). The
 [Reference](reference/index.md) is regenerated from docstrings on

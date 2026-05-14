@@ -118,6 +118,10 @@ upstream implementations:
 - **RCIT / RCoT** wrap the R [RCIT
   package](https://CRAN.R-project.org/package=RCIT) via `rpy2` under
   the optional `[r]` extra.
+- **CiMM** wraps the `ci.mm` test from the R [MXM
+  package](https://CRAN.R-project.org/package=MXM) (GPL-2+) via
+  `rpy2` under the optional `[r]` extra; MXM is invoked rather than
+  vendored, so the GPL boundary remains in the user's R installation.
 - **CMIknn / RegressionCI** wrap
   [tigramite](https://github.com/jakobrunge/tigramite) (GPL-3) under
   the optional `[tigramite]` extra; tigramite is invoked at the

@@ -134,26 +134,26 @@ finite-sample CI test cost you.
 ## Where to go next
 
 - **More ambitious DAGs** — see the [dagsampler configuration
-  cookbook](dagsampler/howto/config_cookbook.html) for random graphs,
-  mixed-type variables, and mechanism configuration.
+  cookbook](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/howto/config_cookbook.html)
+  for random graphs, mixed-type variables, and mechanism configuration.
 - **More algorithms** — `cbcd` ships `pc`, `fci`, `rfci`,
   `anytime_fci`, and `pcmci` (time-series); see the
-  [cbcd API reference](cbcd/reference/index.html) for signatures.
-  All of them take the same `CITest` argument; swap the algorithm
-  without changing the rest of the pipeline.
+  [cbcd API reference](https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/reference/index.html)
+  for signatures. All of them take the same `CITest` argument; swap
+  the algorithm without changing the rest of the pipeline.
 - **More CI tests** — `citk` ships `FisherZ`, `Spearman`, and
   contingency-table tests natively. Kernel-based (`KCI`),
   nearest-neighbor (`CMIknn`), regression-based, and ML-based tests
   live behind optional extras; see the
-  [citk API reference](citk/reference/index.html) for the full
-  catalogue. Pick the test that matches your data type; cbcd's
-  algorithms accept all of them through the same Protocol.
+  [citk API reference](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/reference/index.html)
+  for the full catalogue. Pick the test that matches your data type;
+  cbcd's algorithms accept all of them through the same Protocol.
 - **More metrics** — `bnm.compare(g1, g2)` runs every comparative
   metric at once and returns a `Comparison` you can flatten with
   `bnm.to_dataframe`. `bnm.sid(g1, g2)` reports the Structural
   Intervention Distance bounds. See the
-  [bnm API reference](bnm/reference/index.html) for the full metric
-  list.
+  [bnm API reference](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/reference/index.html)
+  for the full metric list.
 - **Audit / reproducibility** — `result["parametrization"]` from
   `simulate()` is a self-contained config that regenerates the same
   data when fed back to `CausalDataGenerator`.

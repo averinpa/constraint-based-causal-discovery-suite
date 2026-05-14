@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bnm"
-version = "0.2.2.dev0"
+version = "0.2.2"
 authors = [
   { name="Pavel Averin" },
 ]

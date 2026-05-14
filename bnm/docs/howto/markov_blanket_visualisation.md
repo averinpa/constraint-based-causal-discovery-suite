@@ -3,10 +3,7 @@
 The Markov blanket of a variable $X$ in a DAG is the set of nodes
 that, when conditioned on, renders $X$ independent of every other
 variable — formally, the union of its parents, children, and the
-parents of its children (its *spouses*). Errors in causal recovery
-are often concentrated within the Markov blanket of a target of
-interest, so it is frequently useful to scope a comparison or
-visualisation to that subgraph rather than to the full graph.
+parents of its children (its *spouses*).
 
 ## Extracting the Markov blanket
 

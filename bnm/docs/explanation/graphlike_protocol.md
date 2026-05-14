@@ -11,8 +11,8 @@ A conforming object provides:
 
 - `n_vars: int` — the number of vertices.
 - `endpoints: numpy.ndarray` — an `int8` matrix of shape
-  `(n_vars, n_vars)` encoding edge marks (decision **D5**:
-  `0` no edge / `1` TAIL / `2` ARROW / `3` CIRCLE).
+  `(n_vars, n_vars)` encoding edge marks: `0` no edge / `1` TAIL /
+  `2` ARROW / `3` CIRCLE.
 - `var_names: tuple[str, ...]` — variable names of length
   `n_vars`. May be empty if the graph has no named vertices.
 

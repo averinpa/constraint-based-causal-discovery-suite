@@ -12,7 +12,7 @@ package (`cd <pkg> && claude`) for deep package-specific work.
 | **dagsampler** | configurable DAG / SCM simulator (synthetic mixed-type data, optional CI oracle) | `dagsampler/` | v0.1.0 on PyPI; v0.2.0+ ships from this monorepo |
 | **cbcd** | constraint-based causal discovery algorithms (PC, FCI, RFCI, anytime-FCI, PCMCI) | `cbcd/` | v0.x API stable per D15 |
 | **citk** | conditional independence test toolkit (FisherZ, Spearman native; KCI / CMIknn / RegressionCI / GCM / etc. via optional extras) | `citk/` | decoupled from causal-learn (optional `[causallearn]` extra) |
-| **bnm** | DAG / CPDAG / PAG comparison metrics + visualization (SHD, HD, F1, SID, Markov-blanket comparisons) | `bnm/` | v0.2.2.dev0; legacy v0.1.0 GitHub repo archived |
+| **bnm** | DAG / CPDAG / PAG comparison metrics + visualization (SHD, HD, F1, SID, Markov-blanket comparisons) | `bnm/` | v0.2.2; legacy v0.1.0 GitHub repo archived |
 
 `vendor/` contains read-only reference repos (`causal-learn`,
 `tigramite`, `mCMIkNN`, `pgmpy`, `DCT`) used for parity testing.

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.2 (in development)
+## 0.2.2 (2026-05-14)
 
 Viz polish. No metric-layer changes; suite parity numerically
 unchanged (5/5 fixtures still within bounds).

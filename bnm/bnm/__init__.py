@@ -99,7 +99,7 @@ __all__ = [
     # markov blanket
     "markov_blanket",
     "markov_blanket_indices",
-    # multi-metric façade
+    # multi-metric comparison
     "COMPARATIVE_METRIC_NAMES",
     "Comparison",
     "DESCRIPTIVE_METRIC_NAMES",

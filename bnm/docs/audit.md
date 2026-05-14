@@ -48,7 +48,7 @@ a rewrite.
   `d2`, `d3`), then dispatches `compile_descriptive_metrics`,
   `compile_comparison_metrics`, and viz from the same surface. **v0.2
   drops this entirely** in favour of pure functions + a thin
-  `compare()` façade returning a `Comparison` dataclass (per-plan
+  `compare()` function returning a `Comparison` dataclass (per-plan
   decision).
 - **`core.py:202-233` (`_merge_graphs_no_duplicates_clean`)** — manual
   dedup over edges using `(u, v, edge_type)` triples. Reimplemented in
@@ -79,7 +79,7 @@ a rewrite.
   **`core.py:302-360` (`compile_comparison_metrics`)** — function
   dispatch via two dicts of names → callables, then `df.loc[df["..."]
   == node, name] = func(...)` row-by-row pandas updates inside double
-  loops. Replace with a single `compare()` façade that builds a
+  loops. Replace with a single `compare()` function that builds a
   `Comparison` dataclass; the dataframe view is a free function
   `bnm.to_dataframe(c)` (lazy pandas import).
 - **`core.py:481-559` (`sid` method)** and
@@ -139,7 +139,7 @@ a rewrite.
    `core.py:467-469`, `core.py:475-479`).** When the caller's metric
    selection is invalid, the method `print('please specify ...')` and
    returns `None`. No exception, no clear failure mode. **Fix in
-   v0.2:** the `compare()` façade raises `BNMInputError` on
+   v0.2:** the `compare()` function raises `BNMInputError` on
    inconsistent inputs.
 
 4. **In-place mutation of caller graph (`utils.py:19`).** The
@@ -248,7 +248,7 @@ a rewrite.
 5. **`BNMetrics` god-class** couples graph storage, metric dispatch,
    per-MB scaffolding, and viz into one class. Hard to reuse pieces
    without instantiating the whole thing. **Resolved in v0.2:** pure
-   functions + `compare()` façade.
+   functions + a `compare()` entry point.
 
 ## Test coverage assessment
 
@@ -271,7 +271,7 @@ confirms most of that and adds five concrete adjustments:
 2. **`_to_endpoints` adapter errors on bidirected `nx.DiGraph`
    input** rather than collapsing. Bidirected callers must route
    through cbcd's `PAG` or a raw int8 matrix.
-3. **The `Comparison` façade is the *only* multi-metric entry point**
+3. **`compare()` is the *only* multi-metric entry point**
    — the `BNMetrics` god-class is dropped in full, no shim.
 4. **Per-node metrics drop the `'All'` sentinel** — they take a real
    `var`; aggregates are separate.

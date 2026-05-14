@@ -1,4 +1,4 @@
-"""Multi-metric comparison façade.
+"""Multi-metric comparison.
 
 See ``docs/design/api_v0.py`` §H for the contract.
 

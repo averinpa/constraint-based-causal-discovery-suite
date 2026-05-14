@@ -226,7 +226,7 @@ def to_graphlike(
     *,
     var_names: tuple[str, ...] | list[str] | None = None,
 ) -> _Graph:
-    """Public-facing façade returning a concrete `_Graph` (a `GraphLike`).
+    """Public-facing wrapper returning a concrete `_Graph` (a `GraphLike`).
 
     Useful when callers want a normalised handle once and then pass it
     repeatedly to bnm functions without re-validating each time.

@@ -74,7 +74,7 @@ on `A — B` and `A — C`.
 Fine-grained reversal accounting (additions vs deletions vs
 reversals) is exposed by `bnm.count_additions`,
 `bnm.count_deletions`, `bnm.count_reversals`. The full multi-
-metric façade `bnm.compare` runs every comparative metric and
+metric comparison `bnm.compare` runs every comparative metric and
 returns a `Comparison` value object.
 ```
 

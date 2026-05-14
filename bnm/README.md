@@ -16,19 +16,6 @@ metric without imports between the packages.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-averinpa.github.io-blue.svg)](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/)
 
-## Status
-
-The v0.x public API (everything re-exported from `bnm`) is committed
-to backwards compatibility across all v0.x minor and patch releases.
-Breaking changes will only appear at v1.0. Additive changes — new
-metrics, new keyword arguments with safe defaults — may ship in any
-minor bump.
-
-Internal storage is a canonical `(n, n)` int8 endpoint-mark matrix
-matching `cbcd`'s convention. Metrics are composable functions plus
-a `compare()` façade returning a `Comparison` object with optional
-pandas export via `to_dataframe()`.
-
 ## Features
 
 - **Descriptive metrics** — `count_edges`, `count_nodes`,
@@ -45,7 +32,7 @@ pandas export via `to_dataframe()`.
   comparison.
 - **Markov-blanket scoping** — `markov_blanket(g, var)` returns a
   sub-`GraphLike` that can be passed back to any metric.
-- **Multi-metric façade** — `compare(true, estimate)` produces a
+- **Multi-metric comparison** — `compare(true, estimate)` produces a
   `Comparison` exposing every descriptive and comparative metric in
   a single call, with optional pandas export.
 - **Visualisation** (optional `viz` extra) — side-by-side graphviz
@@ -63,12 +50,7 @@ pip install bnm[pandas]        # + pandas (compare().to_dataframe())
 
 ## Documentation
 
-Full [documentation](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/) is hosted on GitHub Pages.
-
-- [Tutorial](docs/tutorial.md) — narrative walkthrough.
-- [How-to guides](docs/howto/index.md) — task-focused recipes.
-- [Explanation](docs/explanation/index.md) — the int8 endpoint-mark representation, `GraphLike` Protocol, SID semantics, Markov-blanket scoping.
-- [API reference](docs/reference/index.md) — every public function and class (regenerated from docstrings by `sphinx-autoapi`).
+- Full [documentation](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/) is hosted on GitHub Pages.
 - [Examples](examples/) — runnable Jupyter notebooks.
 - [CHANGELOG](CHANGELOG.md).
 
@@ -97,4 +79,4 @@ packages.
 
 ## License
 
-MIT
+[MIT](LICENSE)

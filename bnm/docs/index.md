@@ -7,10 +7,8 @@ sd_hide_title: true
 `bnm` (Bayesian network metrics) is a Python library for comparing
 and visualising directed acyclic graphs (DAGs), completed partially
 directed acyclic graphs (CPDAGs), and partial ancestral graphs
-(PAGs). It implements the standard structural-distance metrics
-(SHD, HD, F1, precision, recall, structural intervention distance),
-local Markov-blanket comparison, and side-by-side graph
-visualisation.
+(PAGs). It implements a wide range of comparative and descriptive
+metrics, Markov-blanket comparison, and graph visualisations.
 
 ## Scope
 
@@ -18,9 +16,9 @@ The package implements:
 
 - **Descriptive metrics** — `bnm.count_edges`, `bnm.count_colliders`,
   `bnm.count_directed_arcs`, etc. — over a single graph.
-- **Comparative metrics** — `bnm.shd`, `bnm.hd`, `bnm.f1`,
-  `bnm.precision`, `bnm.recall` (Tsamardinos et al., 2006), plus
-  fine-grained additions / deletions / reversals counts.
+- **Comparative metrics** — `bnm.shd` (Tsamardinos et al., 2006),
+  `bnm.hd`, `bnm.f1`, `bnm.precision`, `bnm.recall`,
+  `bnm.count_additions`, `bnm.count_deletions`, `bnm.count_reversals`.
 - **Structural Intervention Distance** — `bnm.sid` (Peters &
   Bühlmann, 2015), with both lower and upper bounds when comparing
   a DAG to a CPDAG.
@@ -45,13 +43,12 @@ satisfies it. Validation is performed by `bnm.to_graphlike` at the
 input boundary; downstream metric functions trust the normalised
 representation.
 
-The endpoint-mark convention (decision **D5** of bnm's design
-document) follows cbcd's: `0` for no edge, `1` for TAIL, `2` for
-ARROW, `3` for CIRCLE.
+The endpoint-mark convention follows cbcd's: `0` for no edge, `1`
+for TAIL, `2` for ARROW, `3` for CIRCLE.
 
 ## Reading this documentation
 
-The site follows the **Diátaxis** layout. New users should start
+New users should start
 with the [Tutorial](tutorial.md). Practitioners with a specific
 goal should consult the [How-to](howto/index.md) section. The
 [Reference](reference/index.md) is regenerated from docstrings on

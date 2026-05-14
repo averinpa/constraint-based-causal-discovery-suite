@@ -133,26 +133,26 @@ finite-sample CI test cost you.
 
 ## Where to go next
 
-- **More ambitious DAGs** — see the [dagsampler configuration
-  cookbook](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/howto/config_cookbook.html)
+- **More ambitious DAGs** — see the
+  [dagsampler docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/)
   for random graphs, mixed-type variables, and mechanism configuration.
 - **More algorithms** — `cbcd` ships `pc`, `fci`, `rfci`,
   `anytime_fci`, and `pcmci` (time-series); see the
-  [cbcd API reference](https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/reference/index.html)
+  [cbcd docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/)
   for signatures. All of them take the same `CITest` argument; swap
   the algorithm without changing the rest of the pipeline.
 - **More CI tests** — `citk` ships `FisherZ`, `Spearman`, and
   contingency-table tests natively. Kernel-based (`KCI`),
   nearest-neighbor (`CMIknn`), regression-based, and ML-based tests
   live behind optional extras; see the
-  [citk API reference](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/reference/index.html)
+  [citk docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/)
   for the full catalogue. Pick the test that matches your data type;
   cbcd's algorithms accept all of them through the same Protocol.
 - **More metrics** — `bnm.compare(g1, g2)` runs every comparative
   metric at once and returns a `Comparison` you can flatten with
   `bnm.to_dataframe`. `bnm.sid(g1, g2)` reports the Structural
   Intervention Distance bounds. See the
-  [bnm API reference](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/reference/index.html)
+  [bnm docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/)
   for the full metric list.
 - **Audit / reproducibility** — `result["parametrization"]` from
   `simulate()` is a self-contained config that regenerates the same

@@ -1,6 +1,6 @@
 """Sphinx configuration for the bnmetrics user docs.
 
-Same setup as the sister cbcd / dagsampler / citk doc sites:
+Same setup as the sister cbcd / dagsampler / citests doc sites:
 Sphinx + MyST + Furo + sphinx-autoapi, hand-authored pages in a
 Diátaxis layout, internal-developer material excluded from the
 rendered build.

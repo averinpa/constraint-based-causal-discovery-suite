@@ -28,7 +28,7 @@ class CITest(Protocol):
 
     Conformance is **structural, not nominal**. Any object with the three
     members below satisfies the Protocol — no inheritance, no import of
-    ``cbcd`` required. Third-party CI test libraries (e.g. ``citk``) plug in
+    ``cbcd`` required. Third-party CI test libraries (e.g. ``citests``) plug in
     by exposing classes with this shape:
 
     * ``n_vars: int`` attribute.

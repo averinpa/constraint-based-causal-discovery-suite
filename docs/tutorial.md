@@ -1,4 +1,4 @@
-# Suite tutorial: dagsampler → citk → cbcd → bnmetrics in 10 lines
+# Suite tutorial: dagsampler → citests → cbcd → bnmetrics in 10 lines
 
 This is the end-to-end story for the constraint-based causal-discovery
 suite. Four packages, no cross-package imports —
@@ -9,7 +9,7 @@ they meet at two structural Protocols (`cbcd.CITest` and
 
 ```python
 from dagsampler import CausalDataGenerator
-from citk.tests.partial_correlation_tests import FisherZ
+from citests.tests.partial_correlation_tests import FisherZ
 from cbcd import pc
 import bnmetrics
 
@@ -24,7 +24,7 @@ gen = CausalDataGenerator({
 result = gen.simulate()
 
 # 2. Recover the CPDAG twice: once with dagsampler's oracle (gold standard),
-#    once with citk's FisherZ on the simulated data (empirical method).
+#    once with citests's FisherZ on the simulated data (empirical method).
 true_cpdag = pc(result["data"], ci_test=gen.as_ci_oracle(),     alpha=0.05)
 recovered  = pc(result["data"], ci_test=FisherZ(result["data"].to_numpy()), alpha=0.05)
 
@@ -48,12 +48,12 @@ mechanism choices, and returns both as a dict.
 that answers $X \perp\!\!\!\perp Y \mid S$ queries by d-separation on the generated
 graph — a `p`-value of `1.0` for d-separated pairs, `0.0` otherwise.
 
-**citk — the CI test toolkit.**
-`citk.tests.partial_correlation_tests.FisherZ(data)` is a native
-partial-correlation test for continuous Gaussian data. citk's
+**citests — the CI test toolkit.**
+`citests.tests.partial_correlation_tests.FisherZ(data)` is a native
+partial-correlation test for continuous Gaussian data. citests's
 `CITKTest` base class exposes `n_vars`, `__call__(X, Y, S)`, and
 `details(X, Y, S)` — the exact shape `cbcd.CITest` expects, so any
-citk test slots into a cbcd algorithm with no adapter
+citests test slots into a cbcd algorithm with no adapter
 (`isinstance(FisherZ(data), cbcd.CITest)` is `True`). The submodules
 group tests by family — `partial_correlation_tests` (FisherZ,
 Spearman), `contingency_table_tests` (ChiSq, GSq),
@@ -65,10 +65,10 @@ Spearman), `contingency_table_tests` (ChiSq, GSq),
 **cbcd — the algorithm.**
 `pc(data, ci_test=..., alpha=...)` runs the PC algorithm and returns a
 `CPDAG`. The `ci_test` argument accepts anything satisfying the
-structural `cbcd.CITest` Protocol — citk's `FisherZ`, the dagsampler
+structural `cbcd.CITest` Protocol — citests's `FisherZ`, the dagsampler
 oracle, the bundled `"fisherz"` shorthand, or any user object exposing
 `n_vars`, `__call__(x, y, S) -> float`, and `details(x, y, S)`. cbcd
-does not know dagsampler or citk exist and never imports them.
+does not know dagsampler or citests exist and never imports them.
 
 **bnmetrics — the metrics.**
 `bnmetrics.shd`, `bnmetrics.f1`, `bnmetrics.hd`, `bnmetrics.precision`, `bnmetrics.recall` (and
@@ -141,11 +141,11 @@ finite-sample CI test cost you.
   [cbcd docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/)
   for signatures. All of them take the same `CITest` argument; swap
   the algorithm without changing the rest of the pipeline.
-- **More CI tests** — `citk` ships `FisherZ`, `Spearman`, and
+- **More CI tests** — `citests` ships `FisherZ`, `Spearman`, and
   contingency-table tests natively. Kernel-based (`KCI`),
   nearest-neighbor (`CMIknn`), regression-based, and ML-based tests
   live behind optional extras; see the
-  [citk docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/)
+  [citests docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/citests/)
   for the full catalogue. Pick the test that matches your data type;
   cbcd's algorithms accept all of them through the same Protocol.
 - **More metrics** — `bnmetrics.compare(g1, g2)` runs every comparative

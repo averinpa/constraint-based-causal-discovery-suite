@@ -58,7 +58,7 @@ from numpy.typing import NDArray
 #   - cbcd.citest.ChisqGsq         (discrete)
 #   - cbcd.citest.PartialCorr      (continuous, robust)
 #   - cbcd.citest.KCI              (nonparametric)
-#   - eventually citk.* (post-2026, after citk is decoupled from causal-learn)
+#   - eventually citests.* (post-2026, after citests is decoupled from causal-learn)
 #
 # Conformance is STRUCTURAL, not nominal. The Protocol is decorated with
 # `@runtime_checkable`, but more importantly it expresses a duck-typed
@@ -70,9 +70,9 @@ from numpy.typing import NDArray
 # no import of cbcd is needed to conform.
 #
 # This is the load-bearing design choice for third-party CI test libraries
-# (notably citk). citk's CI test classes plug into cbcd algorithms with no
-# imports between the two packages — citk just writes classes with the
-# right shape, and `cbcd.pc(data, ci_test=citk.KCI(data))` works directly.
+# (notably citests). citests's CI test classes plug into cbcd algorithms with no
+# imports between the two packages — citests just writes classes with the
+# right shape, and `cbcd.pc(data, ci_test=citests.KCI(data))` works directly.
 # Same applies to LaggedCITest in §H. cbcd algorithms read only `.p_value`
 # from cached `details(...)` results, so a third-party library may return
 # its own result dataclass with that attribute (the additional fields on
@@ -2010,7 +2010,7 @@ class RunRecord:
 #   O1. **Mixed-data tests.**  Fisher-Z assumes Gaussian; χ² assumes
 #       discrete.  Do we ship a default mixed-data test in `cbcd.citest`
 #       (e.g. CG/CLG, or a regression-based residual test), or push users
-#       to citk once it's available?  Recommendation: ship a regression-
+#       to citests once it's available?  Recommendation: ship a regression-
 #       residual mixed-data test in v0.1 so cbcd is usable standalone.
 #
 #   O2. **Default p-value combination for `EnsembleCITest`.**

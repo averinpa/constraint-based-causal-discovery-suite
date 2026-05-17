@@ -16,7 +16,7 @@ Design priorities, in order:
 
 `cbcd` does **not** depend on `causal-learn`, directly or transitively. The `causal-learn` repository at `../../vendor/causal-learn/` is read-only reference material — used to port test fixtures and verify behavioural parity, never imported.
 
-`citk` (`../../citk/`) is a separate user-owned library focused on conditional-independence test research. It currently depends on `causal-learn` for PhD work and will not change for ~6 months. **`cbcd` ships its own minimal CI test layer** (Fisher-Z, χ², G², partial correlation, KCI) for now. After late 2026, `citk` may be extended to interoperate with `cbcd` via the `CITest` Protocol; until then, neither package depends on the other.
+`citests` (`../../citests/`) is a separate user-owned library focused on conditional-independence test research. It currently depends on `causal-learn` for PhD work and will not change for ~6 months. **`cbcd` ships its own minimal CI test layer** (Fisher-Z, χ², G², partial correlation, KCI) for now. After late 2026, `citests` may be extended to interoperate with `cbcd` via the `CITest` Protocol; until then, neither package depends on the other.
 
 ## How to navigate this folder
 

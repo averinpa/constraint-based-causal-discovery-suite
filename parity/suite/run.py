@@ -1,4 +1,4 @@
-"""Suite integration test: dagsampler → citk → cbcd → bnmetrics on a fixture set.
+"""Suite integration test: dagsampler → citests → cbcd → bnmetrics on a fixture set.
 
 For each fixture DAG:
 
@@ -6,7 +6,7 @@ For each fixture DAG:
 2. Run `cbcd.pc()` twice on that data:
    - With dagsampler's d-separation CI oracle (`gen.as_ci_oracle()`).
      PC under a perfect oracle returns the true CPDAG by construction.
-   - With `citk.FisherZ` on the simulated data — the empirical recovery.
+   - With `citests.FisherZ` on the simulated data — the empirical recovery.
 3. Score the empirical recovery against the gold-standard recovery
    using `bnmetrics.shd` and `bnmetrics.f1`.
 4. Compare against per-fixture bounds with headroom over observed
@@ -17,7 +17,7 @@ does not assert algorithmic precision — that's the job of each
 package's own parity harness. This script catches:
 
 * Cross-package wiring regressions (e.g., dagsampler's oracle stops
-  satisfying `cbcd.CITest`; citk's FisherZ stops being callable from
+  satisfying `cbcd.CITest`; citests's FisherZ stops being callable from
   cbcd; bnmetrics refuses cbcd's CPDAG output).
 * Gross structural regressions in any single package.
 
@@ -36,7 +36,7 @@ from typing import Any
 import bnmetrics
 from cbcd import pc
 from cbcd.citest.protocol import CITest
-from citk.tests.partial_correlation_tests import FisherZ
+from citests.tests.partial_correlation_tests import FisherZ
 from dagsampler import CausalDataGenerator
 
 
@@ -93,7 +93,7 @@ FIXTURES: dict[str, dict[str, Any]] = {
 
 
 def run_one(name: str, spec: dict[str, Any]) -> dict[str, Any]:
-    """Execute the dagsampler→citk→cbcd→bnmetrics chain on one fixture."""
+    """Execute the dagsampler→citests→cbcd→bnmetrics chain on one fixture."""
     cfg = {
         "simulation_params": {
             "n_samples": spec["n_samples"],
@@ -115,7 +115,7 @@ def run_one(name: str, spec: dict[str, Any]) -> dict[str, Any]:
     fisherz = FisherZ(result["data"].to_numpy())
     if not isinstance(fisherz, CITest):
         raise RuntimeError(
-            f"{name}: citk.FisherZ does not satisfy cbcd.CITest"
+            f"{name}: citests.FisherZ does not satisfy cbcd.CITest"
         )
 
     true_cpdag = pc(result["data"], ci_test=oracle, alpha=0.05)
@@ -140,7 +140,7 @@ def run_one(name: str, spec: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> int:
     print("=" * 78)
-    print("Suite integration: dagsampler → citk → cbcd → bnmetrics")
+    print("Suite integration: dagsampler → citests → cbcd → bnmetrics")
     print("=" * 78)
     rows: list[dict[str, Any]] = []
     for name, spec in FIXTURES.items():

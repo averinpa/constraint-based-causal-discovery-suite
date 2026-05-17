@@ -13,7 +13,7 @@ The package is being built from scratch (informed by, but not depending on, [`ca
 2. **Composable design.** Algorithms are built from small, reusable pieces: skeleton phase, collider-orientation strategy, edge-orientation rules, graph type. Adding a new algorithm should be mostly composition.
 3. **Correctness over cleverness.** Every algorithm ships with structure-level regression tests (SHD against d-separation oracle on standard graphs), not just smoke tests.
 
-`cbcd` ships a minimal built-in CI test layer (Fisher-Z, χ², G², partial correlation) and defines a `CITest` Protocol. Any object satisfying the Protocol can drive any `cbcd` algorithm — including, eventually, [`citk`](https://github.com/averinpa/citk) tests once `citk` is adapted for `cbcd` interop (planned, not before late 2026).
+`cbcd` ships a minimal built-in CI test layer (Fisher-Z, χ², G², partial correlation) and defines a `CITest` Protocol. Any object satisfying the Protocol can drive any `cbcd` algorithm — including, eventually, [`citests`](https://github.com/averinpa/citests) tests once `citests` is adapted for `cbcd` interop (planned, not before late 2026).
 
 ## Status
 

@@ -7,7 +7,7 @@ data-generating distribution.
 
 ```{note}
 This page is currently a stub. A full taxonomy mirroring the survey
-in citk's documentation will land in v0.x.x.
+in citests's documentation will land in v0.x.x.
 ```
 
 ## References

@@ -7,7 +7,7 @@ analysis, with optional graphviz and plotly visualisations.
 
 `bnmetrics` is part of the [constraint-based causal discovery
 suite](https://github.com/averinpa/constraint-based-causal-discovery-suite)
-alongside `cbcd` (algorithms), `citk` (CI tests), and `dagsampler`
+alongside `cbcd` (algorithms), `citests` (CI tests), and `dagsampler`
 (simulator). Any object satisfying the `bnmetrics.GraphLike` Protocol —
 including `cbcd`'s `DAG`, `CPDAG`, and `PAG` instances — drives every
 metric without imports between the packages.

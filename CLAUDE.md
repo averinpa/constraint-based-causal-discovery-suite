@@ -11,8 +11,8 @@ package (`cd <pkg> && claude`) for deep package-specific work.
 |---|---|---|---|
 | **dagsampler** | configurable DAG / SCM simulator (synthetic mixed-type data, optional CI oracle) | `dagsampler/` | v0.1.0 on PyPI; v0.2.0+ ships from this monorepo |
 | **cbcd** | constraint-based causal discovery algorithms (PC, FCI, RFCI, anytime-FCI, PCMCI) | `cbcd/` | v0.x API stable per D15 |
-| **citk** | conditional independence test toolkit (FisherZ, Spearman native; KCI / CMIknn / RegressionCI / GCM / etc. via optional extras) | `citk/` | decoupled from causal-learn (optional `[causallearn]` extra) |
-| **bnm** | DAG / CPDAG / PAG comparison metrics + visualization (SHD, HD, F1, SID, Markov-blanket comparisons) | `bnm/` | v0.2.2; legacy v0.1.0 GitHub repo archived |
+| **citests** | conditional independence test toolkit (FisherZ, Spearman native; KCI / CMIknn / RegressionCI / GCM / etc. via optional extras) | `citests/` | decoupled from causal-learn (optional `[causallearn]` extra) |
+| **bnmetrics** | DAG / CPDAG / PAG comparison metrics + visualization (SHD, HD, F1, SID, Markov-blanket comparisons) | `bnmetrics/` | v0.2.2; legacy v0.1.0 GitHub repo archived |
 
 `vendor/` contains read-only reference repos (`causal-learn`,
 `tigramite`, `mCMIkNN`, `pgmpy`, `DCT`) used for parity testing.
@@ -28,24 +28,24 @@ verified at runtime by the suite parity harness at
 `parity/suite/run.py`.
 
 ```
-dagsampler ─── true_dag, data, ci_oracle ──▶ cbcd ─── recovered ──▶ bnm
+dagsampler ─── true_dag, data, ci_oracle ──▶ cbcd ─── recovered ──▶ bnmetrics
                                               ▲                     ▲
                                               │ Protocol            │ Protocol
-                                            citk                  (graph)
+                                            citests                  (graph)
                                               │
                                           (CI tests via cbcd.CITest)
 ```
 
 | boundary | contract | defined by |
 |---|---|---|
-| `citk → cbcd` | `cbcd.CITest` Protocol (`n_vars`, `__call__`, `details`) | cbcd (frozen under D15) |
+| `citests → cbcd` | `cbcd.CITest` Protocol (`n_vars`, `__call__`, `details`) | cbcd (frozen under D15) |
 | `dagsampler → cbcd` (CI oracle) | `cbcd.CITest` Protocol — `dagsampler.CausalDataGenerator.as_ci_oracle()` returns a conforming object | cbcd |
-| `dagsampler → bnm` / `cbcd → bnm` | `bnm.GraphLike` Protocol (`n_vars`, `endpoints` int8 matrix, `var_names`) | bnm |
+| `dagsampler → bnmetrics` / `cbcd → bnmetrics` | `bnmetrics.GraphLike` Protocol (`n_vars`, `endpoints` int8 matrix, `var_names`) | bnmetrics |
 
-If you find yourself adding `from cbcd import ...` inside citk, bnm,
+If you find yourself adding `from cbcd import ...` inside citests, bnmetrics,
 or dagsampler — stop and revisit the Protocol contract. Same for any
 reverse direction. The parity harness runtime-checks `isinstance`
-conformance against `cbcd.CITest` and `bnm.GraphLike` before each
+conformance against `cbcd.CITest` and `bnmetrics.GraphLike` before each
 fixture; a contract break trips the harness.
 
 ## Where to write logs
@@ -70,14 +70,14 @@ hatchling backend). No shared venv across packages.
 # cbcd       (algorithms)
 cd cbcd       && uv sync --all-extras && uv run pytest
 
-# citk       (CI tests)
-cd citk       && uv sync --all-extras && uv run pytest
+# citests       (CI tests)
+cd citests       && uv sync --all-extras && uv run pytest
 
 # dagsampler (simulator)
 cd dagsampler && uv sync --all-extras && uv run pytest
 
-# bnm        (metrics + viz)
-cd bnm        && uv sync --all-extras && uv run pytest
+# bnmetrics        (metrics + viz)
+cd bnmetrics        && uv sync --all-extras && uv run pytest
 
 # Suite-level integration (chains all four):
 cd parity/suite && uv sync && uv run python run.py
@@ -92,12 +92,12 @@ through a release workflow keyed on the changed subdirectory.
 - **dagsampler**: `dagsampler` on PyPI; v0.1.0 published from the
   legacy archived repo. Future releases (0.2.0+) ship from this
   monorepo under the same PyPI name.
-- **cbcd / citk / bnm**: not yet on PyPI. First publish requires
+- **cbcd / citests / bnmetrics**: not yet on PyPI. First publish requires
   explicit user instruction per package; CI scaffolding for the
   release workflow lives at the umbrella level.
 
-The legacy per-package GitHub repos for **bnm** and **dagsampler**
-are archived (read-only, banner pointing here). The legacy **citk**
+The legacy per-package GitHub repos for **bnmetrics** and **dagsampler**
+are archived (read-only, banner pointing here). The legacy **citests**
 and **cbcd** repos were deleted; their content is in this monorepo.
 
 ## Attribution and prior art
@@ -106,6 +106,6 @@ and **cbcd** repos were deleted; their content is in this monorepo.
 upstream sources: `causal-learn` (cbcd's intellectual basis,
 clean-room re-implementation in code), `tigramite` (parity-validation
 reference for PCMCI; GPL-3 boundary remains in user's environment for
-optional citk adapters), `DAGMetrics-R` (bnm's R original), `mCMIkNN`
-(vendored verbatim into citk under MIT). Per-package READMEs carry
+optional citests adapters), `DAGMetrics-R` (bnmetrics's R original), `mCMIkNN`
+(vendored verbatim into citests under MIT). Per-package READMEs carry
 the package-specific subset of this attribution.

@@ -47,7 +47,7 @@ compatibility matrix — is documented in
 
 ## Architectural commitments
 
-`dagsampler` does not import `cbcd`, `bnm`, or `citk`. Cross-package
+`dagsampler` does not import `cbcd`, `bnmetrics`, or `citests`. Cross-package
 interoperability flows through structural Protocols defined in the
 sister packages:
 
@@ -58,7 +58,7 @@ sister packages:
   oracle plugs directly into `cbcd.pc(data, ci_test=...)` without
   a wrapper.
 - **True graph.** The `result["dag"]` value (a `networkx.DiGraph`)
-  is accepted by `bnm.to_graphlike` for structural comparison
+  is accepted by `bnmetrics.to_graphlike` for structural comparison
   against any cbcd algorithm output.
 
 These contracts let `dagsampler` ship as an independently-versioned

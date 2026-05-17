@@ -18,7 +18,7 @@ A conforming object provides:
 
 ## Why a Protocol rather than a base class
 
-The four-package suite (`cbcd`, `bnmetrics`, `dagsampler`, `citk`) is
+The four-package suite (`cbcd`, `bnmetrics`, `dagsampler`, `citests`) is
 designed so that no package imports another at runtime. Cross-
 package interoperability is mediated by structural Protocols
 defined at the *boundary* of each package: `cbcd.CITest` for

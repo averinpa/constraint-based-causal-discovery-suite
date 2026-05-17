@@ -4,7 +4,7 @@ name: docs
 # GitHub Pages deployment under per-package subpaths:
 #
 #   /                         <- docs/index.html (suite landing page)
-#   /bnmetrics/, /cbcd/, /citk/, /dagsampler/   <- per-package Sphinx output
+#   /bnmetrics/, /cbcd/, /citests/, /dagsampler/   <- per-package Sphinx output
 #
 # Pages must be enabled in repo settings (Source: GitHub Actions) for
 # the deploy step to publish.
@@ -15,7 +15,7 @@ on:
     paths:
       - "bnmetrics/**"
       - "cbcd/**"
-      - "citk/**"
+      - "citests/**"
       - "dagsampler/**"
       - "docs/index.html"
       - ".github/workflows/docs.yml"
@@ -58,8 +58,8 @@ jobs:
           uv sync --extra docs
           uv run sphinx-build -b html --keep-going docs docs/_build/html
 
-      - name: Build citk docs
-        working-directory: citk
+      - name: Build citests docs
+        working-directory: citests
         run: |
           uv sync --extra docs
           uv run sphinx-build -b html --keep-going docs/source docs/_build/html
@@ -76,7 +76,7 @@ jobs:
           cp docs/index.html _site/index.html
           cp -r bnmetrics/docs/_build/html        _site/bnmetrics
           cp -r cbcd/docs/_build/html       _site/cbcd
-          cp -r citk/docs/_build/html       _site/citk
+          cp -r citests/docs/_build/html       _site/citests
           cp -r dagsampler/docs/_build/html _site/dagsampler
           touch _site/.nojekyll
 

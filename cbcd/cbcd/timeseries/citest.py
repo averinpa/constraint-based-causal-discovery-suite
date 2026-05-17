@@ -46,7 +46,7 @@ class LaggedCITest(Protocol):
     ``__call__(x, y, S) -> float``, and ``details(x, y, S)`` returning any
     object with a ``.p_value: float`` attribute satisfies the Protocol. No
     import of ``cbcd`` is required to conform — third-party libraries like
-    ``citk`` plug in by exposing classes with this shape.
+    ``citests`` plug in by exposing classes with this shape.
     """
 
     n_vars: int

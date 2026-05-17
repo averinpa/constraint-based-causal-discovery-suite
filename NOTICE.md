@@ -27,8 +27,8 @@ verified by the harness at `parity/` — see
 debt to causal-learn is substantial; this work would not exist
 without it.
 
-`citk.tests.kernel_tests.KCI` is a thin wrapper around
-`causallearn.utils.cit.KCI`, available under `citk`'s optional
+`citests.tests.kernel_tests.KCI` is a thin wrapper around
+`causallearn.utils.cit.KCI`, available under `citests`'s optional
 `[causallearn]` extra.
 
 ## tigramite
@@ -37,7 +37,7 @@ without it.
 
 Used as a parity-validation reference for `cbcd.timeseries.pcmci()`,
 which is an independent implementation. Tigramite is **not** imported,
-vendored, or otherwise carried in any package's runtime. `citk`
+vendored, or otherwise carried in any package's runtime. `citests`
 provides optional adapters for tigramite-based tests (CMIknn,
 RegressionCI) under its `[tigramite]` extra; those adapters invoke
 tigramite at the user's installation rather than vendoring its code,
@@ -47,7 +47,7 @@ so the GPL-3 boundary is the user's own environment.
 
 [github.com/averinpa/DAGMetrics](https://github.com/averinpa/DAGMetrics).
 
-`bnm` v0.1.0 was a port of DAGMetrics by the same author. v0.2.x is
+`bnmetrics` v0.1.0 was a port of DAGMetrics by the same author. v0.2.x is
 a full Python rewrite around an int8 endpoint-mark matrix; the metric
 definitions remain derivative of the R original.
 
@@ -55,15 +55,15 @@ definitions remain derivative of the R original.
 
 [github.com/hpi-epic/mCMIkNN](https://github.com/hpi-epic/mCMIkNN) — MIT.
 
-Vendored verbatim into `citk/citk/_vendor/indeptests/`. The MIT
+Vendored verbatim into `citests/citests/_vendor/indeptests/`. The MIT
 license requires preservation of copyright; full attribution
 including authors (Hügle, Hagedorn), the original publication
 (ECML PKDD 2023), and the vendored revision SHA is in
-`citk/citk/_vendor/NOTICE.md`.
+`citests/citests/_vendor/NOTICE.md`.
 
-## R-package adapters (citk)
+## R-package adapters (citests)
 
-`citk` provides optional adapters via `rpy2` for several R packages.
+`citests` provides optional adapters via `rpy2` for several R packages.
 None of the R code is vendored; users install the R packages locally
 under the optional `[r]` extra.
 

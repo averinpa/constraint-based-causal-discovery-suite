@@ -65,7 +65,7 @@ Top-level functions (`pc`, `fci`, `cdnod`, `rfci`, `pcmci`, etc.) compose these 
 ### Dependency stance (load-bearing)
 
 - **`cbcd` does NOT depend on `causal-learn`**, directly or transitively. The `causal-learn` repository sometimes present at `../../vendor/causal-learn/` is **read-only reference material** — used to port test fixtures and verify behavioural parity. Never import it from `cbcd` code or tests.
-- **`cbcd` does NOT depend on `citk`** (a separate user-owned library at `../../citk/`). `citk` currently pulls in `causal-learn` and will not change for ~6 months. After late 2026, `citk` may interoperate via the `CITest` Protocol — until then, neither package depends on the other.
+- **`cbcd` does NOT depend on `citests`** (a separate user-owned library at `../../citests/`). `citests` currently pulls in `causal-learn` and will not change for ~6 months. After late 2026, `citests` may interoperate via the `CITest` Protocol — until then, neither package depends on the other.
 - `cbcd` therefore ships its own minimal CI test layer (Fisher-Z, χ², G², partial correlation, KCI planned).
 
 ### Exception hierarchy

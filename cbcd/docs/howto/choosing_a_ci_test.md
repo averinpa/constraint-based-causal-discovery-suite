@@ -3,7 +3,7 @@
 The `ci_test=` argument of `cbcd.pc`, `cbcd.fci`, and their
 variants accepts any object satisfying the structural `cbcd.CITest`
 Protocol. The bundled tests are listed below; sister packages
-(`citk`) supply additional non-parametric and ML-based options.
+(`citests`) supply additional non-parametric and ML-based options.
 
 ## When to use which
 
@@ -17,7 +17,7 @@ is willing to make about the mechanism between variables.
 | χ² | yes | discrete categorical | discrete-only data |
 | G² | yes | discrete categorical | discrete-only data, prefer log-likelihood ratio |
 | KCI | planned | none beyond i.i.d. | non-linear continuous data, computational budget allows |
-| `citk.RegressionCI` | via `citk` | flexible | mixed-type data |
+| `citests.RegressionCI` | via `citests` | flexible | mixed-type data |
 
 A more complete catalogue of the test landscape appears in
 [Explanation: CI test taxonomy](../explanation/ci_test_taxonomy.md).

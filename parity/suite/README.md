@@ -1,6 +1,6 @@
 # Suite integration harness
 
-Chains all four packages — **dagsampler → citk → cbcd → bnm** — on a
+Chains all four packages — **dagsampler → citests → cbcd → bnmetrics** — on a
 fixture set and asserts SHD/F1 bounds. The harness is a regression
 detector for cross-package wiring and gross structural breakage; it is
 not a precision benchmark for any individual algorithm. Each package
@@ -14,14 +14,14 @@ For each fixture DAG:
    d-separation CI oracle via `gen.as_ci_oracle()`.
 2. `cbcd.pc()` runs twice — with the dagsampler oracle (gold-standard
    recovery: PC under a perfect oracle returns the true CPDAG by
-   construction) and with `citk.tests.partial_correlation_tests.FisherZ`
+   construction) and with `citests.tests.partial_correlation_tests.FisherZ`
    on the simulated data (empirical recovery).
-3. `bnm.shd` and `bnm.f1` score the empirical recovery against the
+3. `bnmetrics.shd` and `bnmetrics.f1` score the empirical recovery against the
    gold-standard recovery.
 4. Per-fixture bounds (calibrated 2026-05-08, with headroom) are
    asserted.
 
-The harness also asserts that both the dagsampler oracle and citk's
+The harness also asserts that both the dagsampler oracle and citests's
 FisherZ satisfy `cbcd.CITest` structurally — `isinstance(_, CITest)`
 must be True. This pins the structural-Protocol contract that the
 suite's no-cross-package-imports architecture depends on.

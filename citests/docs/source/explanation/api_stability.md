@@ -1,0 +1,170 @@
+# API Stability — v0.1.0 Contract
+
+`citests` follows a strict additive-only policy starting from v0.1.0. This page documents the public surface, the guarantees attached to it, and the deliberate edges that v0.1.0 will *not* hide. Read this before depending on citests in another package or pinning a version in CI.
+
+## Versioning policy
+
+`citests` uses semantic versioning.
+
+- **Patch (`0.1.x`)**: bug fixes only. No public-surface changes.
+- **Minor (`0.y.0`, `y > 1`)**: additive changes only. New tests, new kwargs (with backwards-compatible defaults), new helpers, new exception subclasses. Existing user code continues to work without modification.
+- **Major (`y.0.0`, `y > 0`)**: may remove or rename public symbols. Pre-v1 minor releases follow the additive rule above; the stricter v1 contract applies once tagged.
+
+Any breaking change before v1 will be flagged in the release notes and given a deprecation warning for at least one minor cycle.
+
+## Stable public surface
+
+The following symbols are part of the v0.1.0 contract. Anything not listed is internal and may change without notice.
+
+### Test classes (19)
+
+Importable from `citests.tests`:
+
+| Family | Classes |
+|---|---|
+| Partial Correlation | `FisherZ`, `Spearman` |
+| Contingency Table | `ChiSq`, `GSq` |
+| Regression | `RegressionCI`, `CiMM` |
+| Nearest Neighbor | `CMIknn`, `CMIknnMixed`, `MCMIknn` |
+| Kernel | `KCI`, `RCIT`, `RCoT` |
+| ML-Based | `GCM`, `WGCM`, `PCM` |
+| Adapter Strategies | `DiscChiSq`, `DiscGSq`, `DummyFisherZ`, `HarteminkChiSq` |
+
+Each class follows the same protocol:
+
+```python
+test = TestClass(data, cache_path=None, **per_test_kwargs)
+p_value = test(X, Y, condition_set)        # int, int, list[int] | None → float
+test.save_cache()                           # explicit cache flush
+```
+
+Per-test constructor kwargs are documented on the test's reference page under :doc:`/tests/index`.
+
+### Base class
+
+`citests.tests.base.CITKTest` is the abstract base. It is technically importable but **not** part of the v0.1.0 contract — its private implementation may change. Subclassing `CITKTest` to register a custom CI test is supported via the bundled `citests.tests._register.maybe_register` helper, which silently no-ops when the optional `[causallearn]` extra is not installed.
+
+### Exception hierarchy
+
+Importable from `citests` (top-level):
+
+| Class | Inherits from | Raised when |
+|---|---|---|
+| `CITKError` | `Exception` | Base; catch this for any citests failure. |
+| `CITKDependencyError` | `CITKError`, `ImportError` | An optional dependency (e.g. `rpy2`, an R package, `tigramite`) is missing or fails to load. |
+| `CITKComputationError` | `CITKError`, `RuntimeError` | A test failed during computation: numerical issue, unexpected upstream result shape, or an exception escaping from a wrapped library. |
+| `CITKDataError` | `CITKError`, `ValueError` | The input data is invalid for the requested test (declared but currently unused; reserved for future v0.x additions). |
+
+Each leaf multiple-inherits from a relevant stdlib type, so existing user code that catches `ImportError` / `RuntimeError` / `ValueError` continues to work unchanged.
+
+#### Exception policy: dep wrapping
+
+The `CITKTest.__call__` boundary wraps any non-`CITKError` exception escaping from `_compute()` in a `CITKComputationError`, with the original exception preserved on `__cause__`. **This is a deliberate v0.1.0 contract change** from earlier ad-hoc behavior: users who previously caught e.g. `rpy2.rinterface.RRuntimeError` directly will now receive `CITKComputationError`. To inspect the original cause:
+
+```python
+try:
+    test(X, Y, S)
+except CITKComputationError as exc:
+    underlying = exc.__cause__   # the rpy2 / numpy / scipy / tigramite original
+    ...
+```
+
+`CITKDependencyError` is *not* re-wrapped at the boundary (it inherits from `CITKError` and propagates as-is), so dependency-missing failures retain their semantic distinction from computation failures.
+
+### Helpers
+
+Importable from `citests.tests.base`:
+
+- `hash_parameters(params: Mapping | None) -> str` — stable sha256 hex of canonicalised constructor kwargs, used as the cache `parameters_hash`. Returns the literal `"NO SPECIFIED PARAMETERS"` for empty / None input. Order-independent over dict keys; handles numpy arrays by typed canonicalisation.
+- `inner_test_kwargs(kwargs: Mapping) -> dict` — strips `cache_path` from a kwargs dict before forwarding to a wrapped upstream test instance. citests's outer wrapper owns the cache.
+- `CACHE_FORMAT_VERSION = "1.0"` — module constant.
+
+### Cache file format
+
+JSON, with three required top-level fields and zero or more p-value entries:
+
+```json
+{
+  "format_version": "1.0",
+  "data_hash": "<sha256 hex of np.ascontiguousarray(data).tobytes()>",
+  "method_name": "<test method name, e.g. 'fisherz_citests'>",
+  "parameters_hash": "<sha256 hex of canonicalised kwargs, or NO SPECIFIED PARAMETERS>",
+  "<X>;<Y>": "<float as string>",
+  "<X>;<Y>|<S0>,<S1>,...": "<float as string>"
+}
+```
+
+Cache load policy:
+
+- A cache whose `format_version` does not match the running citests version is **silently regenerated** with a `RuntimeWarning`.
+- A cache whose `data_hash` mismatches the current data is regenerated.
+- Empty or unreadable cache files start fresh.
+- A cache whose `method_name` or `parameters_hash` does not match the test instance raises `AssertionError` (an actual programming error: same file, different test or different parameters).
+
+This means caches generated under v0.1.0 are *not* portable to a v0.2.0 that bumps `format_version`; users should expect to regenerate. The format_version field exists precisely so future bumps degrade gracefully rather than silently corrupting.
+
+## Construction: kwargs allowlist
+
+Every test class declares an `accepted_kwargs: set` class attribute listing the keyword arguments it consumes. Passing an unknown kwarg to a test raises `TypeError` at construction:
+
+```python
+ChiSq(data, methodname="chisq")  # TypeError: typo on method_name
+DiscChiSq(data, n_bin=3)         # TypeError: typo on n_bins
+```
+
+citests also tolerates a small set of `_protocol_kwargs` (currently: `data_type`) on every test. These are forwarded uniformly by some constraint-based dispatchers to every CI test class regardless of whether the test consumes them; tests that do not list a protocol kwarg in their own `accepted_kwargs` silently ignore it. The `cbcd.CITest` Protocol does not pass these kwargs through, so cbcd-driven workflows are unaffected.
+
+| Test | `accepted_kwargs` (consumed) |
+|---|---|
+| `FisherZ`, `Spearman`, `ChiSq`, `GSq`, `KCI`, `RCIT`, `RCoT`, `GCM`, `WGCM`, `PCM` | `set()` |
+| `DiscChiSq`, `DiscGSq` | `{"n_bins"}` |
+| `DummyFisherZ` | `{"max_levels"}` |
+| `HarteminkChiSq` | `{"breaks", "ibreaks"}` |
+| `CiMM` | `{"data_type"}` |
+| `CMIknn`, `CMIknnMixed`, `RegressionCI` | `{"test_kwargs", "data_type"}` |
+| `MCMIknn` | `{"test_kwargs"}` |
+
+`cache_path` is always accepted because it is an explicit `__init__` parameter. The error message on rejection lists both the consumed set and the protocol-tolerated set so users can immediately see why their kwarg was rejected. Future protocol additions (e.g. `seed`) will go in `_protocol_kwargs` once at the base — no per-test churn.
+
+## Data validation: opt-in, not enforced
+
+Each test class declares a `supported_dtypes` class attribute (e.g. `{"continuous"}` for `FisherZ`, `{"discrete"}` for `ChiSq`). citests does **not** validate input data against this at construction time, because Paper 1 benchmarking depends on running every test on every data kind to characterise failure modes. Calling a test on data outside its declared `supported_dtypes` is undefined behaviour — results may be silently degenerate (e.g. `ChiSq` on continuous data treats every unique float as its own category, returning $p \approx 1$).
+
+Users wanting protection should call the classmethod before constructing:
+
+```python
+ok, reason = ChiSq.validate_data(my_data)
+if not ok:
+    raise ValueError(reason)
+```
+
+`validate_data` returns `(True, "")` if compatible and `(False, "column j is X; ClsName only supports [Y]")` for the first violation. It does not raise.
+
+## Out-of-contract: re-implemented helper methods
+
+`CITKTest` exposes four public helper methods that exist for parity with the conventions of older CI-test libraries:
+
+- `assert_input_data_is_valid(allow_nan=False, allow_inf=False)`
+- `check_cache_method_consistent(method_name, parameters_hash)`
+- `get_formatted_XYZ_and_cachekey(X, Y, condition_set)`
+- `save_to_local_cache()`
+
+In citests versions prior to the Phase-2 decoupling these methods were inherited from `causallearn.utils.cit.CIT_Base`. They are now **re-implemented natively in `citests.tests.base`** so that citests no longer depends on `causal-learn` at runtime; the signatures match the upstream conventions for backwards compatibility but are **not** part of citests's v0.1.0 contract — their internal behaviour may change in future v0.x releases. Cache files written by either ecosystem remain interchangeable.
+
+## Per-test edges
+
+Two known asymmetries across the 19 tests are documented on per-test pages and are *not* considered bugs in v0.1.0:
+
+1. **NaN as a p-value (not as an exception).** GCM / WGCM / PCM may return `NaN` for degenerate data (e.g., the pycomets `RuntimeWarning: invalid value in scalar divide` path), rather than raising. Downstream consumers must decide whether to treat `NaN` as missing or to filter it. This is intentional and matches the harness expectation; raising would be the breaking change.
+2. **Empty conditioning set semantics.** GCM / WGCM / PCM substitute a constant column $Z = 0$ when the conditioning set is empty, instead of taking the no-conditioning path. The other 16 tests pass empty `Z` through unchanged. See the per-test pages for :doc:`/tests/gcm_test`, :doc:`/tests/wgcm_test`, :doc:`/tests/pcm_test`.
+
+## What the harness relies on (v0.1.0 minimum protocol)
+
+The reference consumer (the Paper 1 benchmark harness) exercises a strict subset of the public surface. v0.1.0 guarantees this subset will not change:
+
+- Constructor: `cls(data: np.ndarray, data_type=data_type_array, **test_kwargs)` works for every class.
+- Callable: `test(x_idx: int, y_idx: int, s_idx: list[int]) -> float`.
+- No instance attribute access (no `.pvalue`, `.statistic`, `.last_stat`, etc.).
+- Exceptions are caught generically; no specific exception type is required.
+
+If your downstream tooling stays within this subset, v0.1.0 → v0.x.0 upgrades will not require code changes.

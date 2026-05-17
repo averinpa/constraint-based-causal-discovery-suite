@@ -17,15 +17,15 @@ on:
     tags:
       - "bnmetrics-v*"
       - "cbcd-v*"
-      - "citk-v*"
+      - "citests-v*"
       - "dagsampler-v*"
   workflow_dispatch:
     inputs:
       package:
-        description: "Package to publish (bnmetrics | cbcd | citk | dagsampler)"
+        description: "Package to publish (bnmetrics | cbcd | citests | dagsampler)"
         required: true
         type: choice
-        options: [bnmetrics, cbcd, citk, dagsampler]
+        options: [bnmetrics, cbcd, citests, dagsampler]
 
 permissions:
   contents: read
@@ -50,7 +50,7 @@ jobs:
             pkg="${tag%-v*}"
           fi
           case "$pkg" in
-            bnmetrics|cbcd|citk|dagsampler) ;;
+            bnmetrics|cbcd|citests|dagsampler) ;;
             *) echo "Unknown package '$pkg'"; exit 1 ;;
           esac
           echo "package=$pkg" >> "$GITHUB_OUTPUT"

@@ -18,7 +18,7 @@ jobs:
     outputs:
       bnmetrics: ${{ steps.filter.outputs.bnmetrics }}
       cbcd: ${{ steps.filter.outputs.cbcd }}
-      citk: ${{ steps.filter.outputs.citk }}
+      citests: ${{ steps.filter.outputs.citests }}
       dagsampler: ${{ steps.filter.outputs.dagsampler }}
     steps:
       - uses: actions/checkout@v4
@@ -32,8 +32,8 @@ jobs:
             cbcd:
               - 'cbcd/**'
               - '.github/workflows/ci.yml'
-            citk:
-              - 'citk/**'
+            citests:
+              - 'citests/**'
               - '.github/workflows/ci.yml'
             dagsampler:
               - 'dagsampler/**'
@@ -90,15 +90,15 @@ jobs:
       - name: pytest
         run: uv run pytest -q
 
-  citk:
-    name: citk tests
+  citests:
+    name: citests tests
     needs: changes
-    if: needs.changes.outputs.citk == 'true'
+    if: needs.changes.outputs.citests == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     defaults:
       run:
-        working-directory: citk
+        working-directory: citests
     steps:
       - uses: actions/checkout@v4
 
@@ -125,7 +125,7 @@ jobs:
           use-public-rspm: true
 
       - name: Install R packages
-        # citk[r] tests exercise RCIT (GitHub), MXM (CRAN-archived;
+        # citests[r] tests exercise RCIT (GitHub), MXM (CRAN-archived;
         # remotes::install_version falls back to the CRAN archive
         # automatically when the package isn't on the live repo),
         # and bnlearn (CRAN). GITHUB_PAT lifts the unauthenticated
@@ -142,7 +142,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: "citk/uv.lock"
+          cache-dependency-glob: "citests/uv.lock"
 
       - name: Sync deps
         run: uv sync --all-extras

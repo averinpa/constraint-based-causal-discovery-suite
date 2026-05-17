@@ -1,15 +1,15 @@
 [project]
 name = "suite-parity"
 version = "0.0.0"
-description = "Suite-level integration harness chaining dagsampler → citk → cbcd → bnm."
+description = "Suite-level integration harness chaining dagsampler → citests → cbcd → bnmetrics."
 requires-python = ">=3.11"
 # Path dependencies wire each sister package in editable mode so changes
 # in any of them are picked up without re-installing.
 dependencies = [
     "dagsampler",
-    "citk",
+    "citests",
     "cbcd",
-    "bnm",
+    "bnmetrics",
 ]
 
 [tool.uv]
@@ -18,6 +18,6 @@ package = false
 
 [tool.uv.sources]
 dagsampler = { path = "../../dagsampler", editable = true }
-citk       = { path = "../../citk",       editable = true }
+citests    = { path = "../../citests",    editable = true }
 cbcd       = { path = "../../cbcd",       editable = true }
-bnm        = { path = "../../bnm",        editable = true }
+bnmetrics  = { path = "../../bnmetrics",  editable = true }

@@ -38,7 +38,7 @@ frozen under decision **D15** for v0.x and is documented in the
 `cbcd` does **not** depend on `causal-learn`, directly or
 transitively. CI tests plug in through the structural `cbcd.CITest`
 Protocol and may originate from `cbcd.citest` (the bundled
-linear-Gaussian and χ² tests), from `citk` (a sister toolkit covering
+linear-Gaussian and χ² tests), from `citests` (a sister toolkit covering
 kernel, regression-based, and ML-based tests), or from any
 user-defined object satisfying the Protocol's three members
 (`n_vars`, `__call__`, `details`). The contract is enforced at

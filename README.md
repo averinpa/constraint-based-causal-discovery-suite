@@ -14,14 +14,14 @@ Full [documentation](https://averinpa.github.io/constraint-based-causal-discover
 |---|---|---|---|
 | **[`dagsampler`](dagsampler/)** | Configurable DAG / SCM simulator producing synthetic mixed-type data and an optional CI oracle. | v0.2.0, on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/) |
 | **[`cbcd`](cbcd/)** | Constraint-based causal discovery algorithms: PC, FCI, RFCI, anytime-FCI, PCMCI. | v0.1.0, not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/) |
-| **[`citk`](citk/)** | Conditional independence test toolkit: FisherZ and Spearman native; KCI / CMIknn / RegressionCI / GCM and others via optional extras. | v0.1.0, not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/) |
+| **[`citests`](citests/)** | Conditional independence test toolkit: FisherZ and Spearman native; KCI / CMIknn / RegressionCI / GCM and others via optional extras. | v0.1.0, not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/citests/) |
 | **[`bnmetrics`](bnmetrics/)** | DAG / CPDAG / PAG comparison metrics and visualisation: SHD, HD, F1, SID, per-Markov-blanket comparisons. | v0.2.2, on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnmetrics/) |
 
 ## Architecture
 
 The four packages communicate only through **structural Protocols**
 (PEP 544 — small interfaces that any conforming object satisfies, no
-inheritance required). citk's CI tests and the graphs that cbcd and
+inheritance required). citests's CI tests and the graphs that cbcd and
 dagsampler produce cross package boundaries via these Protocols, so
 no package imports another at runtime. Each piece can therefore be
 installed and updated independently.
@@ -29,13 +29,13 @@ installed and updated independently.
 ```mermaid
 flowchart LR
     dagsampler -- "true_dag, data" --> cbcd
-    citk -- "cbcd.CITest" --> cbcd
+    citests -- "cbcd.CITest" --> cbcd
     cbcd -- "bnmetrics.GraphLike" --> bnmetrics
 ```
 
 | data flow | Protocol |
 |---|---|
-| `citk → cbcd` | `cbcd.CITest` |
+| `citests → cbcd` | `cbcd.CITest` |
 | `cbcd → bnmetrics`, `dagsampler → bnmetrics` | `bnmetrics.GraphLike` |
 
 dagsampler additionally exposes an optional CI oracle (via
@@ -47,7 +47,7 @@ pipeline.
 ## Installation
 
 Each package installs independently. `dagsampler` and `bnmetrics` are
-on PyPI; `cbcd` and `citk` install from this monorepo via `git+https`
+on PyPI; `cbcd` and `citests` install from this monorepo via `git+https`
 (no PyPI release yet):
 
 ```bash
@@ -55,18 +55,18 @@ uv pip install \
   dagsampler \
   bnmetrics \
   "cbcd @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=cbcd" \
-  "citk @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=citk"
+  "citests @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=citests"
 ```
 
 (Replace `uv pip` with `pip` if you don't use `uv`. Per-package
 READMEs document optional extras — kernel- and ML-based CI tests in
-`citk`, visualisation in `bnmetrics`.)
+`citests`, visualisation in `bnmetrics`.)
 
 ## Quick start
 
 ```python
 from dagsampler import CausalDataGenerator
-from citk.tests.partial_correlation_tests import FisherZ
+from citests.tests.partial_correlation_tests import FisherZ
 from cbcd import pc
 import bnmetrics
 
@@ -81,7 +81,7 @@ gen = CausalDataGenerator({
 result = gen.simulate()
 
 # 2. Recover the CPDAG twice: once with dagsampler's oracle (gold standard),
-#    once with citk's FisherZ on the simulated data (empirical method).
+#    once with citests's FisherZ on the simulated data (empirical method).
 true_cpdag = pc(result["data"], ci_test=gen.as_ci_oracle(),     alpha=0.05)
 recovered  = pc(result["data"], ci_test=FisherZ(result["data"].to_numpy()), alpha=0.05)
 
@@ -100,7 +100,7 @@ Each package has its own `uv` environment; there's no shared venv:
 ```bash
 cd dagsampler && uv sync --all-extras && uv run pytest
 cd cbcd       && uv sync --all-extras && uv run pytest
-cd citk       && uv sync --all-extras && uv run pytest
+cd citests       && uv sync --all-extras && uv run pytest
 cd bnmetrics        && uv sync --all-extras && uv run pytest
 ```
 

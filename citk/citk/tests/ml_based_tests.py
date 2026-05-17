@@ -12,11 +12,33 @@ from typing import Any, List, Optional
 
 import numpy as np
 
-from citk.exceptions import CITKDependencyError
+from citk.exceptions import CITKDataError, CITKDependencyError
 from ._register import maybe_register
 from .base import CITKTest
 
 __all__ = ["GCM", "WGCM", "PCM"]
+
+
+def _validate_finite(arrays_and_names):
+    """Raise CITKDataError if any input array contains NaN or +/-inf.
+
+    pycomets dispatches to sklearn regressors that reject non-finite inputs
+    deep inside their validation, surfacing as cryptic ValueErrors. Catching
+    this at the wrapper boundary makes the failure mode explicit and gives
+    the harness a clean exception class to classify (NUMERICAL bucket), so
+    DGP overflows aren't silently bucketed as UNKNOWN.
+
+    Inputs are not sanitised — the failure is reported, not hidden.
+    """
+    for arr, name in arrays_and_names:
+        if not np.isfinite(arr).all():
+            raise CITKDataError(
+                f"Input {name} contains non-finite values (NaN or inf); "
+                f"refusing to dispatch to upstream regression. This typically "
+                f"indicates the DGP produced extreme values (e.g. polynomial "
+                f"mechanism overflow). The failure is reported rather than "
+                f"silently cleaned."
+            )
 
 
 def _load_pycomets_gcm():
@@ -75,6 +97,8 @@ class GCM(CITKTest):
         else:
             z = np.zeros((len(self.data), 1))
 
+        _validate_finite([(x, "X"), (y, "Y"), (z, "Z")])
+
         with contextlib.redirect_stdout(io.StringIO()):
             gcm.test(y, x, z, reg_yz=RF(), reg_xz=RF(), show_summary=False)
 
@@ -123,6 +147,7 @@ class WGCM(CITKTest):
 
         if condition_set:
             z = self.data[:, condition_set].astype(float)
+            _validate_finite([(x, "X"), (y, "Y"), (z, "Z")])
             wgcm = PyWGCMImpl()
             with contextlib.redirect_stdout(io.StringIO()):
                 wgcm.test(y, x, z, reg_yz=RF(), reg_xz=RF(), show_summary=False)
@@ -130,6 +155,7 @@ class WGCM(CITKTest):
 
         # |S|=0: WGCM's sign-of-weight collapses on constant Z → fall back to GCM.
         z = np.zeros((len(self.data), 1))
+        _validate_finite([(x, "X"), (y, "Y")])
         gcm = PyGCMImpl()
         with contextlib.redirect_stdout(io.StringIO()):
             gcm.test(y, x, z, reg_yz=RF(), reg_xz=RF(), show_summary=False)
@@ -165,6 +191,8 @@ class PCM(CITKTest):
             z = self.data[:, condition_set].astype(float)
         else:
             z = np.zeros((len(self.data), 1))
+
+        _validate_finite([(x, "X"), (y, "Y"), (z, "Z")])
 
         with contextlib.redirect_stdout(io.StringIO()):
             pcm.test(y, x, z, show_summary=False)

@@ -34,7 +34,11 @@ tigramite = [
     "numba",        # cmiknn imports `from numba import jit` at module top
     "numpy<2",      # cmiknn_mixed calls numpy.corrcoef(ddof=...), removed in numpy 2.0
 ]
-pycomets = ["pycomets @ git+https://github.com/shimenghuang/pycomets.git", "xgboost"]
+# pycomets itself is GitHub-only (not on PyPI); PyPI rejects published
+# packages with direct VCS deps. This extra installs only the
+# PyPI-resolvable transitive dep (xgboost). Users wanting GCM / WGCM / PCM
+# tests must also: pip install git+https://github.com/shimenghuang/pycomets.git
+pycomets = ["xgboost"]
 docs = [
     "sphinx>=7",
     "furo>=2024.1",

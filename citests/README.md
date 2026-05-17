@@ -29,7 +29,7 @@ uv sync --all-extras
 
 Optional dependency groups in `pyproject.toml`:
 
-- `pycomets` — required for `gcm`, `wgcm`, `pcm` (installs `pycomets` and `xgboost`)
+- `pycomets` — required for `gcm`, `wgcm`, `pcm` (installs `xgboost` only; `pycomets` itself is GitHub-only and must be installed separately: `pip install git+https://github.com/shimenghuang/pycomets.git`)
 - `tigramite` — required for `cmiknn`, `cmiknn_mixed`, `regci`
 - `r` — required for `rcit`, `rcot`, `ci_mm`, `hartemink_chisq` (installs `rpy2`); the corresponding R packages must also be installed:
   - `RCIT` from GitHub `ericstrobl/RCIT` (for `rcit`, `rcot`)

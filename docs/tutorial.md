@@ -1,9 +1,9 @@
-# Suite tutorial: dagsampler → citk → cbcd → bnm in 10 lines
+# Suite tutorial: dagsampler → citk → cbcd → bnmetrics in 10 lines
 
 This is the end-to-end story for the constraint-based causal-discovery
 suite. Four packages, no cross-package imports —
 they meet at two structural Protocols (`cbcd.CITest` and
-`bnm.GraphLike`) and that's enough.
+`bnmetrics.GraphLike`) and that's enough.
 
 ## The 10-line story
 
@@ -11,7 +11,7 @@ they meet at two structural Protocols (`cbcd.CITest` and
 from dagsampler import CausalDataGenerator
 from citk.tests.partial_correlation_tests import FisherZ
 from cbcd import pc
-import bnm
+import bnmetrics
 
 # 1. Simulate a DAG and data, and grab a d-separation CI oracle.
 gen = CausalDataGenerator({
@@ -29,8 +29,8 @@ true_cpdag = pc(result["data"], ci_test=gen.as_ci_oracle(),     alpha=0.05)
 recovered  = pc(result["data"], ci_test=FisherZ(result["data"].to_numpy()), alpha=0.05)
 
 # 3. Score the empirical recovery against the gold standard.
-print("SHD:", bnm.shd(true_cpdag, recovered))   # 0
-print("F1: ", bnm.f1 (true_cpdag, recovered))   # 1.0
+print("SHD:", bnmetrics.shd(true_cpdag, recovered))   # 0
+print("F1: ", bnmetrics.f1 (true_cpdag, recovered))   # 1.0
 ```
 
 That's the whole flow. The simulator, the CI test toolkit, the
@@ -70,22 +70,22 @@ oracle, the bundled `"fisherz"` shorthand, or any user object exposing
 `n_vars`, `__call__(x, y, S) -> float`, and `details(x, y, S)`. cbcd
 does not know dagsampler or citk exist and never imports them.
 
-**bnm — the metrics.**
-`bnm.shd`, `bnm.f1`, `bnm.hd`, `bnm.precision`, `bnm.recall` (and
-`bnm.sid` for structural intervention distance) all accept anything
-satisfying the structural `bnm.GraphLike` Protocol. cbcd's `CPDAG`
-satisfies it directly. So does dagsampler's `nx.DiGraph` — bnm
+**bnmetrics — the metrics.**
+`bnmetrics.shd`, `bnmetrics.f1`, `bnmetrics.hd`, `bnmetrics.precision`, `bnmetrics.recall` (and
+`bnmetrics.sid` for structural intervention distance) all accept anything
+satisfying the structural `bnmetrics.GraphLike` Protocol. cbcd's `CPDAG`
+satisfies it directly. So does dagsampler's `nx.DiGraph` — bnmetrics
 adapts it on the way in.
 
 ## Visualize the comparison
 
-`bnm.plot_side_by_side` renders both graphs as paired `graphviz`
+`bnmetrics.plot_side_by_side` renders both graphs as paired `graphviz`
 diagrams. Edges that match between the two panels (same skeleton, same
 orientation) are highlighted in pastel red; this makes true positives
 pop without overwhelming the rest of the figure.
 
 ```python
-bnm.plot_side_by_side(
+bnmetrics.plot_side_by_side(
     true_cpdag, recovered,
     name1="true_cpdag", name2="recovered",
     direction="LR",
@@ -115,8 +115,8 @@ size flips the orientation of `A↔B` and `A↔C`:
 
 Two edges (`B→D`, `C→D`) match exactly and are painted pastel red in
 both panels; the upper two edges have flipped orientation and are
-left at the default stroke. `bnm.shd(true_cpdag, recovered) == 2`,
-`bnm.f1(...) == 0.50`.
+left at the default stroke. `bnmetrics.shd(true_cpdag, recovered) == 2`,
+`bnmetrics.f1(...) == 0.50`.
 
 ## The d-separation oracle as ground truth
 
@@ -148,11 +148,11 @@ finite-sample CI test cost you.
   [citk docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/)
   for the full catalogue. Pick the test that matches your data type;
   cbcd's algorithms accept all of them through the same Protocol.
-- **More metrics** — `bnm.compare(g1, g2)` runs every comparative
+- **More metrics** — `bnmetrics.compare(g1, g2)` runs every comparative
   metric at once and returns a `Comparison` you can flatten with
-  `bnm.to_dataframe`. `bnm.sid(g1, g2)` reports the Structural
+  `bnmetrics.to_dataframe`. `bnmetrics.sid(g1, g2)` reports the Structural
   Intervention Distance bounds. See the
-  [bnm docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/)
+  [bnmetrics docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnmetrics/)
   for the full metric list.
 - **Audit / reproducibility** — `result["parametrization"]` from
   `simulate()` is a self-contained config that regenerates the same
@@ -161,7 +161,7 @@ finite-sample CI test cost you.
 ## Suite-level invariants worth remembering
 
 - No package imports another. Cross-package interop happens through
-  `cbcd.CITest` (CI tests) and `bnm.GraphLike` (graphs). Both are
+  `cbcd.CITest` (CI tests) and `bnmetrics.GraphLike` (graphs). Both are
   `@runtime_checkable` Protocols — duck-typed conformance, no
   inheritance.
 - Each package has its own `uv` environment, its own version, and its

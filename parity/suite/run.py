@@ -1,4 +1,4 @@
-"""Suite integration test: dagsampler → citk → cbcd → bnm on a fixture set.
+"""Suite integration test: dagsampler → citk → cbcd → bnmetrics on a fixture set.
 
 For each fixture DAG:
 
@@ -8,7 +8,7 @@ For each fixture DAG:
      PC under a perfect oracle returns the true CPDAG by construction.
    - With `citk.FisherZ` on the simulated data — the empirical recovery.
 3. Score the empirical recovery against the gold-standard recovery
-   using `bnm.shd` and `bnm.f1`.
+   using `bnmetrics.shd` and `bnmetrics.f1`.
 4. Compare against per-fixture bounds with headroom over observed
    2026-05-08 calibration values.
 
@@ -18,7 +18,7 @@ package's own parity harness. This script catches:
 
 * Cross-package wiring regressions (e.g., dagsampler's oracle stops
   satisfying `cbcd.CITest`; citk's FisherZ stops being callable from
-  cbcd; bnm refuses cbcd's CPDAG output).
+  cbcd; bnmetrics refuses cbcd's CPDAG output).
 * Gross structural regressions in any single package.
 
 Run from any venv that has the four packages installed by path:
@@ -33,7 +33,7 @@ from __future__ import annotations
 import sys
 from typing import Any
 
-import bnm
+import bnmetrics
 from cbcd import pc
 from cbcd.citest.protocol import CITest
 from citk.tests.partial_correlation_tests import FisherZ
@@ -93,7 +93,7 @@ FIXTURES: dict[str, dict[str, Any]] = {
 
 
 def run_one(name: str, spec: dict[str, Any]) -> dict[str, Any]:
-    """Execute the dagsampler→citk→cbcd→bnm chain on one fixture."""
+    """Execute the dagsampler→citk→cbcd→bnmetrics chain on one fixture."""
     cfg = {
         "simulation_params": {
             "n_samples": spec["n_samples"],
@@ -121,9 +121,9 @@ def run_one(name: str, spec: dict[str, Any]) -> dict[str, Any]:
     true_cpdag = pc(result["data"], ci_test=oracle, alpha=0.05)
     recovered = pc(result["data"], ci_test=fisherz, alpha=0.05)
 
-    shd = int(bnm.shd(true_cpdag, recovered))
-    f1 = float(bnm.f1(true_cpdag, recovered))
-    hd = int(bnm.hd(true_cpdag, recovered))
+    shd = int(bnmetrics.shd(true_cpdag, recovered))
+    f1 = float(bnmetrics.f1(true_cpdag, recovered))
+    hd = int(bnmetrics.hd(true_cpdag, recovered))
 
     return {
         "fixture": name,
@@ -140,7 +140,7 @@ def run_one(name: str, spec: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> int:
     print("=" * 78)
-    print("Suite integration: dagsampler → citk → cbcd → bnm")
+    print("Suite integration: dagsampler → citk → cbcd → bnmetrics")
     print("=" * 78)
     rows: list[dict[str, Any]] = []
     for name, spec in FIXTURES.items():

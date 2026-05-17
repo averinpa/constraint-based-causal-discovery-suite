@@ -15,7 +15,7 @@ Full [documentation](https://averinpa.github.io/constraint-based-causal-discover
 | **[`dagsampler`](dagsampler/)** | Configurable DAG / SCM simulator producing synthetic mixed-type data and an optional CI oracle. | v0.2.0, on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/) |
 | **[`cbcd`](cbcd/)** | Constraint-based causal discovery algorithms: PC, FCI, RFCI, anytime-FCI, PCMCI. | v0.1.0, not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/) |
 | **[`citk`](citk/)** | Conditional independence test toolkit: FisherZ and Spearman native; KCI / CMIknn / RegressionCI / GCM and others via optional extras. | v0.1.0, not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/) |
-| **[`bnmetrics`](bnmetrics/)** | DAG / CPDAG / PAG comparison metrics and visualisation: SHD, HD, F1, SID, per-Markov-blanket comparisons. | v0.2.2 (in development), not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnmetrics/) |
+| **[`bnmetrics`](bnmetrics/)** | DAG / CPDAG / PAG comparison metrics and visualisation: SHD, HD, F1, SID, per-Markov-blanket comparisons. | v0.2.2, on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnmetrics/) |
 
 ## Architecture
 
@@ -46,15 +46,16 @@ pipeline.
 
 ## Installation
 
-Each package installs independently. `dagsampler` is on PyPI; the
-other three install from this monorepo via `git+https`:
+Each package installs independently. `dagsampler` and `bnmetrics` are
+on PyPI; `cbcd` and `citk` install from this monorepo via `git+https`
+(no PyPI release yet):
 
 ```bash
 uv pip install \
   dagsampler \
+  bnmetrics \
   "cbcd @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=cbcd" \
-  "citk @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=citk" \
-  "bnmetrics @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=bnmetrics"
+  "citk @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=citk"
 ```
 
 (Replace `uv pip` with `pip` if you don't use `uv`. Per-package

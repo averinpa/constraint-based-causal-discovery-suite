@@ -112,16 +112,16 @@ A more thorough treatment of this tradeoff appears in
 ## Evaluation against the oracle
 
 Endpoint-by-endpoint structural distance between the empirical and
-oracle CPDAGs is reported by the `bnm` package via its
+oracle CPDAGs is reported by the `bnmetrics` package via its
 [Structural Hamming Distance](https://en.wikipedia.org/wiki/Structural_Hamming_distance)
-function. Like the dagsampler ↔ cbcd connection, cbcd ↔ bnm passes
-through a structural Protocol (`bnm.GraphLike`) — neither package
+function. Like the dagsampler ↔ cbcd connection, cbcd ↔ bnmetrics passes
+through a structural Protocol (`bnmetrics.GraphLike`) — neither package
 imports the other.
 
 ```python
-import bnm
-shd = bnm.shd(cpdag_oracle, cpdag)
-f1 = bnm.f1(cpdag_oracle, cpdag)
+import bnmetrics
+shd = bnmetrics.shd(cpdag_oracle, cpdag)
+f1 = bnmetrics.f1(cpdag_oracle, cpdag)
 ```
 
 For the diamond fixture at $n = 3000$ with default Fisher–Z and

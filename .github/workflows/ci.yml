@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
-      bnm: ${{ steps.filter.outputs.bnm }}
+      bnmetrics: ${{ steps.filter.outputs.bnmetrics }}
       cbcd: ${{ steps.filter.outputs.cbcd }}
       citk: ${{ steps.filter.outputs.citk }}
       dagsampler: ${{ steps.filter.outputs.dagsampler }}
@@ -26,8 +26,8 @@ jobs:
         id: filter
         with:
           filters: |
-            bnm:
-              - 'bnm/**'
+            bnmetrics:
+              - 'bnmetrics/**'
               - '.github/workflows/ci.yml'
             cbcd:
               - 'cbcd/**'
@@ -39,15 +39,15 @@ jobs:
               - 'dagsampler/**'
               - '.github/workflows/ci.yml'
 
-  bnm:
-    name: bnm tests
+  bnmetrics:
+    name: bnmetrics tests
     needs: changes
-    if: needs.changes.outputs.bnm == 'true'
+    if: needs.changes.outputs.bnmetrics == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
       run:
-        working-directory: bnm
+        working-directory: bnmetrics
     steps:
       - uses: actions/checkout@v4
 
@@ -58,7 +58,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: "bnm/uv.lock"
+          cache-dependency-glob: "bnmetrics/uv.lock"
 
       - name: Sync deps
         run: uv sync --all-extras

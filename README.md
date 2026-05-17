@@ -15,7 +15,7 @@ Full [documentation](https://averinpa.github.io/constraint-based-causal-discover
 | **[`dagsampler`](dagsampler/)** | Configurable DAG / SCM simulator producing synthetic mixed-type data and an optional CI oracle. | v0.2.0, on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/dagsampler/) |
 | **[`cbcd`](cbcd/)** | Constraint-based causal discovery algorithms: PC, FCI, RFCI, anytime-FCI, PCMCI. | v0.1.0, not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/cbcd/) |
 | **[`citk`](citk/)** | Conditional independence test toolkit: FisherZ and Spearman native; KCI / CMIknn / RegressionCI / GCM and others via optional extras. | v0.1.0, not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/citk/) |
-| **[`bnm`](bnm/)** | DAG / CPDAG / PAG comparison metrics and visualisation: SHD, HD, F1, SID, per-Markov-blanket comparisons. | v0.2.2 (in development), not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnm/) |
+| **[`bnmetrics`](bnmetrics/)** | DAG / CPDAG / PAG comparison metrics and visualisation: SHD, HD, F1, SID, per-Markov-blanket comparisons. | v0.2.2 (in development), not yet on PyPI | [docs](https://averinpa.github.io/constraint-based-causal-discovery-suite/bnmetrics/) |
 
 ## Architecture
 
@@ -30,13 +30,13 @@ installed and updated independently.
 flowchart LR
     dagsampler -- "true_dag, data" --> cbcd
     citk -- "cbcd.CITest" --> cbcd
-    cbcd -- "bnm.GraphLike" --> bnm
+    cbcd -- "bnmetrics.GraphLike" --> bnmetrics
 ```
 
 | data flow | Protocol |
 |---|---|
 | `citk → cbcd` | `cbcd.CITest` |
-| `cbcd → bnm`, `dagsampler → bnm` | `bnm.GraphLike` |
+| `cbcd → bnmetrics`, `dagsampler → bnmetrics` | `bnmetrics.GraphLike` |
 
 dagsampler additionally exposes an optional CI oracle (via
 `CausalDataGenerator.as_ci_oracle()`) that conforms to `cbcd.CITest`
@@ -54,12 +54,12 @@ uv pip install \
   dagsampler \
   "cbcd @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=cbcd" \
   "citk @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=citk" \
-  "bnm @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=bnm"
+  "bnmetrics @ git+https://github.com/averinpa/constraint-based-causal-discovery-suite#subdirectory=bnmetrics"
 ```
 
 (Replace `uv pip` with `pip` if you don't use `uv`. Per-package
 READMEs document optional extras — kernel- and ML-based CI tests in
-`citk`, visualisation in `bnm`.)
+`citk`, visualisation in `bnmetrics`.)
 
 ## Quick start
 
@@ -67,7 +67,7 @@ READMEs document optional extras — kernel- and ML-based CI tests in
 from dagsampler import CausalDataGenerator
 from citk.tests.partial_correlation_tests import FisherZ
 from cbcd import pc
-import bnm
+import bnmetrics
 
 # 1. Simulate a DAG and data, and grab a d-separation CI oracle.
 gen = CausalDataGenerator({
@@ -85,8 +85,8 @@ true_cpdag = pc(result["data"], ci_test=gen.as_ci_oracle(),     alpha=0.05)
 recovered  = pc(result["data"], ci_test=FisherZ(result["data"].to_numpy()), alpha=0.05)
 
 # 3. Score the empirical recovery against the gold standard.
-print("SHD:", bnm.shd(true_cpdag, recovered))   # 0
-print("F1: ", bnm.f1 (true_cpdag, recovered))   # 1.0
+print("SHD:", bnmetrics.shd(true_cpdag, recovered))   # 0
+print("F1: ", bnmetrics.f1 (true_cpdag, recovered))   # 1.0
 ```
 
 The full walkthrough — per-line breakdown, visualisation, and a
@@ -100,7 +100,7 @@ Each package has its own `uv` environment; there's no shared venv:
 cd dagsampler && uv sync --all-extras && uv run pytest
 cd cbcd       && uv sync --all-extras && uv run pytest
 cd citk       && uv sync --all-extras && uv run pytest
-cd bnm        && uv sync --all-extras && uv run pytest
+cd bnmetrics        && uv sync --all-extras && uv run pytest
 ```
 
 The suite-level integration harness chains all four packages on a

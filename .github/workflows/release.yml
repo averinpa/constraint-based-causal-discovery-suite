@@ -1,7 +1,7 @@
 name: Release to PyPI
 
 # Triggered by per-package version tags. Tag format: <pkg>-v<version>
-# (e.g. bnm-v0.2.0, dagsampler-v0.2.0). The job parses the tag prefix
+# (e.g. bnmetrics-v0.2.0, dagsampler-v0.2.0). The job parses the tag prefix
 # to determine which subdirectory to build and publish from.
 #
 # PyPI publishing uses Trusted Publishing (OIDC) — each package's
@@ -15,17 +15,17 @@ name: Release to PyPI
 on:
   push:
     tags:
-      - "bnm-v*"
+      - "bnmetrics-v*"
       - "cbcd-v*"
       - "citk-v*"
       - "dagsampler-v*"
   workflow_dispatch:
     inputs:
       package:
-        description: "Package to publish (bnm | cbcd | citk | dagsampler)"
+        description: "Package to publish (bnmetrics | cbcd | citk | dagsampler)"
         required: true
         type: choice
-        options: [bnm, cbcd, citk, dagsampler]
+        options: [bnmetrics, cbcd, citk, dagsampler]
 
 permissions:
   contents: read
@@ -50,7 +50,7 @@ jobs:
             pkg="${tag%-v*}"
           fi
           case "$pkg" in
-            bnm|cbcd|citk|dagsampler) ;;
+            bnmetrics|cbcd|citk|dagsampler) ;;
             *) echo "Unknown package '$pkg'"; exit 1 ;;
           esac
           echo "package=$pkg" >> "$GITHUB_OUTPUT"

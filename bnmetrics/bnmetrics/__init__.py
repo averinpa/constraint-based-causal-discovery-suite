@@ -1,0 +1,118 @@
+"""bnmetrics — Bayesian network metrics.
+
+Public API for v0.2.x. The names listed in ``__all__`` are committed
+backwards-compatible across all v0.2.x and v0.3.x releases (the v0.x
+API contract). Stub items (PAG viz, time-series GraphLike) are not yet
+frozen until the implementing slice lands — see
+``docs/design/api_v0.py`` §K for the frozen-vs-not breakdown.
+"""
+
+from __future__ import annotations
+
+from bnmetrics.adapter import to_graphlike
+from bnmetrics.comparative import (
+    count_additions,
+    count_deletions,
+    count_reversals,
+    f1,
+    false_negatives,
+    false_positives,
+    hd,
+    precision,
+    recall,
+    shd,
+    true_positives,
+)
+from bnmetrics.compare import (
+    COMPARATIVE_METRIC_NAMES,
+    DESCRIPTIVE_METRIC_NAMES,
+    Comparison,
+    compare,
+    to_dataframe,
+)
+from bnmetrics.descriptive import (
+    count_bidirected_arcs,
+    count_circle_edges,
+    count_colliders,
+    count_directed_arcs,
+    count_edges,
+    count_isolated_nodes,
+    count_leaf_nodes,
+    count_nodes,
+    count_reversible_arcs,
+    count_root_nodes,
+    count_undirected_arcs,
+    in_degree,
+    out_degree,
+)
+from bnmetrics.exceptions import BNMDataError, BNMError, BNMInputError
+from bnmetrics.markov_blanket import markov_blanket, markov_blanket_indices
+from bnmetrics.marks import EndpointMark
+from bnmetrics.protocol import GraphLike
+from bnmetrics.sid import SIDResult, sid
+from bnmetrics.viz import (
+    analyse_mb,
+    compare_models_comparative,
+    compare_models_descriptive,
+    plot_graph,
+    plot_sid_matrix,
+    plot_side_by_side,
+)
+
+__version__ = "0.2.2"
+
+__all__ = [
+    # graph contract + marks
+    "EndpointMark",
+    "GraphLike",
+    "to_graphlike",
+    # exceptions
+    "BNMDataError",
+    "BNMError",
+    "BNMInputError",
+    # descriptive
+    "count_bidirected_arcs",
+    "count_circle_edges",
+    "count_colliders",
+    "count_directed_arcs",
+    "count_edges",
+    "count_isolated_nodes",
+    "count_leaf_nodes",
+    "count_nodes",
+    "count_reversible_arcs",
+    "count_root_nodes",
+    "count_undirected_arcs",
+    "in_degree",
+    "out_degree",
+    # comparative
+    "count_additions",
+    "count_deletions",
+    "count_reversals",
+    "f1",
+    "false_negatives",
+    "false_positives",
+    "hd",
+    "precision",
+    "recall",
+    "shd",
+    "true_positives",
+    # markov blanket
+    "markov_blanket",
+    "markov_blanket_indices",
+    # multi-metric comparison
+    "COMPARATIVE_METRIC_NAMES",
+    "Comparison",
+    "DESCRIPTIVE_METRIC_NAMES",
+    "compare",
+    "to_dataframe",
+    # sid
+    "SIDResult",
+    "sid",
+    # viz (gated on `viz` extra; ImportError surfaces only when called)
+    "analyse_mb",
+    "compare_models_comparative",
+    "compare_models_descriptive",
+    "plot_graph",
+    "plot_side_by_side",
+    "plot_sid_matrix",
+]

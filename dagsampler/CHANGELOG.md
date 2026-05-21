@@ -5,10 +5,21 @@ All notable changes to `dagsampler` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2026-05-08
+## [0.2.0] - 2026-05-21
 
 ### Added
 
+- Optional `categorical_model.noise_scale` for the `threshold` categorical
+  model (ordered-probit form). When `> 0`, idiosyncratic latent noise is
+  added to the linear index `w·parents` before discretization, so the
+  categorical retains residual variation given its parents. The noise SD is
+  scaled by the SD of `w·parents`, so `noise_scale` is a noise-to-signal SD
+  ratio that holds the conditional dependence strength constant across
+  cardinalities and parent mechanisms. **Default `0.0` preserves the
+  deterministic (pure-discretization) behavior of 0.1.0** — existing
+  configs and the committed 0.1.0 benchmark runs are unaffected. Fixes
+  unfaithful threshold alternatives in mixed-type benchmarks (a thresholded
+  child was previously a pure deterministic function of its parents).
 - `CausalDataGenerator.as_ci_oracle()` returning a `DSeparationOracle`
   that conforms structurally to the `cbcd.CITest` Protocol
   (`n_vars`, `__call__(x, y, S) -> float`, `details(x, y, S)` with

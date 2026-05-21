@@ -334,6 +334,55 @@ def test_threshold_scale_default_is_sampled_and_persisted():
     assert 0.5 <= float(scale) <= 2.0
 
 
+def _threshold_noise_config(noise_scale=None, weight=1.0, n=400, seed=11):
+    cm = {"name": "threshold", "weights": {"X": weight}}
+    if noise_scale is not None:
+        cm["noise_scale"] = noise_scale
+    return {
+        "simulation_params": {"n_samples": n, "seed_structure": seed, "seed_data": seed},
+        "graph_params": {"type": "custom", "nodes": ["X", "C"], "edges": [["X", "C"]]},
+        "node_params": {
+            "X": {"type": "continuous", "distribution": {"name": "gaussian", "mean": 0.0, "std": 1.0}},
+            "C": {"type": "categorical", "cardinality": 5, "categorical_model": cm},
+        },
+    }
+
+
+def _monotone_in_parent(df):
+    # With a single continuous parent and weight > 0, a deterministic threshold map
+    # C = digitize(w*X) is a non-decreasing step function of X. Latent noise breaks it.
+    order = np.argsort(df["X"].to_numpy())
+    return bool(np.all(np.diff(df["C"].to_numpy()[order]) >= 0))
+
+
+def test_threshold_noise_scale_zero_is_backward_compatible_and_deterministic():
+    # Absent noise_scale == explicit 0.0, and both reproduce the pre-0.2.0 behavior:
+    # C is a pure (monotone) function of its single parent -> conditioning on X fully
+    # determines C. This is the deterministic-alternative case the option exists to fix.
+    df_default = CausalDataGenerator(_threshold_noise_config(noise_scale=None)).simulate()["data"]
+    df_zero = CausalDataGenerator(_threshold_noise_config(noise_scale=0.0)).simulate()["data"]
+    pd.testing.assert_series_equal(df_default["C"], df_zero["C"])
+    assert _monotone_in_parent(df_default)
+
+
+def test_threshold_noise_scale_breaks_determinism():
+    # noise_scale > 0 adds idiosyncratic latent noise (ordered probit), so C is no longer
+    # a pure function of its parent -> the alternative is faithful again.
+    df = CausalDataGenerator(_threshold_noise_config(noise_scale=0.5)).simulate()["data"]
+    assert not _monotone_in_parent(df)
+    assert df["C"].nunique() >= 3  # still spans the cardinality
+
+
+def test_threshold_noise_scale_is_signal_relative():
+    # Noise SD scales with SD(w*parents), so a 3x larger weight keeps the SNR constant and
+    # C stays stochastic. A FIXED-absolute noise would be swamped by the larger signal and
+    # collapse back toward determinism -- this guards the score-SD-relative implementation.
+    df_small = CausalDataGenerator(_threshold_noise_config(noise_scale=0.5, weight=1.0)).simulate()["data"]
+    df_large = CausalDataGenerator(_threshold_noise_config(noise_scale=0.5, weight=3.0)).simulate()["data"]
+    assert not _monotone_in_parent(df_small)
+    assert not _monotone_in_parent(df_large)
+
+
 def test_logistic_random_weights_respect_min_abs_and_are_persisted():
     config = {
         "simulation_params": {

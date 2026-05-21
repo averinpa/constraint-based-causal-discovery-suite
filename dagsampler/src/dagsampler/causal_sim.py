@@ -581,6 +581,31 @@ class CausalDataGenerator:
                 weight = float(weights.get(parent, 0.0)) if isinstance(weights, dict) else float(weights)
                 scores += weight * np.asarray(self.data[parent], dtype=float)
 
+            # Optional idiosyncratic latent noise (ordered-probit form): when > 0 the
+            # cutpoints act on `w·parents + ε` instead of the deterministic linear index,
+            # so the categorical retains residual variation given its parents.
+            #
+            # The noise SD is scaled by the SD of the linear index `w·parents`, so
+            # `noise_scale` is a noise-to-signal SD ratio that holds the signal-to-noise
+            # ratio (hence the strength of the conditional dependence X|parents) constant
+            # across cardinalities and parent mechanisms — a fixed absolute SD would drift
+            # with the score scale (e.g. polynomial vs linear parents) and reintroduce the
+            # empty-category / under-signal artifacts this option exists to remove.
+            # `noise_scale` = 0.5 ⇒ SNR 2 in SD. Default 0.0 preserves the pure-discretization
+            # behavior of 0.1.0. If the linear index is constant (SD 0) the node is already
+            # degenerate in its parents, so no noise is added.
+            noise_scale = float(self._get_param(
+                ['node_params', node, 'categorical_model', 'noise_scale'],
+                lambda: 0.0,
+                node_type='endogenous'
+            ))
+            if noise_scale > 0:
+                score_sd = float(np.std(scores))
+                if score_sd > 0:
+                    scores = scores + self.rng_data.normal(
+                        0.0, noise_scale * score_sd, size=n_samples
+                    )
+
             thresholds = self._get_param(
                 ['node_params', node, 'categorical_model', 'thresholds'],
                 lambda: (

@@ -303,9 +303,25 @@ $$
 
 $$
 X_j = \mathrm{digitize}\!\left(
-  s_j;\ \tau_{j1}, \dots, \tau_{j(K-1)}
-\right).
+  s_j + \varepsilon_j;\ \tau_{j1}, \dots, \tau_{j(K-1)}
+\right),
+\qquad
+\varepsilon_j \sim \mathcal{N}\!\left(0,\ (\sigma_j \cdot \mathrm{sd}(s_j))^2\right).
 $$
+
+The latent noise $\varepsilon_j$ is governed by `noise_scale`
+($\sigma_j$, **default `0.0`**). With $\sigma_j = 0$ the model is the
+classic deterministic discretisation, $X_j = \mathrm{digitize}(s_j)$,
+so a thresholded child is a pure function of its parents. With
+$\sigma_j > 0$ it becomes an **ordered-probit** model: the child
+retains idiosyncratic variation given its parents, which is required
+for *faithful* alternatives when a thresholded variable is an effect in
+a conditional-independence test. Because the noise SD is scaled by
+$\mathrm{sd}(s_j)$, `noise_scale` is a **noise-to-signal ratio** — the
+strength of the conditional dependence $X_j \mid \mathrm{Pa}(j)$ is held
+constant across cardinalities $K$ and parent mechanisms (e.g.
+$\sigma_j = 0.5 \Rightarrow$ signal-to-noise ratio $2$ in SD). The
+default `0.0` keeps behaviour identical to releases $\le 0.1.0$.
 
 If thresholds are not provided, defaults are set from a
 theoretical Gaussian quantile grid, not from realised sample
@@ -322,7 +338,7 @@ Both can be overridden in config.
 |---|---|---|---|
 | Continuous | Any | `linear`, `polynomial`, `interaction`, `sigmoid`, `cos`, `sin`, `stratum_means` (+ optional `post_transform`) | `additive`, `multiplicative`, `heteroskedastic` |
 | Binary | Any | `linear`, `polynomial`, `interaction`, `sigmoid`, `cos`, `sin`, `stratum_means` | Latent signal + noise, then logistic link and Bernoulli draw |
-| Categorical | Any | `categorical_model = logistic` or `categorical_model = threshold` | Softmax sampling (logistic) or threshold digitisation |
+| Categorical | Any | `categorical_model = logistic` or `categorical_model = threshold` | Softmax sampling (logistic); threshold digitisation, deterministic or ordered-probit via `noise_scale` |
 
 For random structural weights, additional controls are
 `random_weight_low`, `random_weight_high`, and

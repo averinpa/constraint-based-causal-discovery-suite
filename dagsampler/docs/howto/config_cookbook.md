@@ -471,6 +471,33 @@ To use fixed theoretical threshold placement:
 }
 ```
 
+By default the threshold model is **deterministic** — `C` is a pure
+function of its parents. To make it an **ordered-probit** model (latent
+noise added before discretisation), set `noise_scale > 0`. This is
+needed whenever a thresholded variable must show residual variation
+given its parents — e.g. so it is a *faithful* effect in a conditional
+independence test. `noise_scale` is a noise-to-signal ratio (the noise
+SD is scaled by the SD of the parent index), so the conditional
+dependence strength is stable across cardinalities and parent
+mechanisms; `0.5` is a reasonable starting value. The default `0.0`
+preserves the deterministic behaviour of releases `<= 0.1.0`.
+
+```json
+{
+  "node_params": {
+    "C": {
+      "type": "categorical",
+      "cardinality": 5,
+      "categorical_model": {
+        "name": "threshold",
+        "weights": { "X": 1.0 },
+        "noise_scale": 0.5
+      }
+    }
+  }
+}
+```
+
 ## Categorical to continuous (stratum-specific means)
 
 ```json

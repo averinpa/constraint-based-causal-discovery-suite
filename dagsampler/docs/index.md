@@ -22,7 +22,10 @@ The package implements:
   variables with configurable cardinality.
 - **Structural mechanisms** — linear, polynomial, interaction,
   sigmoid (`tanh`), cosine, sine, and stratum-means functional
-  forms; logistic and threshold categorical models.
+  forms; logistic and threshold categorical models — with opt-in
+  spread-controlled softmax weights (`softmax_weight_mode = "spread"`)
+  and a standardized (design-A) threshold mode
+  (`threshold_standardized`).
 - **Noise models** — additive (Gaussian, Student-*t*, gamma,
   exponential, Laplace, Cauchy, uniform), multiplicative, and
   heteroskedastic Gaussian.

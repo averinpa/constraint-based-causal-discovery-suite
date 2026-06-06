@@ -428,6 +428,55 @@ strata.
 }
 ```
 
+## Spread-controlled softmax weights
+
+By default the logistic / softmax weights are drawn from a Gaussian
+(`softmax_weight_mode = "gaussian"`, the legacy 0.1.0 / 0.2.0
+behaviour): `N(0, std^2)` with the `random_weight_min_abs` floor,
+where `std` defaults to `0.25` for a categorical parent and `0.5`
+for a continuous parent (now also overridable via
+`softmax_gaussian_std_kk` and `softmax_gaussian_std_ck`).
+
+Setting `softmax_weight_mode = "spread"` switches to
+spread-controlled weights instead. For each parent the simulator
+draws `N(0, 1)`, removes the parts the softmax is invariant to (for
+a categorical parent's weight matrix: the per-parent-level shift and
+the common-across-levels component, leaving the interaction residual;
+for a continuous parent's weight vector: the mean), then rescales the
+residual so its spread equals `s`, with `s ~ Uniform(band)`. The band
+is **required** (no scale is hardcoded): `softmax_spread_kk = [lo, hi]`
+for a categorical parent (`"kk"`) and `softmax_spread_ck = [lo, hi]`
+for a continuous parent (`"ck"`). The lower bound guarantees a
+detectable logit contrast even for binary children, and the marginal
+class balance is unaffected by the spread.
+
+```json
+{
+  "simulation_params": {
+    "n_samples": 400,
+    "seed_structure": 44,
+    "seed_data": 45,
+    "softmax_weight_mode": "spread",
+    "softmax_spread_kk": [0.5, 1.5],
+    "softmax_spread_ck": [0.5, 1.5]
+  },
+  "graph_params": {
+    "type": "custom",
+    "nodes": ["X", "B", "C"],
+    "edges": [["X", "C"], ["B", "C"]]
+  },
+  "node_params": {
+    "X": { "type": "continuous", "distribution": { "name": "gaussian", "mean": 0, "std": 1 } },
+    "B": { "type": "binary", "distribution": { "name": "bernoulli", "p": 0.5 } },
+    "C": {
+      "type": "categorical",
+      "cardinality": 3,
+      "categorical_model": { "name": "logistic" }
+    }
+  }
+}
+```
+
 ## Continuous to categorical (threshold)
 
 ```json
@@ -497,6 +546,49 @@ preserves the deterministic behaviour of releases `<= 0.1.0`.
   }
 }
 ```
+
+## Standardized (design-A) threshold
+
+Setting `threshold_standardized = true` switches the `threshold`
+model to a discretized linear-Gaussian latent. The simulator adds
+absolute Gaussian noise (`threshold_noise_abs`, default `1.0`) to
+the latent score, standardizes the score to unit variance, then bins
+at **equal-probability** cutpoints $\tau_j = \Phi^{-1}(j/c)$. As a
+result the coefficient sets only the latent signal-to-noise ratio,
+and the marginal category distribution is uniform regardless of the
+coefficient.
+
+```json
+{
+  "simulation_params": {
+    "n_samples": 350,
+    "seed": 51,
+    "threshold_standardized": true,
+    "threshold_noise_abs": 1.0
+  },
+  "graph_params": {
+    "type": "custom",
+    "nodes": ["X", "C"],
+    "edges": [["X", "C"]]
+  },
+  "node_params": {
+    "X": { "type": "continuous", "distribution": { "name": "gaussian", "mean": 0, "std": 1 } },
+    "C": {
+      "type": "categorical",
+      "cardinality": 5,
+      "categorical_model": {
+        "name": "threshold",
+        "weights": { "X": 1.0 }
+      }
+    }
+  }
+}
+```
+
+The default `threshold_standardized = false` preserves the 0.2.0
+raw-score / random-cutpoint behaviour (noise relative to the score
+SD via `noise_scale`, cutpoints $b \cdot \Phi^{-1}(j/c)$ with random
+`b`).
 
 ## Categorical to continuous (stratum-specific means)
 

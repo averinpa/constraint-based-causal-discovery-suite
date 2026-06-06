@@ -142,6 +142,11 @@ $$
 
 where $s(\cdot)$ indexes the categorical parent stratum.
 
+The stratum means $\mu_s$ are sampled from $\mathcal{N}(0, \sigma_\mu^2)$. By default
+$\sigma_\mu = 1$; setting `simulation_params['strata_means_spread'] = [l, h]` draws a
+per-node $\sigma_\mu \sim \mathrm{Uniform}([l, h])$, which controls the between-stratum
+variance ($\eta^2$) — how strongly the categorical parent shifts the child's mean.
+
 When `stratum_means` is used with **mixed parents** (at least one
 categorical parent plus one or more metric parents), the structural
 function combines a stratum mean with a linear contribution from
@@ -295,6 +300,27 @@ The parent contribution $g_{jpk}$ depends on the parent type:
   weight matrix of shape $(K_{\text{parent}}, K)$ — one row per
   parent class, one column per child class.
 
+The class weights are sampled according to
+`simulation_params['softmax_weight_mode']`:
+
+- `'gaussian'` (**default**): each weight is drawn
+  $\mathcal{N}(0, \sigma^2)$ with the `random_weight_min_abs` floor,
+  $\sigma$ defaulting to $0.25$ (categorical parent) or $0.5$
+  (continuous parent), overridable via `softmax_gaussian_std_kk` /
+  `softmax_gaussian_std_ck`.
+- `'spread'`: the weights are **spread-controlled**. Raw weights are
+  drawn $\mathcal{N}(0, 1)$, the components the softmax is invariant to
+  are removed (for a categorical parent's matrix: the per-parent-level
+  shift and the common-across-levels component, leaving the interaction
+  residual; for a continuous parent's vector: the mean), and the
+  residual is rescaled so its spread equals
+  $s \sim \mathrm{Uniform}([l, h])$. The band is **required** —
+  `softmax_spread_kk` for a categorical parent, `softmax_spread_ck` for
+  a continuous parent — and no scale is hardcoded. Because it controls
+  the logit *contrast* directly, the lower bound $l$ guarantees a
+  detectable dependence even for a binary child (where same-sign weights
+  would otherwise cancel), while the marginal class balance is unchanged.
+
 ### Threshold (continuous-to-categorical)
 
 $$
@@ -323,6 +349,17 @@ constant across cardinalities $K$ and parent mechanisms (e.g.
 $\sigma_j = 0.5 \Rightarrow$ signal-to-noise ratio $2$ in SD). The
 default `0.0` keeps behaviour identical to releases $\le 0.1.0$.
 
+Setting `simulation_params['threshold_standardized'] = True` selects
+the **standardized (design-A) ordered probit**: absolute Gaussian noise
+(`threshold_noise_abs`, default $1.0$) is added to $s_j$, the score is
+standardized to unit variance, and it is binned at the
+**equal-probability** cutpoints $\tau_{jk} = \Phi^{-1}(k/K)$. The child
+is then a discretized linear-Gaussian latent — the coefficient sets only
+the latent signal-to-noise ratio, and the marginal category
+distribution is uniform regardless of the coefficient (the coefficient
+no longer controls class balance). Default `False` keeps the
+raw-score / random-cutpoint behaviour above.
+
 If thresholds are not provided, defaults are set from a
 theoretical Gaussian quantile grid, not from realised sample
 quantiles. By default:
@@ -338,7 +375,7 @@ Both can be overridden in config.
 |---|---|---|---|
 | Continuous | Any | `linear`, `polynomial`, `interaction`, `sigmoid`, `cos`, `sin`, `stratum_means` (+ optional `post_transform`) | `additive`, `multiplicative`, `heteroskedastic` |
 | Binary | Any | `linear`, `polynomial`, `interaction`, `sigmoid`, `cos`, `sin`, `stratum_means` | Latent signal + noise, then logistic link and Bernoulli draw |
-| Categorical | Any | `categorical_model = logistic` or `categorical_model = threshold` | Softmax sampling (logistic); threshold digitisation, deterministic or ordered-probit via `noise_scale` |
+| Categorical | Any | `categorical_model = logistic` (gaussian or spread weights, `softmax_weight_mode`) or `categorical_model = threshold` (raw or standardized design-A, `threshold_standardized`) | Softmax sampling (logistic); threshold digitisation — deterministic / ordered-probit (`noise_scale`) or standardized equal-probability (`threshold_standardized`) |
 
 For random structural weights, additional controls are
 `random_weight_low`, `random_weight_high`, and

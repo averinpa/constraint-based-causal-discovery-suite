@@ -29,8 +29,9 @@ Configurable causal DAG simulator for synthetic mixed-type data and CI test benc
 - Structural forms: `linear`, `polynomial`, `interaction`, `sigmoid`, `cos`, `sin`, `stratum_means`
 - Optional element-wise `post_transform` (`tanh`, `sin`, `cos`, `exp_neg_abs`, `sqrt_abs`, `relu`, `sign`)
 - Cross-type mechanisms:
-  - continuous -> categorical (`categorical_model.name = "threshold"`)
+  - continuous -> categorical (`categorical_model.name = "threshold"`), with an opt-in standardized (design-A) threshold mode (`threshold_standardized`) that discretizes a unit-variance linear-Gaussian latent at equal-probability cutpoints
   - categorical -> continuous (`functional_form.name = "stratum_means"`, including mixed-parent cases with `metric_weights`)
+- Opt-in spread-controlled softmax/logistic weights (`softmax_weight_mode = "spread"`) for a detectable, balance-preserving logit contrast (default `"gaussian"` preserves legacy behaviour)
 - Noise models:
   - additive (`gaussian`, `student_t`, `gamma`, `exponential`, `laplace`, `cauchy`, `uniform`)
   - multiplicative (`gaussian`, `student_t`, `gamma`, `exponential`)

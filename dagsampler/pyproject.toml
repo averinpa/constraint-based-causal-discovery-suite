@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dagsampler"
-version = "0.2.0"
+version = "0.3.0"
 description = "Configurable causal DAG simulator for synthetic mixed-type data and CI test benchmarks"
 readme = "README.md"
 requires-python = ">=3.9"

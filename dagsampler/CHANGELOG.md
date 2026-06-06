@@ -5,6 +5,39 @@ All notable changes to `dagsampler` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-06-06
+
+### Added
+
+- **Spread-controlled softmax weights** via `simulation_params['softmax_weight_mode']`.
+  Default `'gaussian'` preserves the 0.1.0/0.2.0 behavior (N(0, std^2) floored at
+  `random_weight_min_abs`, std 0.25 for categorical parents / 0.5 for continuous, now also
+  overridable via `softmax_gaussian_std_kk` / `softmax_gaussian_std_ck`). Setting
+  `'spread'` draws each weight set, removes the components the softmax is invariant to, and
+  rescales the residual contrast to a spread drawn from `softmax_spread_kk` /
+  `softmax_spread_ck` = `[lo, hi]` (required in this mode; no scale is hardcoded). The lower
+  bound guarantees a detectable logit contrast even for binary children; class balance is
+  unaffected.
+- **Standardized (design-A) `threshold` model** via `simulation_params['threshold_standardized']`.
+  When set, the latent score gets absolute Gaussian noise (`threshold_noise_abs`, default
+  1.0), is standardized to unit variance, and is binned at equal-probability cutpoints
+  `Phi^{-1}(j/c)`. This makes the threshold a discretized linear-Gaussian latent: the
+  coefficient sets only the latent signal-to-noise ratio and the marginal category
+  distribution is uniform regardless of the coefficient. **Default `False` preserves the
+  0.2.0 raw-score / random-cutpoint behavior.**
+
+- **Stratum-mean spread** via `simulation_params['strata_means_spread'] = [lo, hi]`. When
+  set, a per-node `sigma_mu ~ Uniform(lo, hi)` is drawn and the auto-sampled stratum means
+  are scattered as `N(0, sigma_mu^2)`, controlling the between-stratum variance (how strongly
+  a categorical parent shifts a continuous child's mean). Default (unset) keeps the legacy
+  `N(0, 1)`.
+
+### Notes
+
+- All new behavior is opt-in via `simulation_params`; existing configs and the committed
+  0.1.0/0.2.0 benchmark runs are unaffected. Calibrated band values are supplied by the
+  consuming experiment, not hardcoded in the package.
+
 ## [0.2.0] - 2026-05-21
 
 ### Added

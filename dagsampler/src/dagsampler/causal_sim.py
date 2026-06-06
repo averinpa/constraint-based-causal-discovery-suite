@@ -203,6 +203,48 @@ class CausalDataGenerator:
             mask = np.abs(arr) < min_abs
         return arr
 
+    def _sample_softmax_weights(self, shape, kind):
+        """Softmax/logistic weights, selected by simulation_params['softmax_weight_mode'].
+
+        'gaussian' (default, legacy 0.1.0/0.2.0 behaviour): N(0, std^2) with the
+        random_weight_min_abs floor; std = simulation_params['softmax_gaussian_std_{kind}']
+        (defaults 0.25 for 'kk', 0.5 for 'ck').
+
+        'spread' (spread-controlled): draw N(0, 1), remove the parts the softmax is invariant
+        to (per parent level and the common-across-levels component for a categorical parent's
+        weight matrix; the mean for a continuous parent's weight vector), then rescale the
+        residual so its spread equals s, with s ~ Uniform(softmax_spread_{kind} = [lo, hi]).
+        The lower bound guarantees a detectable logit contrast; class balance is unaffected.
+        No scale is hardcoded for this mode -- the band must be supplied in simulation_params.
+
+        'kind' is 'kk' (categorical parent) or 'ck' (continuous parent).
+        """
+        sp = self.simulation_params
+        mode = str(sp.get("softmax_weight_mode", "gaussian")).lower()
+        if mode == "spread":
+            band = sp.get(f"softmax_spread_{kind}")
+            if band is None:
+                raise ValueError(
+                    f"softmax_weight_mode='spread' requires "
+                    f"simulation_params['softmax_spread_{kind}'] = [lo, hi]"
+                )
+            a, b = float(band[0]), float(band[1])
+            while True:
+                raw = self.rng_structure.normal(0.0, 1.0, size=shape)
+                if np.ndim(raw) == 2:
+                    raw = raw - raw.mean(axis=1, keepdims=True)
+                    raw = raw - raw.mean(axis=0, keepdims=True)
+                else:
+                    raw = raw - raw.mean()
+                sd = float(np.std(raw))
+                if sd >= 1e-8:
+                    break
+            s = float(self.rng_structure.uniform(a, b))
+            return raw * (s / sd)
+        default_std = 0.25 if kind == "kk" else 0.5
+        std = float(sp.get(f"softmax_gaussian_std_{kind}", default_std))
+        return self._sample_logistic_weight_array(shape, std)
+
     def _get_param(self, path: list, default_sampler: callable, node_type: str = None):
         """
         Gets a parameter from the config. If not found, it tries a default path 
@@ -581,6 +623,22 @@ class CausalDataGenerator:
                 weight = float(weights.get(parent, 0.0)) if isinstance(weights, dict) else float(weights)
                 scores += weight * np.asarray(self.data[parent], dtype=float)
 
+            # Design A (ordered probit): when simulation_params['threshold_standardized'] is set,
+            # add absolute Gaussian noise, standardize the latent score to unit variance, and bin
+            # at equal-probability cutpoints Phi^{-1}(j/c). This decouples the coefficient from
+            # class balance (categories come out uniform) so beta sets only the latent
+            # signal-to-noise ratio. The legacy raw-score / random-cutpoint path is used otherwise.
+            if bool(self.simulation_params.get("threshold_standardized", False)):
+                noise_abs = float(self.simulation_params.get("threshold_noise_abs", 1.0))
+                if noise_abs > 0:
+                    scores = scores + self.rng_data.normal(0.0, noise_abs, size=n_samples)
+                sd = float(np.std(scores))
+                if sd > 0:
+                    scores = (scores - float(np.mean(scores))) / sd
+                cutpoints = norm.ppf(np.linspace(0.0, 1.0, cardinality + 1)[1:-1])
+                self.data[node] = np.digitize(scores, bins=cutpoints, right=False)
+                return
+
             # Optional idiosyncratic latent noise (ordered-probit form): when > 0 the
             # cutpoints act on `w·parents + ε` instead of the deterministic linear index,
             # so the categorical retains residual variation given its parents.
@@ -662,9 +720,8 @@ class CausalDataGenerator:
             if parent_type == "categorical":
                 parent_cardinality = self._node_cardinality(parent)
                 if parent_weight is None:
-                    parent_weight = self._sample_logistic_weight_array(
-                        shape=(parent_cardinality, cardinality),
-                        std=0.25
+                    parent_weight = self._sample_softmax_weights(
+                        (parent_cardinality, cardinality), "kk"
                     )
                 parent_weight = np.asarray(parent_weight, dtype=float)
                 if parent_weight.shape != (parent_cardinality, cardinality):
@@ -677,10 +734,7 @@ class CausalDataGenerator:
                 completed_weights[parent] = parent_weight.tolist()
             else:
                 if parent_weight is None:
-                    parent_weight = self._sample_logistic_weight_array(
-                        shape=(cardinality,),
-                        std=0.5
-                    )
+                    parent_weight = self._sample_softmax_weights((cardinality,), "ck")
                 parent_weight = np.asarray(parent_weight, dtype=float)
                 if parent_weight.shape != (cardinality,):
                     raise ValueError(
@@ -831,11 +885,19 @@ class CausalDataGenerator:
                 )
 
             completed_strata_means = {k: float(v) for k, v in strata_means.items()}
+            # Stratum-mean spread: simulation_params['strata_means_spread'] = [lo, hi] draws a
+            # per-node sigma_mu ~ Uniform(lo, hi) and scatters the auto-sampled stratum means as
+            # N(0, sigma_mu^2). Absent (default), the legacy N(0, 1) is used. sigma_mu controls
+            # the between-stratum variance (eta^2), i.e. how strongly the categorical parent(s)
+            # shift the continuous child's mean.
+            _spread_band = self.simulation_params.get("strata_means_spread")
+            _sigma_mu = (float(self.rng_structure.uniform(float(_spread_band[0]), float(_spread_band[1])))
+                         if _spread_band is not None else 1.0)
             parent_cardinalities = [self._node_cardinality(p) for p in categorical_parents]
             for combo in itertools.product(*[range(c) for c in parent_cardinalities]):
                 key = "|".join([f"{p}={int(v)}" for p, v in zip(categorical_parents, combo)])
                 if key not in completed_strata_means:
-                    completed_strata_means[key] = float(self.rng_structure.normal(0, 1))
+                    completed_strata_means[key] = float(self.rng_structure.normal(0, _sigma_mu))
 
             metric_weights = self._get_param(
                 ['node_params', node, 'functional_form', 'metric_weights'],

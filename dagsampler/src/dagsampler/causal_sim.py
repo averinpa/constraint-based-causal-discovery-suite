@@ -53,6 +53,64 @@ LEGACY_HETEROSKEDASTIC_FUNC_ALIASES = {
     "lambda p: 0.5 * np.mean(np.abs(p.values), axis=1) + 0.1": "mean_abs_plus_const",
 }
 
+
+# --- Shape ("tail-shape" / skew) noise ------------------------------------
+# A parent drives the *skewness* of a continuous child's noise while its
+# conditional mean and variance are held fixed. This is a higher-moment edge:
+# invisible to mean- and covariance-based tests (Fisher's Z, GCM, WGCM, PCM),
+# detectable only by a test that looks at the conditional distribution
+# (e.g. a quantile-based CI test). Each registry function maps the parent
+# frame to a per-row skew-normal shape parameter ``alpha``; ``alpha = 0`` is
+# symmetric (Gaussian), ``alpha > 0`` right-skewed, ``alpha < 0`` left-skewed.
+def _shape_skew_first_parent(parent_data: pd.DataFrame) -> np.ndarray:
+    """Per-row skew-normal shape ``alpha = 4 * first_parent`` (sign-tracking)."""
+    return 4.0 * parent_data.iloc[:, 0].to_numpy()
+
+
+def _shape_skew_tanh_first_parent(parent_data: pd.DataFrame) -> np.ndarray:
+    """Bounded per-row shape ``alpha = 8 * tanh(first_parent)`` in (-8, 8)."""
+    return 8.0 * np.tanh(parent_data.iloc[:, 0].to_numpy())
+
+
+def _shape_skew_mean_parents(parent_data: pd.DataFrame) -> np.ndarray:
+    """Per-row shape ``alpha = 4 * mean(parents)``."""
+    return 4.0 * np.mean(parent_data.to_numpy(), axis=1)
+
+
+SHAPE_FN_REGISTRY = {
+    "skew_first_parent": _shape_skew_first_parent,
+    "skew_tanh_first_parent": _shape_skew_tanh_first_parent,
+    "skew_mean_parents": _shape_skew_mean_parents,
+}
+
+# Skew-normal skewness saturates as |alpha| grows (|skew| < 0.995); clip to
+# keep ``delta`` numerically well-behaved for extreme parent values.
+_SHAPE_ALPHA_CLIP = 50.0
+
+
+def _standardized_skewnorm(alpha: np.ndarray, sigma, rng) -> np.ndarray:
+    """Zero-mean, ``sigma``-std skew-normal noise with per-row shape ``alpha``.
+
+    Uses Azzalini's stochastic representation: with ``U0, U1`` iid ``N(0, 1)``
+    and ``delta = alpha / sqrt(1 + alpha**2)``,
+    ``Z = delta * |U0| + sqrt(1 - delta**2) * U1`` is skew-normal ``SN(0, 1, alpha)``,
+    with ``E[Z] = delta * sqrt(2/pi)`` and ``Var[Z] = 1 - (2/pi) * delta**2``.
+    ``Z`` is then affinely standardized so the returned noise has mean ``0`` and
+    variance ``sigma**2`` for *every* row regardless of ``alpha`` -- only the
+    skewness (a monotone function of ``alpha``) depends on the parents.
+    """
+    alpha = np.clip(np.asarray(alpha, dtype=float), -_SHAPE_ALPHA_CLIP, _SHAPE_ALPHA_CLIP)
+    n = alpha.shape[0]
+    delta = alpha / np.sqrt(1.0 + alpha**2)
+    b = np.sqrt(2.0 / np.pi)
+    u0 = rng.standard_normal(n)
+    u1 = rng.standard_normal(n)
+    z = delta * np.abs(u0) + np.sqrt(1.0 - delta**2) * u1
+    raw_mean = delta * b
+    raw_std = np.sqrt(1.0 - (b**2) * delta**2)  # >= sqrt(1 - 2/pi) > 0
+    return sigma * (z - raw_mean) / raw_std
+
+
 POST_TRANSFORM_REGISTRY: dict[str, callable] = {
     "tanh": np.tanh,
     "sin": np.sin,
@@ -1108,7 +1166,34 @@ class CausalDataGenerator:
             noise_std = noise_func(parent_data)
             noise = self.rng_data.normal(0, 1, size=n_samples) * noise_std
             return base_value + noise
-        
+        elif noise_name == 'shape':
+            # Tail-shape edge: a parent drives the skewness of the noise while
+            # its mean and variance are held fixed (higher-moment dependence).
+            func_spec = self._get_param(
+                ['node_params', node, 'noise_model', 'func'],
+                lambda: 'skew_tanh_first_parent',
+                node_type='endogenous'
+            )
+            if callable(func_spec):
+                shape_func = func_spec
+            else:
+                shape_func = SHAPE_FN_REGISTRY.get(str(func_spec))
+                if shape_func is None:
+                    supported = ", ".join(sorted(SHAPE_FN_REGISTRY.keys()))
+                    raise ValueError(
+                        f"Unsupported shape-noise func '{func_spec}'. "
+                        f"Use one of: {supported}"
+                    )
+            sigma = self._get_param(
+                ['node_params', node, 'noise_model', 'std'],
+                lambda: self.rng_structure.uniform(0.5, 1.5),
+                node_type='endogenous'
+            )
+            parent_data = self.data[parents]
+            alpha = shape_func(parent_data)
+            noise = _standardized_skewnorm(alpha, sigma, self.rng_data)
+            return base_value + noise
+
         return base_value
 
     def _apply_post_transform(self, node: str, value):

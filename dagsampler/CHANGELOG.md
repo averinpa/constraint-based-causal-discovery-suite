@@ -5,6 +5,25 @@ All notable changes to `dagsampler` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - Unreleased
+
+### Added
+
+- **Tail-shape ("shape") noise model** via `noise_model = {"name": "shape", ...}`. A
+  parent drives the *skewness* of a continuous child's noise while its conditional mean
+  and variance are held fixed: a higher-moment edge that is invisible to mean- and
+  covariance-based CI tests (Fisher's Z, GCM, WGCM, PCM) and to location-scale tests, and
+  detectable only by a test that looks at the conditional distribution (e.g. a
+  quantile-based CI test). Noise is drawn from a per-row standardized skew-normal
+  (Azzalini's representation), affinely rescaled so mean `0` and variance `std**2` hold for
+  every row regardless of the shape parameter `alpha`; only the skewness (monotone in
+  `alpha`) depends on the parents. The parent→`alpha` map is selected by `func`, one of
+  `skew_first_parent` (`alpha = 4 * first_parent`), `skew_tanh_first_parent`
+  (`alpha = 8 * tanh(first_parent)`, bounded), `skew_mean_parents`
+  (`alpha = 4 * mean(parents)`), or any callable `parent_frame -> alpha` array. `std`
+  defaults to `Uniform(0.5, 1.5)`. The model is **opt-in only**: it is never selected by
+  the random noise default, so 0.1.0–0.3.0 behaviour is preserved.
+
 ## [0.3.0] - 2026-06-06
 
 ### Added

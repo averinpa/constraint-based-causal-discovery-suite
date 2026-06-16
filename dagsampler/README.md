@@ -35,7 +35,7 @@ Configurable causal DAG simulator for synthetic mixed-type data and CI test benc
 - Noise models:
   - additive (`gaussian`, `student_t`, `gamma`, `exponential`, `laplace`, `cauchy`, `uniform`)
   - multiplicative (`gaussian`, `student_t`, `gamma`, `exponential`)
-  - heteroskedastic (`abs_first_parent`, `abs_parent_plus_const`, `mean_abs_plus_const`)
+  - heteroskedastic (`abs_first_parent`, `abs_parent_plus_const`, `mean_abs_plus_const`); base distribution selectable via `dist` (`gaussian` default, `student_t`, `laplace`, `uniform`, `gamma`, `exponential`)
   - shape / tail-shape (`skew_first_parent`, `skew_tanh_first_parent`, `skew_mean_parents`) — a parent drives the noise skewness with mean and variance held fixed (a higher-moment edge)
 - Random weight sampling controls (including exclusion band around zero)
 - `force_uniform_marginals` for balanced exogenous binary / categorical draws

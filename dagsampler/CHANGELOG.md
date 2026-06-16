@@ -24,6 +24,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   defaults to `Uniform(0.5, 1.5)`. The model is **opt-in only**: it is never selected by
   the random noise default, so 0.1.0–0.3.0 behaviour is preserved.
 
+- **Configurable base distribution for heteroskedastic noise** via
+  `noise_model = {"name": "heteroskedastic", "func": ..., "dist": ...}`. The base draw is
+  standardized to unit variance, so the heteroskedastic function still sets the
+  *conditional standard deviation* whatever the base distribution. `dist` is one of
+  `gaussian` (default), `student_t` (`df > 2`, heavy-tailed), `laplace`, `uniform`,
+  `gamma` (`shape`, right-skewed), `exponential`; `cauchy` is rejected (no finite
+  variance). This makes heavy-tailed *and* heteroscedastic nulls expressible directly.
+  The default `gaussian` is byte-identical to the 0.1.0–0.3.0 heteroskedastic path.
+
 ## [0.3.0] - 2026-06-06
 
 ### Added

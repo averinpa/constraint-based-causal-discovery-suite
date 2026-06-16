@@ -1164,7 +1164,48 @@ class CausalDataGenerator:
 
             parent_data = self.data[parents]
             noise_std = noise_func(parent_data)
-            noise = self.rng_data.normal(0, 1, size=n_samples) * noise_std
+            # Base noise is standardized to unit variance so `noise_std` is the
+            # conditional standard deviation regardless of the base distribution.
+            # Default 'gaussian' reproduces the 0.1.0-0.3.0 behaviour exactly.
+            dist = self._get_param(
+                ['node_params', node, 'noise_model', 'dist'],
+                lambda: 'gaussian',
+                node_type='endogenous'
+            )
+            if dist == 'gaussian':
+                # identical draw to the pre-0.4.0 heteroskedastic path
+                base_noise = self.rng_data.normal(0, 1, size=n_samples)
+            elif dist == 'student_t':
+                df = self._get_param(
+                    ['node_params', node, 'noise_model', 'df'],
+                    lambda: 5, node_type='endogenous'
+                )
+                if df <= 2:
+                    raise ValueError(
+                        f"heteroskedastic 'student_t' base for '{node}' requires df > 2 "
+                        f"(finite variance); got df={df}"
+                    )
+                base_noise = self.rng_data.standard_t(df, size=n_samples) * np.sqrt((df - 2.0) / df)
+            elif dist == 'laplace':
+                base_noise = self.rng_data.laplace(0.0, 1.0, size=n_samples) / np.sqrt(2.0)
+            elif dist == 'uniform':
+                base_noise = self.rng_data.uniform(-1.0, 1.0, size=n_samples) * np.sqrt(3.0)
+            elif dist == 'gamma':
+                shape = self._get_param(
+                    ['node_params', node, 'noise_model', 'shape'],
+                    lambda: 2.0, node_type='endogenous'
+                )
+                # zero-mean, unit-variance, right-skewed
+                base_noise = (self.rng_data.gamma(shape, 1.0, size=n_samples) - shape) / np.sqrt(shape)
+            elif dist == 'exponential':
+                base_noise = self.rng_data.exponential(1.0, size=n_samples) - 1.0
+            else:
+                raise ValueError(
+                    f"Unsupported heteroskedastic base dist '{dist}'. Use one of: "
+                    f"gaussian, student_t, laplace, uniform, gamma, exponential "
+                    f"(cauchy has no finite variance and is not supported here)."
+                )
+            noise = base_noise * noise_std
             return base_value + noise
         elif noise_name == 'shape':
             # Tail-shape edge: a parent drives the skewness of the noise while

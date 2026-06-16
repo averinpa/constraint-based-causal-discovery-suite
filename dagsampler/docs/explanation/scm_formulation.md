@@ -222,15 +222,43 @@ clipped to a small positive minimum for numerical safety.
 
 $$
 X_j = f_j + \sigma_j(X_{\mathrm{Pa}(j)})\, z,
-\quad z \sim \mathcal{N}(0, 1).
+\quad z \sim D_0,\ \mathrm{Var}(z) = 1.
 $$
 
-Additive Gaussian noise whose standard deviation depends on the
-parent values. Registered $\sigma_j(\cdot)$ choices:
+The parent-driven scale $\sigma_j(\cdot)$ multiplies a base draw $z$
+standardized to unit variance, so $\sigma_j$ is the conditional
+standard deviation. The base distribution $D_0$ is selected by
+`noise_model.dist` (default `gaussian`, byte-identical to earlier
+versions): `student_t` (requires `df > 2`), `laplace`, `uniform`,
+`gamma` (right-skewed, `shape`), or `exponential`; `cauchy` is
+rejected (no finite variance). Registered $\sigma_j(\cdot)$ choices:
 
 - `abs_first_parent` (default when `func` is omitted)
 - `abs_parent_plus_const`
 - `mean_abs_plus_const`
+
+**Tail-shape (skew).**
+
+$$
+X_j = f_j + \tau_j,\qquad
+\tau_j \sim \mathrm{SN}\big(\alpha_j(X_{\mathrm{Pa}(j)})\big),
+$$
+
+a per-row skew-normal whose shape $\alpha_j$ is driven by the parents
+(Azzalini's representation), affinely rescaled so the conditional
+mean and variance are held fixed and only the skewness depends on the
+parents. This is a higher-moment edge: invisible to mean- and
+covariance-based tests, detectable only by a test that looks at the
+conditional distribution. The parent-to-$\alpha$ map is selected by
+`noise_model.func`:
+
+- `skew_first_parent` ($\alpha = 4\,X_{\mathrm{Pa},1}$)
+- `skew_tanh_first_parent` ($\alpha = 8\tanh X_{\mathrm{Pa},1}$, bounded)
+- `skew_mean_parents` ($\alpha = 4\,\overline{X_{\mathrm{Pa}}}$)
+
+with `std` (default $\mathrm{Uniform}(0.5, 1.5)$) the fixed conditional
+standard deviation. Opt-in only; never selected by the random noise
+default.
 
 ### Post-nonlinear transform
 

@@ -27,8 +27,10 @@ The package implements:
   and a standardized (design-A) threshold mode
   (`threshold_standardized`).
 - **Noise models** — additive (Gaussian, Student-*t*, gamma,
-  exponential, Laplace, Cauchy, uniform), multiplicative, and
-  heteroskedastic Gaussian.
+  exponential, Laplace, Cauchy, uniform), multiplicative,
+  heteroskedastic (Gaussian or a chosen unit-variance base), and
+  tail-shape / skew (a parent drives the noise skewness with mean and
+  variance held fixed).
 - **Post-nonlinear transforms** — element-wise `tanh`, `sin`,
   `cos`, `exp_neg_abs`, `sqrt_abs`, `relu`, `sign` applied after
   the structural function and noise.

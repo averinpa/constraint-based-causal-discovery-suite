@@ -337,6 +337,80 @@ parameterised by `scale`:
 }
 ```
 
+## Heteroskedastic noise with a chosen base distribution
+
+The `heteroskedastic` model scales a unit-variance base draw by a parent-driven
+function, so the function sets the conditional *standard deviation*. The base
+distribution is selectable via `dist` (default `gaussian`, byte-identical to
+earlier versions): `student_t` (requires `df > 2`), `laplace`, `uniform`,
+`gamma` (right-skewed, `shape`), or `exponential`. `cauchy` is rejected (no
+finite variance). This makes a null that is both heavy-tailed and
+heteroscedastic-in-Z expressible directly:
+
+```json
+{
+  "simulation_params": { "n_samples": 400, "seed": 24 },
+  "graph_params": {
+    "type": "custom",
+    "nodes": ["Z", "Y_t", "Y_gamma"],
+    "edges": [["Z", "Y_t"], ["Z", "Y_gamma"]]
+  },
+  "node_params": {
+    "Z": { "type": "continuous", "distribution": { "name": "gaussian", "mean": 0, "std": 1 } },
+    "Y_t": {
+      "type": "continuous",
+      "functional_form": { "name": "linear", "weights": { "Z": 0.0 } },
+      "noise_model": { "name": "heteroskedastic", "func": "abs_first_parent", "dist": "student_t", "df": 4 }
+    },
+    "Y_gamma": {
+      "type": "continuous",
+      "functional_form": { "name": "linear", "weights": { "Z": 0.0 } },
+      "noise_model": { "name": "heteroskedastic", "func": "abs_first_parent", "dist": "gamma", "shape": 2.0 }
+    }
+  }
+}
+```
+
+## Tail-shape (skew) noise: a higher-moment edge
+
+The `shape` model lets a parent drive the *skewness* of a continuous child's
+noise while its conditional mean and variance are held fixed. Noise is drawn
+from a per-row standardized skew-normal, so the mean and variance are invariant
+to the shape parameter and only the skewness depends on the parents. This is a
+higher-moment edge: invisible to mean- and covariance-based tests (and to
+location-scale tests), detectable only by a test that looks at the conditional
+distribution (for example a quantile-based CI test).
+
+Select the parent-to-skew map with `func`: `skew_first_parent`
+(`alpha = 4 * first_parent`), `skew_tanh_first_parent`
+(`alpha = 8 * tanh(first_parent)`, bounded), `skew_mean_parents`, or any callable
+`parent_frame -> alpha`. `std` (default `Uniform(0.5, 1.5)`) sets the fixed
+conditional standard deviation. The model is opt-in only; it is never chosen by
+the random noise default.
+
+```json
+{
+  "simulation_params": { "n_samples": 400, "seed": 25 },
+  "graph_params": {
+    "type": "custom",
+    "nodes": ["X", "Y"],
+    "edges": [["X", "Y"]]
+  },
+  "node_params": {
+    "X": { "type": "continuous", "distribution": { "name": "gaussian", "mean": 0, "std": 1 } },
+    "Y": {
+      "type": "continuous",
+      "functional_form": { "name": "linear", "weights": { "X": 0.0 } },
+      "noise_model": { "name": "shape", "func": "skew_first_parent", "std": 1.0 }
+    }
+  }
+}
+```
+
+Here `X` shifts only the skew of `Y`: the conditional mean and variance are flat
+in `X`, so `Cov(X, Y) = 0` and `Var(Y | X)` is constant, yet `X` and `Y` are
+dependent through the tail shape.
+
 Multiplicative noise also accepts `student_t`, `gamma`, and
 `exponential` in addition to `gaussian`; gamma and exponential
 factors are normalised to mean 1 to avoid biasing the structural

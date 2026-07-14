@@ -85,6 +85,43 @@ def test_rcot_smoke():
     assert p_dep < 0.05
 
 
+def test_gkcm_smoke():
+    pytest.importorskip("rpy2")
+    from citests.tests.kernel_tests import GKCM
+    from citests.exceptions import CITKError
+
+    rng = np.random.default_rng(20)
+    n = 300
+    z = rng.normal(size=n)
+    x = z + 0.5 * rng.normal(size=n)
+    y_ind = z + 0.5 * rng.normal(size=n)          # x _||_ y | z
+    y_dep = x + z + 0.3 * rng.normal(size=n)       # x not _||_ y | z
+    try:
+        p_ind = GKCM(np.column_stack([x, y_ind, z]))(0, 1, [2])
+        p_dep = GKCM(np.column_stack([x, y_dep, z]))(0, 1, [2])
+    except CITKError as exc:                       # R 'comets' package not installed
+        pytest.skip(f"R 'comets' unavailable: {exc}")
+    assert p_ind > 0.05
+    assert p_dep < 0.05
+
+
+@pytest.mark.parametrize("reg", ["linear", "rf", "krr"])
+def test_gcm_reg_smoke(reg):
+    pytest.importorskip("pycomets")
+    from citests.tests.ml_based_tests import GCM
+
+    rng = np.random.default_rng(21)
+    n = 400
+    z = rng.normal(size=n)
+    x = z + 0.5 * rng.normal(size=n)
+    y_ind = z + 0.5 * rng.normal(size=n)
+    y_dep = x + z + 0.3 * rng.normal(size=n)
+    p_ind = GCM(np.column_stack([x, y_ind, z]), reg=reg)(0, 1, [2])
+    p_dep = GCM(np.column_stack([x, y_dep, z]), reg=reg)(0, 1, [2])
+    assert p_ind > 0.05
+    assert p_dep < 0.05
+
+
 def test_cmiknn_smoke():
     pytest.importorskip("tigramite")
     from citests.tests.nearest_neighbor_tests import CMIknn

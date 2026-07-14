@@ -12,6 +12,11 @@ survey taxonomy.
 
 ### Added
 
+- `gkcm` — Generalised Kernel Covariance Measure (Bergen, Sejdinovic & Didelez,
+  CLeaR 2025), wrapping R `comets::kgcm` via `rpy2` (kernel family; optional `[r]`).
+- `GCM` nuisance regression is now selectable via the `reg` kwarg (`rf` default;
+  `linear`/`lm`, `xgb`/`boosted`, `krr`/`kernel`), exposing the `pycomets`
+  regression backends; `WGCM`/`PCM` unchanged (random forest).
 - Per-test documentation pages for all 19 Paper 1 benchmark tests, grouped
   under the seven survey-taxonomy headers in `docs/source/tests/index.rst`.
 - New tests: `regci`, `ci_mm`, `cmiknn`, `cmiknn_mixed`, `mcmiknn`, `rcit`,
@@ -22,6 +27,11 @@ survey taxonomy.
 - Optional dependency group `tigramite` for `cmiknn`, `cmiknn_mixed`, `regci`.
 - `sphinx.ext.coverage` extension wired into the docs build for module-level
   coverage checks.
+
+### Removed
+
+- `QuantileGCM` (`quantile_gcm`) removed from the public package and registry;
+  its implementation is kept private pending its method paper.
 
 ### Changed
 

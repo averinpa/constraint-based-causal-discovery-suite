@@ -1,9 +1,11 @@
 """Machine-learning-based CI tests (survey family): GCM, WGCM, PCM.
 
-All three tests dispatch through the optional ``pycomets`` package
-using random-forest regression by default. They require the ``[ml]``
-extra; ``pycomets`` is lazy-loaded so module import does not fail
-when the extra is missing.
+All three tests dispatch through the optional ``pycomets`` package. GCM's
+nuisance regression is selectable via the ``reg`` kwarg (``'rf'`` default;
+``'linear'``/``'lm'``, ``'xgb'``/``'boosted'``, ``'krr'``/``'kernel'``);
+WGCM and PCM use random-forest regression. They require the ``[ml]`` extra;
+``pycomets`` is lazy-loaded so module import does not fail when the extra
+is missing.
 """
 
 import contextlib
@@ -54,6 +56,27 @@ def _load_pycomets_gcm():
     return PyGCMImpl, PyWGCMImpl, RF
 
 
+_REG_ALIASES = {
+    "rf": "RF", "linear": "LM", "lm": "LM", "ols": "LM",
+    "xgb": "XGB", "boosted": "XGB", "gb": "XGB",
+    "krr": "KRR", "kernel": "KRR",
+}
+
+
+def _resolve_reg(name):
+    """Return a fresh pycomets regression instance for a nuisance-method alias
+    ('rf' default, 'linear'/'lm', 'xgb'/'boosted', 'krr'/'kernel')."""
+    try:
+        import pycomets.regression as _reg
+    except ModuleNotFoundError as exc:
+        raise CITKDependencyError(
+            "pycomets-based CI tests require optional dependency 'pycomets'. "
+            "Install with: pip install 'citests[ml]'."
+        ) from exc
+    cls = getattr(_reg, _REG_ALIASES.get(str(name).lower(), "RF"))
+    return cls()
+
+
 def _load_pycomets_pcm():
     try:
         from pycomets.pcm import PCM as PyPCMImpl
@@ -69,15 +92,19 @@ def _load_pycomets_pcm():
 class GCM(CITKTest):
     """GCM test via pycomets (Shah & Peters, 2020).
 
-    Uses RF regression by default (pycomets default).
-    In-sample residuals, no cross-fitting.
+    The nuisance regression is selectable via ``reg`` (default ``'rf'``):
+    ``'rf'`` random forest, ``'linear'``/``'lm'`` ordinary least squares,
+    ``'xgb'``/``'boosted'`` gradient boosting, ``'krr'``/``'kernel'`` kernel
+    ridge. In-sample residuals, no cross-fitting.
     """
 
     supported_dtypes = {"continuous", "discrete"}
+    accepted_kwargs = {"reg"}
 
     def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
+        self._reg = str(kwargs.pop("reg", "rf")).lower()
         super().__init__(data, **kwargs)
-        self.check_cache_method_consistent("gcm", "pycomets_GCM_RF")
+        self.check_cache_method_consistent("gcm", f"pycomets_GCM_{self._reg}")
 
     def _compute(
         self,
@@ -86,7 +113,7 @@ class GCM(CITKTest):
         condition_set: Optional[List[int]] = None,
         **kwargs: Any,
     ) -> float:
-        PyGCMImpl, _, RF = _load_pycomets_gcm()
+        PyGCMImpl, _, _ = _load_pycomets_gcm()
 
         x = self.data[:, X].astype(float)
         y = self.data[:, Y].astype(float)
@@ -100,7 +127,8 @@ class GCM(CITKTest):
         _validate_finite([(x, "X"), (y, "Y"), (z, "Z")])
 
         with contextlib.redirect_stdout(io.StringIO()):
-            gcm.test(y, x, z, reg_yz=RF(), reg_xz=RF(), show_summary=False)
+            gcm.test(y, x, z, reg_yz=_resolve_reg(self._reg),
+                     reg_xz=_resolve_reg(self._reg), show_summary=False)
 
         return float(gcm.pval)
 

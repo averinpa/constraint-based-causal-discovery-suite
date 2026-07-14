@@ -77,7 +77,8 @@ print(cg.G.get_edges())
 | `kci` | Kernel | `causal-learn` Python KCI |
 | `rcit` | Kernel | R `RCIT::RCIT` via `rpy2` (optional) |
 | `rcot` | Kernel | R `RCIT::RCoT` via `rpy2` (optional) |
-| `gcm` | Machine-Learning-Based | `pycomets` GCM with random forest regression (optional) |
+| `gkcm` | Kernel | Generalised Kernel Covariance Measure, R `comets::kgcm` via `rpy2` (optional) |
+| `gcm` | Machine-Learning-Based | `pycomets` GCM, configurable nuisance regression via `reg` (`rf` default; `linear`, `xgb`/`boosted`, `krr`/`kernel`) (optional) |
 | `wgcm` | Machine-Learning-Based | `pycomets` WGCM with random forest regression (optional) |
 | `pcm` | Machine-Learning-Based | `pycomets` PCM with random forest regression (optional) |
 | `disc_chisq` | Adapter Strategies | Native `citests` equal-frequency discretization + `causal-learn` Chi-Square |

@@ -42,6 +42,7 @@ taxonomy family.
    kci_test
    rcit_test
    rcot_test
+   gkcm_test
 
 .. toctree::
    :maxdepth: 1

@@ -2,7 +2,7 @@
 
 The Generalised Covariance Measure of Shah & Peters (2020) tests $X \perp Y \mid Z$ by separately regressing $X$ on $Z$ and $Y$ on $Z$, then asking whether the resulting residuals are uncorrelated. Shah & Peters (2020) prove that the validity of the test relies almost entirely on the weak requirement that the regression procedures estimate the conditional means at a slow rate, so the choice of regression backend determines the test's effective assumptions while leaving asymptotic-normal calibration intact.
 
-The `citests` implementation uses random forest regression by default (via the `pycomets` library) for both nuisance regressions.
+The `citests` implementation uses random forest regression by default (via the `pycomets` library) for both nuisance regressions. The backend is selectable through the `reg` keyword argument — `reg='rf'` (default), `reg='linear'`/`'lm'` (OLS), `reg='xgb'`/`'boosted'` (gradient boosting), or `reg='krr'`/`'kernel'` (kernel ridge) — which sets the effective smoothness assumption on the conditional means while leaving the standard-normal calibration intact.
 
 **Intuition.** Under $X \perp Y \mid Z$, the residuals $X - E[X \mid Z]$ and $Y - E[Y \mid Z]$ are uncorrelated for any choice of $E$-estimator that is consistent enough; testing whether their sample covariance is zero gives a CI test that inherits flexibility from modern ML regressors while staying calibrated by a standard-normal limit (Shah & Peters, 2020).
 

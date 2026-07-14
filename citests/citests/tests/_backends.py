@@ -47,6 +47,34 @@ def _load_rcit_package():
     return ro, rcit_pkg
 
 
+def _load_comets_package():
+    """Lazy-load rpy2 + R comets package (kgcm = Generalised Kernel Covariance Measure)."""
+    try:
+        import rpy2.robjects as ro
+        from rpy2.robjects.packages import importr
+    except ModuleNotFoundError as exc:
+        raise CITKDependencyError(
+            "R-based CI tests require optional dependency 'rpy2'. "
+            "Install with: pip install 'citests[r]' (or uv sync --extra r)."
+        ) from exc
+    try:
+        comets_pkg = importr("comets")
+    except Exception as exc:
+        raise CITKDependencyError(
+            "R package 'comets' is required for the GKCM test. "
+            "Install from CRAN in your R environment: install.packages('comets')."
+        ) from exc
+    return ro, comets_pkg
+
+
+def _extract_htest_p_value(result) -> float:
+    """Extract $p.value from an R htest object (comets kgcm/gcm)."""
+    try:
+        return float(result.rx2("p.value")[0])
+    except Exception as exc:
+        raise CITKComputationError("Could not extract 'p.value' from R htest result.") from exc
+
+
 def _load_bnlearn_package():
     """Lazy-load rpy2 + R bnlearn package (Hartemink discretization)."""
     try:

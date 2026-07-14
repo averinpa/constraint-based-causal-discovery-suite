@@ -43,7 +43,7 @@ Non-parametric tests based on $k$-nearest-neighbour estimators of conditional mu
 Non-parametric tests that operate in a Reproducing Kernel Hilbert Space (RKHS), with Hilbert-Schmidt independence criteria as the underlying dependence measure.
 
 - **Core idea**: Map data into an RKHS and test for independence in the residualised kernel features; under a universal kernel, the criterion is zero exactly when the variables are independent.
-- **Examples in `citests`**: `kci` (exact, Python causal-learn implementation), `rcit` and `rcot` (random Fourier feature approximations, R RCIT package).
+- **Examples in `citests`**: `kci` (exact, Python causal-learn implementation), `rcit` and `rcot` (random Fourier feature approximations, R RCIT package), `gkcm` (Generalised Kernel Covariance Measure, R `comets::kgcm`).
 - **Strengths**: Detects arbitrary smooth dependence; few distributional assumptions.
 - **Weaknesses**: Exact `kci` is at least quadratic in sample size; sensitivity to kernel and bandwidth choice.
 

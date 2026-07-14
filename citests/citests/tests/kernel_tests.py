@@ -13,14 +13,53 @@ import numpy as np
 
 from ._register import maybe_register
 from ._backends import (
+    _extract_htest_p_value,
     _extract_rcit_p_value,
+    _load_comets_package,
     _load_rcit_package,
     _to_r_matrix,
     _to_r_vector,
 )
 from .base import CITKTest, NO_SPECIFIED_PARAMETERS_MSG, inner_test_kwargs
 
-__all__ = ["KCI", "RCIT", "RCoT"]
+__all__ = ["KCI", "RCIT", "RCoT", "GKCM"]
+
+
+class GKCM(CITKTest):
+    """Generalised Kernel Covariance Measure (Bergen, Sejdinovic & Didelez, CLeaR 2025),
+    via the R ``comets::kgcm``. The nuisance regression is selectable via ``reg`` (R method
+    name, default ``'rf'``). Requires the ``[r]`` extra and the R 'comets' package.
+    Continuous data only; O(n^2) kernel statistic."""
+
+    supported_dtypes = {"continuous"}
+    accepted_kwargs = {"reg"}
+    method_name = "gkcm"
+
+    def __init__(self, data: np.ndarray, **kwargs: Any) -> None:
+        self._reg = str(kwargs.pop("reg", "rf"))
+        super().__init__(data, **kwargs)
+        self.check_cache_method_consistent("gkcm", f"comets_kgcm_{self._reg}")
+
+    def _compute(
+        self,
+        X: int,
+        Y: int,
+        condition_set: Optional[List[int]] = None,
+        **kwargs: Any,
+    ) -> float:
+        ro, comets = _load_comets_package()
+        x = _to_r_vector(ro, self.data[:, X])
+        y = _to_r_vector(ro, self.data[:, Y])
+        if condition_set:
+            z = _to_r_matrix(ro, self.data[:, condition_set])
+        else:
+            z = _to_r_matrix(ro, np.zeros((len(self.data), 1)))
+        # comets::kgcm(Y, X, Z, reg_YonZ, reg_XonZ) -> R htest with $p.value
+        result = comets.kgcm(y, x, z, reg_YonZ=self._reg, reg_XonZ=self._reg)
+        return _extract_htest_p_value(result)
+
+
+maybe_register("gkcm", GKCM)
 
 
 class _RCITBase(CITKTest):

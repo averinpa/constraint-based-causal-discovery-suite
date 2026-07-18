@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the article below."
+title: "Constraint-Based Causal Discovery Suite"
+abstract: "Python packages for constraint-based causal discovery: DAG simulation,
+  conditional independence testing, structure learning, and evaluation metrics."
+authors:
+  - family-names: "Averin"
+    given-names: "Pavel"
+    orcid: "https://orcid.org/0009-0003-2365-5798"
+license: MIT
+repository-code: "https://github.com/averinpa/constraint-based-causal-discovery-suite"
+type: software
+preferred-citation:
+  type: article
+  title: "Evaluating Directed Acyclic Graphs with DAGMetrics: Insights from Tuber and Soil Microbiome Data"
+  authors:
+    - family-names: "Averin"
+      given-names: "Pavel"
+    - family-names: "Mellidou"
+      given-names: "Ifigeneia"
+    - family-names: "Ganopoulou"
+      given-names: "Maria"
+    - family-names: "Xanthopoulou"
+      given-names: "Aliki"
+    - family-names: "Moysiadis"
+      given-names: "Theodoros"
+  journal: "Agronomy"
+  volume: 15
+  issue: 4
+  start: 987
+  year: 2025
+  doi: "10.3390/agronomy15040987"

@@ -77,6 +77,14 @@ Cross-package interop with `cbcd` and `dagsampler` is via the
 structural `bnmetrics.GraphLike` Protocol — no imports between the
 packages.
 
+## Citation
+
+If you use `bnmetrics`, please cite:
+
+> Averin, P.; Mellidou, I.; Ganopoulou, M.; Xanthopoulou, A.; Moysiadis, T.
+> Evaluating Directed Acyclic Graphs with DAGMetrics: Insights from Tuber and Soil Microbiome Data.
+> *Agronomy* 2025, *15*(4), 987. https://doi.org/10.3390/agronomy15040987
+
 ## License
 
 [MIT](LICENSE)

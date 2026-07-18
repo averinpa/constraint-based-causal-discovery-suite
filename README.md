@@ -1,5 +1,7 @@
 # Constraint-Based Causal Discovery Suite
 
+[![DOI](https://img.shields.io/badge/DOI-10.3390%2Fagronomy15040987-blue)](https://doi.org/10.3390/agronomy15040987)
+
 A four-package Python suite for constraint-based causal discovery —
 simulation, conditional independence testing, structure learning, and
 metric / visualisation. Each package is independent and stands on its
@@ -123,3 +125,11 @@ Prior-art relationships, attribution for upstream sources
 (`causal-learn`, `tigramite`, `DAGMetrics`, `mCMIkNN`), and the
 GPL-3 boundary for tigramite-based optional extras are documented in
 [`NOTICE.md`](NOTICE.md).
+
+## Citation
+
+The bnmetrics evaluation metrics in this suite implement and extend the methods introduced in:
+
+> Averin, P.; Mellidou, I.; Ganopoulou, M.; Xanthopoulou, A.; Moysiadis, T.
+> Evaluating Directed Acyclic Graphs with DAGMetrics: Insights from Tuber and Soil Microbiome Data.
+> *Agronomy* 2025, *15*(4), 987. https://doi.org/10.3390/agronomy15040987

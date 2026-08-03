@@ -12,4 +12,5 @@ listing is in [Reference](../reference/index.md).
 config_cookbook
 templates
 ci_oracle
+timeseries
 ```

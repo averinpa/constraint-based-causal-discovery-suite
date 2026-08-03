@@ -1,16 +1,9 @@
 # dagsampler
 
-> [!IMPORTANT]
-> **This repository is archived.** `dagsampler` has moved to the
+> [!NOTE]
+> `dagsampler` is developed in the
 > [constraint-based-causal-discovery-suite](https://github.com/averinpa/constraint-based-causal-discovery-suite)
-> umbrella, where it lives at
-> [`dagsampler/`](https://github.com/averinpa/constraint-based-causal-discovery-suite/tree/main/dagsampler).
->
-> The PyPI package name **`dagsampler`** is unchanged — `pip install
-> dagsampler` continues to work, with future releases (0.2.0+)
-> published from the suite repo. This archive is kept read-only for
-> historical reference; the v0.1.0 source remains here at the last
-> commit before the move.
+> monorepo. `pip install dagsampler` installs the released package from PyPI.
 
 [![PyPI version](https://img.shields.io/pypi/v/dagsampler.svg)](https://pypi.org/project/dagsampler/)
 [![Python versions](https://img.shields.io/pypi/pyversions/dagsampler.svg)](https://pypi.org/project/dagsampler/)
@@ -42,6 +35,7 @@ Configurable causal DAG simulator for synthetic mixed-type data and CI test benc
 - Template helpers (`chain_config`, `fork_config`, `collider_config`, `independence_config`)
 - Reproducibility via `seed_structure` and `seed_data` (or single `seed`)
 - Optional d-separation CI oracle output (`store_ci_oracle=true`)
+- Time-series (stationary SVAR) support with latent confounders: `TimeSeriesSpec` / `random_ts_spec`, a lagged d-separation oracle (`LaggedDSeparationOracle`), and mixed-type `simulate_svar` (see [How-to: time series](docs/howto/timeseries.md))
 
 ## Installation
 

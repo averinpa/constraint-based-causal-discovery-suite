@@ -5,6 +5,24 @@ All notable changes to `dagsampler` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-03
+
+### Added
+
+- **Time-series (stationary SVAR) support.** A new `dagsampler.timeseries` module for
+  discrete-time stationary causal processes with latent confounders:
+  - `TimeSeriesSpec` (contemporaneous + lagged edges, with the last `n_latent` series
+    unobserved) and `random_ts_spec(n_observed, max_lag, degree=..., n_latent=..., seed=...)`
+    for random bounded-degree specs.
+  - `unroll(spec, t_horizon=None)` expands a spec into a static `(var, t)` DAG.
+  - `LaggedDSeparationOracle(spec)` answers m-separation on the observed marginal (latents
+    present but never queried), conforming to the `cbcd.timeseries` `LaggedCITest` protocol
+    without importing cbcd; call it as `oracle(LaggedVar(v, lag), LaggedVar(v2, lag2), S)`.
+  - `simulate_svar(spec, SVARParams(...))` and `TimeSeriesDataGenerator` draw one long
+    stationary mixed-type (continuous/binary/categorical) series; stationarity is enforced by
+    spectral-radius rescaling (`target_spectral_radius`, default `0.9`) or burn-in. Returns
+    `data`, `spec`, `oracle`, `coefficients`, `var_types`, `spectral_radius`.
+
 ## [0.4.0] - 2026-06-16
 
 ### Added

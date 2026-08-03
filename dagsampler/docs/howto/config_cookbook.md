@@ -759,7 +759,7 @@ When `store_ci_oracle` is enabled, `simulate()` also returns a
 }
 ```
 
-The oracle iterates over every ordered pair $(X, Y)$ and every
+The oracle iterates over every unordered pair $(X, Y)$ and every
 conditioning subset $S$ of size $\le$ `ci_oracle_max_cond_set`
 (default `2`); both independent and dependent triples are
 recorded.

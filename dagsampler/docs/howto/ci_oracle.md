@@ -59,7 +59,7 @@ config = {
 }
 result = CausalDataGenerator(config).simulate()
 ci_oracle = result["ci_oracle"]
-# list of dicts: [{"x": "X", "y": "Y", "S": [], "is_independent": True}, ...]
+# list of dicts: [{"x": "X", "y": "Y", "conditioning_set": [], "is_independent": True}, ...]
 ```
 
 Each entry is a dictionary with string variable names and a

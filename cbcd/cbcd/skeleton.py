@@ -13,6 +13,7 @@ from numpy.typing import NDArray
 from cbcd.background import BackgroundKnowledge
 from cbcd.citest.protocol import CITest
 from cbcd.exceptions import CBCDInputError
+from cbcd.recording import RunRecorder, _resolve_recorder
 
 
 @dataclass
@@ -40,6 +41,8 @@ class SkeletonAlgorithm(Protocol):
         alpha: float,
         max_cond_set: int | None = None,
         background: BackgroundKnowledge | None = None,
+        variables: Sequence[int] | None = None,
+        recorder: RunRecorder | None = None,
         n_jobs: int = 1,
     ) -> Skeleton: ...
 
@@ -50,6 +53,15 @@ class PCStable:
     At each conditioning-set size ``d``, neighbour sets are frozen at the start
     of the depth so that all pairs see the same adjacency snapshot — removing
     the order-dependence of the original PC algorithm.
+
+    ``variables`` restricts the search to an *active node set*: only pairs within
+    it are tested, and conditioning sets are drawn from within it. The default
+    (``None``) is the full variable set — the global skeleton, unchanged. The
+    active set is discovered as an ``n_vars``-wide adjacency in which nodes
+    outside it are isolated (index positions are preserved). Soundness of a
+    proper subset is the caller's responsibility: the active set must contain a
+    valid separating set for every pair it decides (region-grow supplies the
+    boundary — see docs/roadmap.md Phase 3).
     """
 
     def __init__(self, *, track_max_pvalue: bool = False) -> None:
@@ -62,19 +74,33 @@ class PCStable:
         alpha: float,
         max_cond_set: int | None = None,
         background: BackgroundKnowledge | None = None,
+        variables: Sequence[int] | None = None,
+        recorder: RunRecorder | None = None,
         n_jobs: int = 1,
     ) -> Skeleton:
         if n_jobs != 1:
             raise CBCDInputError("n_jobs != 1 not yet implemented in this slice; pass n_jobs=1")
+        rec = _resolve_recorder(recorder)
+        is_cached = getattr(ci, "is_cached", None)
         n = ci.n_vars
-        adj = np.ones((n, n), dtype=bool)
-        np.fill_diagonal(adj, False)
+        if variables is None:
+            active = list(range(n))
+        else:
+            active = sorted({int(v) for v in variables})
+            if active and (active[0] < 0 or active[-1] >= n):
+                raise CBCDInputError(
+                    f"variables must be indices in [0, {n}); got out-of-range values in {active}"
+                )
+        adj = np.zeros((n, n), dtype=bool)
+        if active:
+            idx = np.asarray(active, dtype=int)
+            adj[np.ix_(idx, idx)] = True
+            np.fill_diagonal(adj, False)
         if background is not None:
-            for u in range(n):
-                for v in range(u + 1, n):
-                    if background.is_forbidden_adjacent(u, v):
-                        adj[u, v] = False
-                        adj[v, u] = False
+            for u, v in combinations(active, 2):
+                if background.is_forbidden_adjacent(u, v):
+                    adj[u, v] = False
+                    adj[v, u] = False
 
         sepsets: dict[frozenset[int], tuple[int, ...]] = {}
         pvalues_max: NDArray[np.float64] | None = None
@@ -111,7 +137,11 @@ class PCStable:
 
                     found_sepset: tuple[int, ...] | None = None
                     for S in _conditioning_sets(candidates, depth):
+                        was_hit = bool(is_cached(x, y_int, S)) if is_cached is not None else False
                         p = ci(x, y_int, S)
+                        rec.record_ci(
+                            x=x, y=y_int, S=S, p_value=p, depth=depth, was_cache_hit=was_hit
+                        )
                         if pvalues_max is not None and p > pvalues_max[x, y_int]:
                             pvalues_max[x, y_int] = p
                             pvalues_max[y_int, x] = p
@@ -166,6 +196,8 @@ class FAS:
         alpha: float,
         max_cond_set: int | None = None,
         background: BackgroundKnowledge | None = None,
+        variables: Sequence[int] | None = None,
+        recorder: RunRecorder | None = None,
         n_jobs: int = 1,
     ) -> Skeleton:
         return self._inner(
@@ -173,5 +205,7 @@ class FAS:
             alpha=alpha,
             max_cond_set=max_cond_set,
             background=background,
+            variables=variables,
+            recorder=recorder,
             n_jobs=n_jobs,
         )

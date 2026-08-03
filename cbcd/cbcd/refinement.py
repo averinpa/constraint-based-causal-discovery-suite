@@ -23,6 +23,7 @@ from cbcd.exceptions import CBCDInputError
 from cbcd.graph.marks import EndpointMark
 from cbcd.graph.pag import PartialPAG
 from cbcd.graph.queries import possible_dsep
+from cbcd.recording import RunRecorder, _resolve_recorder
 
 
 class PAGSkeletonRefinement(Protocol):
@@ -33,6 +34,7 @@ class PAGSkeletonRefinement(Protocol):
         *,
         alpha: float,
         max_cond_set: int | None = None,
+        recorder: RunRecorder | None = None,
         n_jobs: int = 1,
     ) -> PartialPAG: ...
 
@@ -56,10 +58,13 @@ class PossibleDSepRefinement:
         *,
         alpha: float,
         max_cond_set: int | None = None,
+        recorder: RunRecorder | None = None,
         n_jobs: int = 1,
     ) -> PartialPAG:
         if n_jobs != 1:
             raise CBCDInputError("n_jobs != 1 not yet implemented in this slice; pass n_jobs=1")
+        rec = _resolve_recorder(recorder)
+        is_cached = getattr(ci, "is_cached", None)
         cap = max_cond_set if max_cond_set is not None else self.max_cond_set
         n = graph.n_vars
         endpoints = graph.endpoints.copy()
@@ -87,7 +92,11 @@ class PossibleDSepRefinement:
             removed = False
             for size in range(0, upper + 1):
                 for S in combinations(candidates, size):
+                    was_hit = bool(is_cached(x, y, list(S))) if is_cached is not None else False
                     p = ci(x, y, list(S))
+                    rec.record_ci(
+                        x=x, y=y, S=tuple(S), p_value=p, depth=size, was_cache_hit=was_hit
+                    )
                     if p > alpha:
                         endpoints[x, y] = EndpointMark.NO_EDGE
                         endpoints[y, x] = EndpointMark.NO_EDGE

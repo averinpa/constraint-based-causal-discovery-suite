@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
+from itertools import combinations
 from typing import Protocol
 
 import numpy as np
@@ -12,6 +14,7 @@ from cbcd.citest.protocol import CITest
 from cbcd.graph.cpdag import PartialCPDAG
 from cbcd.graph.marks import EndpointMark
 from cbcd.graph.pag import PartialPAG
+from cbcd.recording import RunRecorder, _resolve_recorder
 from cbcd.skeleton import Skeleton
 
 
@@ -125,6 +128,8 @@ class ColliderOrienter(Protocol):
         *,
         alpha: float,
         background: BackgroundKnowledge | None = None,
+        interior: frozenset[int] | None = None,
+        recorder: RunRecorder | None = None,
     ) -> ColliderDecisions: ...
 
 
@@ -140,11 +145,18 @@ class SepsetOrienter:
         *,
         alpha: float,
         background: BackgroundKnowledge | None = None,
+        interior: frozenset[int] | None = None,
+        recorder: RunRecorder | None = None,
     ) -> ColliderDecisions:
         del ci, alpha  # SepsetOrienter doesn't re-test.
+        rec = _resolve_recorder(recorder)
         colliders: set[tuple[int, int, int]] = set()
         non_colliders: set[tuple[int, int, int]] = set()
         for x, z, y in _unshielded_triples(skeleton.adj):
+            # Region soundness gate: a v-structure is trustworthy only when its
+            # centre's adjacency is fully explored (interior). ``None`` = no gate.
+            if interior is not None and z not in interior:
+                continue
             sep = skeleton.sepsets.get(frozenset({x, y}))
             if sep is None:
                 # No recorded sepset → cannot classify.
@@ -163,8 +175,96 @@ class SepsetOrienter:
                 )
             }
 
+        for triple in colliders:
+            rec.record_collider(triple=triple, classification="collider", orienter="sepset")
+        for triple in non_colliders:
+            rec.record_collider(triple=triple, classification="noncollider", orienter="sepset")
+
         return ColliderDecisions(
             colliders=frozenset(colliders),
             non_colliders=frozenset(non_colliders),
             ambiguous=frozenset(),
+        )
+
+
+class MajorityColliderOrienter:
+    """Majority-rule (order-independent) collider orientation (Colombo & Maathuis 2014).
+
+    Unlike ``SepsetOrienter`` — which reads a single recorded sepset — this **re-tests** conditioning
+    subsets through the CI test. For each unshielded triple ``X — Z — Y`` it enumerates every subset
+    ``S`` of the conditioning pool of ``X`` and ``Y`` and records those that render ``X ⫫ Y``. ``Z`` is
+    oriented as a collider iff it lies in *strictly fewer than half* of those separating subsets, kept
+    as a non-collider iff it lies in *more than half*, and marked **ambiguous** when it lies in exactly
+    half or when no subset separates the pair. Ambiguous triples are returned so a caller can exclude
+    them from downstream rules.
+
+    ``conditioning_adj`` (default: ``skeleton.adj``) selects which neighbours form the conditioning
+    subsets, independently of the ``skeleton.adj`` used to enumerate triples — e.g. a time-series
+    caller passes the contemporaneous adjacency here while triples range over the full lagged grid.
+    ``interior`` gates which triple centres are considered (``None`` = all).
+    """
+
+    requires_max_pvalues = False
+
+    def __call__(
+        self,
+        skeleton: Skeleton,
+        ci: CITest,
+        *,
+        alpha: float,
+        background: BackgroundKnowledge | None = None,
+        interior: frozenset[int] | None = None,
+        conditioning_adj: np.ndarray | None = None,
+        recorder: RunRecorder | None = None,
+    ) -> ColliderDecisions:
+        rec = _resolve_recorder(recorder)
+        cadj = skeleton.adj if conditioning_adj is None else conditioning_adj
+        colliders: set[tuple[int, int, int]] = set()
+        non_colliders: set[tuple[int, int, int]] = set()
+        ambiguous: set[tuple[int, int, int]] = set()
+
+        for x, z, y in _unshielded_triples(skeleton.adj):
+            if interior is not None and z not in interior:
+                continue
+            pool = sorted(
+                (
+                    {int(w) for w in np.where(cadj[x])[0]}
+                    | {int(w) for w in np.where(cadj[y])[0]}
+                )
+                - {x, y}
+            )
+            separating: list[Sequence[int]] = []
+            for r in range(len(pool) + 1):
+                for subset in combinations(pool, r):
+                    if float(ci(x, y, list(subset))) > alpha:
+                        separating.append(subset)
+            if not separating:
+                ambiguous.add((x, z, y))
+                continue
+            fraction = sum(1 for subset in separating if z in subset) / len(separating)
+            if fraction == 0.5:
+                ambiguous.add((x, z, y))
+            elif fraction < 0.5:
+                colliders.add((x, z, y))
+            else:
+                non_colliders.add((x, z, y))
+
+        if background is not None:
+            colliders = {
+                (x, z, y)
+                for (x, z, y) in colliders
+                if not (
+                    background.is_required_directed(z, x) or background.is_required_directed(z, y)
+                )
+            }
+
+        for triple in colliders:
+            rec.record_collider(triple=triple, classification="collider", orienter="majority")
+        for triple in non_colliders:
+            rec.record_collider(triple=triple, classification="noncollider", orienter="majority")
+
+        return ColliderDecisions(
+            colliders=frozenset(colliders),
+            non_colliders=frozenset(non_colliders),
+            ambiguous=frozenset(ambiguous),
         )

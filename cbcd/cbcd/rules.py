@@ -21,6 +21,58 @@ from cbcd.graph.queries import (
     find_uncovered_circle_path,
     find_uncovered_pd_path,
 )
+from cbcd.recording import NullRecorder, RunRecorder, _resolve_recorder
+
+
+def _record_edge_diffs(
+    rec: RunRecorder,
+    rule_set: str,
+    rule_name: str,
+    before: NDArray[np.int8],
+    after: NDArray[np.int8],
+    n: int,
+) -> None:
+    """Emit ``record_rule`` for every undirected pair whose endpoint marks changed. Used to attribute
+    orientations to the rule that made them without threading the recorder through every rule body."""
+    for i in range(n):
+        for j in range(i + 1, n):
+            if before[i, j] != after[i, j] or before[j, i] != after[j, i]:
+                rec.record_rule(rule_set=rule_set, rule_name=rule_name, affected_edge=(i, j))
+
+
+def _freeze_boundary_background(
+    endpoints: NDArray[np.int8],
+    interior: frozenset[int] | None,
+    background: BackgroundKnowledge | None,
+) -> BackgroundKnowledge | None:
+    """Return a background that additionally forbids orienting any boundary-incident edge (an edge
+    with an endpoint outside ``interior``), in both directions, so region orientation never commits
+    an orientation that unseen structure could overturn. ``interior=None`` is a no-op. User-required
+    edges are left untouched (they win)."""
+    if interior is None:
+        return background
+    required = background.required_directed if background is not None else frozenset()
+    n = endpoints.shape[0]
+    extra: set[tuple[int, int]] = set()
+    for i in range(n):
+        for j in range(i + 1, n):
+            if endpoints[i, j] == EndpointMark.NO_EDGE:
+                continue
+            if i in interior and j in interior:
+                continue
+            for pair in ((i, j), (j, i)):
+                if pair not in required:
+                    extra.add(pair)
+    if not extra:
+        return background
+    if background is None:
+        return BackgroundKnowledge(forbidden_directed=frozenset(extra))
+    return BackgroundKnowledge(
+        forbidden_directed=frozenset(background.forbidden_directed | extra),
+        required_directed=background.required_directed,
+        forbidden_adjacent=background.forbidden_adjacent,
+        tiers=background.tiers,
+    )
 
 
 class CPDAGRules(Protocol):
@@ -30,6 +82,8 @@ class CPDAGRules(Protocol):
         *,
         background: BackgroundKnowledge | None = None,
         max_iterations: int | None = None,
+        interior: frozenset[int] | None = None,
+        recorder: RunRecorder | None = None,
     ) -> CPDAG: ...
 
 
@@ -63,9 +117,27 @@ class MeekRules:
         *,
         background: BackgroundKnowledge | None = None,
         max_iterations: int | None = None,
+        interior: frozenset[int] | None = None,
+        recorder: RunRecorder | None = None,
     ) -> CPDAG:
         endpoints = graph.endpoints.copy()
         n = graph.n_vars
+        rec = _resolve_recorder(recorder)
+        track = not isinstance(rec, NullRecorder)
+        # Region mode: freeze boundary-incident edges so Meek only orients within the interior.
+        background = _freeze_boundary_background(endpoints, interior, background)
+        # Ambiguous unshielded triples (majority/conservative collider phase): R1 must not treat them
+        # as evidence. R2–R4 fire only on shielded configurations, so they are never ambiguous.
+        ambiguous = graph.ambiguous_triples
+
+        def _apply(name, fn):
+            if not track:
+                return fn(endpoints, n, background)
+            before = endpoints.copy()
+            fired = fn(endpoints, n, background)
+            if fired:
+                _record_edge_diffs(rec, "meek", name, before, endpoints, n)
+            return fired
 
         if background is not None:
             for u, v in background.required_directed:
@@ -79,13 +151,15 @@ class MeekRules:
             if max_iterations is not None and iteration >= max_iterations:
                 break
             changed = False
-            if "R1" in self.rules and _apply_r1(endpoints, n, background):
+            if "R1" in self.rules and _apply(
+                "R1", lambda ep, nn, bk: _apply_r1(ep, nn, bk, ambiguous)
+            ):
                 changed = True
-            if "R2" in self.rules and _apply_r2(endpoints, n, background):
+            if "R2" in self.rules and _apply("R2", _apply_r2):
                 changed = True
-            if "R3" in self.rules and _apply_r3(endpoints, n, background):
+            if "R3" in self.rules and _apply("R3", _apply_r3):
                 changed = True
-            if "R4" in self.rules and _apply_r4(endpoints, n, background):
+            if "R4" in self.rules and _apply("R4", _apply_r4):
                 changed = True
             if not changed:
                 break
@@ -127,8 +201,17 @@ def _try_orient(
     return True
 
 
-def _apply_r1(endpoints: np.ndarray, n: int, bk: BackgroundKnowledge | None) -> bool:
-    """R1: a → b — c, a not adjacent c ⟹ b → c."""
+def _apply_r1(
+    endpoints: np.ndarray,
+    n: int,
+    bk: BackgroundKnowledge | None,
+    ambiguous: frozenset[tuple[int, int, int]] = frozenset(),
+) -> bool:
+    """R1: a → b — c, a not adjacent c ⟹ b → c.
+
+    Skips the unshielded triple ⟨a, b, c⟩ when it is marked ambiguous (majority/conservative collider
+    phase): an ambiguous triple is not trustworthy evidence about whether b is a collider.
+    """
     changed = False
     for a in range(n):
         for b in range(n):
@@ -140,6 +223,9 @@ def _apply_r1(endpoints: np.ndarray, n: int, bk: BackgroundKnowledge | None) -> 
                 if not _is_undirected(endpoints, b, c):
                     continue
                 if _adjacent(endpoints, a, c):
+                    continue
+                triple = (a, b, c) if a < c else (c, b, a)
+                if triple in ambiguous:
                     continue
                 if _try_orient(endpoints, b, c, bk):
                     changed = True
@@ -238,6 +324,7 @@ class PAGRules(Protocol):
         *,
         background: BackgroundKnowledge | None = None,
         max_iterations: int | None = None,
+        recorder: RunRecorder | None = None,
     ) -> PAG: ...
 
 
@@ -271,10 +358,22 @@ class FCIRules:
         *,
         background: BackgroundKnowledge | None = None,
         max_iterations: int | None = None,
+        recorder: RunRecorder | None = None,
     ) -> PAG:
         endpoints = graph.endpoints.copy()
         n = graph.n_vars
         sepsets = graph.sepsets if graph.sepsets is not None else {}
+        rec = _resolve_recorder(recorder)
+        track = not isinstance(rec, NullRecorder)
+
+        def _apply(name, fn):
+            if not track:
+                return fn()
+            before = endpoints.copy()
+            fired = fn()
+            if fired:
+                _record_edge_diffs(rec, "fci", name, before, endpoints, n)
+            return fired
 
         if background is not None:
             for u, v in background.required_directed:
@@ -290,25 +389,29 @@ class FCIRules:
             if max_iterations is not None and iteration >= max_iterations:
                 break
             changed = False
-            if "R1" in self.rules and _apply_zhang_r1(endpoints, n, background):
+            if "R1" in self.rules and _apply("R1", lambda: _apply_zhang_r1(endpoints, n, background)):
                 changed = True
-            if "R2" in self.rules and _apply_zhang_r2(endpoints, n, background):
+            if "R2" in self.rules and _apply("R2", lambda: _apply_zhang_r2(endpoints, n, background)):
                 changed = True
-            if "R3" in self.rules and _apply_zhang_r3(endpoints, n, background):
+            if "R3" in self.rules and _apply("R3", lambda: _apply_zhang_r3(endpoints, n, background)):
                 changed = True
-            if "R4" in self.rules and _apply_zhang_r4(endpoints, n, sepsets, background):
+            if "R4" in self.rules and _apply(
+                "R4", lambda: _apply_zhang_r4(endpoints, n, sepsets, background)
+            ):
                 changed = True
-            if "R5" in self.rules and _apply_zhang_r5(endpoints, n, background):
+            if "R5" in self.rules and _apply("R5", lambda: _apply_zhang_r5(endpoints, n, background)):
                 changed = True
-            if "R6" in self.rules and _apply_zhang_r6(endpoints, n, background):
+            if "R6" in self.rules and _apply("R6", lambda: _apply_zhang_r6(endpoints, n, background)):
                 changed = True
-            if "R7" in self.rules and _apply_zhang_r7(endpoints, n, background):
+            if "R7" in self.rules and _apply("R7", lambda: _apply_zhang_r7(endpoints, n, background)):
                 changed = True
-            if "R8" in self.rules and _apply_zhang_r8(endpoints, n, background):
+            if "R8" in self.rules and _apply("R8", lambda: _apply_zhang_r8(endpoints, n, background)):
                 changed = True
-            if "R9" in self.rules and _apply_zhang_r9(endpoints, n, background):
+            if "R9" in self.rules and _apply("R9", lambda: _apply_zhang_r9(endpoints, n, background)):
                 changed = True
-            if "R10" in self.rules and _apply_zhang_r10(endpoints, n, background):
+            if "R10" in self.rules and _apply(
+                "R10", lambda: _apply_zhang_r10(endpoints, n, background)
+            ):
                 changed = True
             if not changed:
                 break

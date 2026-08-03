@@ -218,6 +218,75 @@ class ParCorr:
         )
 
 
+class WindowedCITest:
+    """Lift any i.i.d. ``cbcd.CITest`` onto the lagged (sliding-window) design.
+
+    The generic counterpart of :class:`ParCorr`: instead of hard-coding the Fisher-Z
+    statistic it builds the same ``(T - max_lag, n_vars * (max_lag + 1))`` lagged design
+    once, constructs an i.i.d. CI test on that wide matrix via ``iid_factory``, and maps
+    each ``LaggedVar(var, lag)`` to design column ``(-lag) * n_vars + var`` before
+    delegating. Any object satisfying the ``cbcd.CITest`` Protocol works as the inner
+    test -- in particular every ``citests`` test -- so a time-series algorithm becomes
+    CI-test-agnostic *across the package boundary with no cross-package import*: the
+    caller injects the factory (e.g. ``lambda m: citests.FisherZ(m)`` or a kernel /
+    regression / beyond-mean test), and cbcd never imports ``citests``.
+
+    ``WindowedCITest(dataset, FisherZ)`` reproduces :class:`ParCorr` numerically; ParCorr
+    is kept as the fused fast path for the linear-Gaussian default.
+    """
+
+    n_vars: int
+    max_lag: int
+
+    def __init__(
+        self,
+        dataset: LaggedDataset,
+        iid_factory: Callable[[NDArray[np.float64]], object],
+    ) -> None:
+        self.n_vars = dataset.n_vars
+        self.max_lag = dataset.max_lag
+        T = dataset.n_samples
+        ml = dataset.max_lag
+        n_eff = T - ml
+        if n_eff < 4:
+            raise CBCDDataError(
+                f"WindowedCITest needs at least 4 effective samples (T - max_lag); "
+                f"got T={T}, max_lag={ml}, T-max_lag={n_eff}"
+            )
+        n_design = self.n_vars * (ml + 1)
+        design = np.empty((n_eff, n_design), dtype=np.float64)
+        for tau in range(ml + 1):
+            design[:, tau * self.n_vars : (tau + 1) * self.n_vars] = dataset.data[ml - tau : T - tau, :]
+        inner = iid_factory(design)
+        if getattr(inner, "n_vars", None) != n_design:
+            raise CBCDInputError(
+                f"iid_factory produced a test with n_vars={getattr(inner, 'n_vars', None)}; "
+                f"expected the lagged design width {n_design}"
+            )
+        self._inner = inner
+        self._n_effective = n_eff
+
+    def _col(self, lv: LaggedVar) -> int:
+        tau = -lv.lag
+        if not (0 <= tau <= self.max_lag):
+            raise CBCDInputError(f"LaggedVar {lv} has lag outside [-max_lag={self.max_lag}, 0]")
+        if not (0 <= lv.var < self.n_vars):
+            raise CBCDInputError(f"LaggedVar {lv} has var outside [0, n_vars={self.n_vars})")
+        return tau * self.n_vars + lv.var
+
+    def __call__(self, x: LaggedVar, y: LaggedVar, S: Sequence[LaggedVar]) -> float:
+        return self._inner(self._col(x), self._col(y), [self._col(z) for z in S])
+
+    def details(self, x: LaggedVar, y: LaggedVar, S: Sequence[LaggedVar]) -> LaggedCITestResult:
+        r = self._inner.details(self._col(x), self._col(y), [self._col(z) for z in S])
+        return LaggedCITestResult(
+            p_value=float(r.p_value),
+            statistic=getattr(r, "statistic", None),
+            df=getattr(r, "df", None),
+            n_effective=getattr(r, "n_effective", None) or self._n_effective,
+        )
+
+
 # --- factory + registry ---------------------------------------------------
 
 

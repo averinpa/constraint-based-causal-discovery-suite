@@ -33,6 +33,13 @@ class LaggedVar:
         return self.lag == 0
 
 
+def lagged_node_id(lv: LaggedVar, max_lag: int) -> int:
+    """Flatten a lagged variable ``(var, lag)`` to a unique node index for the RunRecorder's integer
+    contract: ``var * (max_lag + 1) + (-lag)``, so the lagged grid maps into ``[0, n_vars*(max_lag+1))``.
+    Decode with ``var = id // (max_lag + 1)``, ``lag = -(id % (max_lag + 1))``."""
+    return lv.var * (max_lag + 1) + (-lv.lag)
+
+
 @dataclass
 class LaggedDataset:
     """Multivariate stationary time series with a max-lag horizon.

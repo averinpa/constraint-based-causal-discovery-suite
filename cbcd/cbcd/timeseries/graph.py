@@ -29,7 +29,8 @@ from cbcd.exceptions import CBCDInputError
 from cbcd.graph.cpdag import CPDAG
 from cbcd.graph.dag import DAG
 from cbcd.graph.marks import EndpointMark
-from cbcd.timeseries.lagged import LaggedVar
+from cbcd.graph.pag import PAG
+from cbcd.timeseries.lagged import LaggedVar, lagged_node_id
 
 
 @dataclass(frozen=True, slots=True)
@@ -349,6 +350,88 @@ class TimeSeriesCPDAG(_LaggedGraphBase):
 
     def to_contemporaneous_graph(self) -> CPDAG:
         return CPDAG(self.n_vars, self.endpoints[0].copy(), self.var_names)
+
+
+@dataclass(frozen=True)
+class TimeSeriesPAG:
+    """Time-series PAG in *windowed* form — the output type for the latent case (LPCMCI / tsFCI).
+
+    Unlike the compact ``(max_lag+1, n, n)`` TS types, a latent TS-PAG needs BOTH endpoint marks of a
+    lagged edge (``o->``, ``<->``, ``o-o`` across time), which a single mark-at-destination cell
+    cannot store. So it is held as a full ``PAG`` over the *lagged grid* of ``n_series`` variables at
+    lags ``0 .. max_lag``: grid node ``var*(max_lag+1) + (-lag)`` (see ``lagged_node_id``). Reusing
+    ``PAG`` gives mark validation for free and lets the orientation phase run ``FCIRules`` on the grid.
+    """
+
+    n_series: int
+    max_lag: int
+    window: PAG
+    var_names: tuple[str, ...] | None = None
+
+    def __post_init__(self) -> None:
+        if self.n_series < 0:
+            raise CBCDInputError(f"n_series must be >= 0, got {self.n_series}")
+        if self.max_lag < 0:
+            raise CBCDInputError(f"max_lag must be >= 0, got {self.max_lag}")
+        expected = self.n_series * (self.max_lag + 1)
+        if self.window.n_vars != expected:
+            raise CBCDInputError(
+                f"window PAG has {self.window.n_vars} nodes, expected n_series*(max_lag+1)="
+                f"{expected}"
+            )
+        if self.var_names is not None and len(self.var_names) != self.n_series:
+            raise CBCDInputError(
+                f"var_names length {len(self.var_names)} does not match n_series={self.n_series}"
+            )
+
+    @property
+    def grid_size(self) -> int:
+        return self.n_series * (self.max_lag + 1)
+
+    def node_id(self, var: int, lag: int) -> int:
+        """Grid index of the lagged variable ``(var, lag)`` (lag in ``[-max_lag, 0]``)."""
+        if not (0 <= var < self.n_series):
+            raise CBCDInputError(f"var must be in [0, {self.n_series}); got {var}")
+        if not (-self.max_lag <= lag <= 0):
+            raise CBCDInputError(f"lag must be in [-{self.max_lag}, 0]; got {lag}")
+        return lagged_node_id(LaggedVar(var, lag), self.max_lag)
+
+    def decode(self, node: int) -> LaggedVar:
+        """Inverse of ``node_id``: grid index -> ``LaggedVar(var, lag)``."""
+        if not (0 <= node < self.grid_size):
+            raise CBCDInputError(f"node must be in [0, {self.grid_size}); got {node}")
+        var, rem = divmod(int(node), self.max_lag + 1)
+        return LaggedVar(var, -rem)
+
+    def edges(self) -> tuple[LaggedEdge, ...]:
+        """All edges in the window, each reported once as a ``LaggedEdge`` with both marks, anchored
+        so ``src`` is the temporally earlier endpoint (past -> present; tie-broken by variable)."""
+        ep = self.window.endpoints
+        out: list[LaggedEdge] = []
+        for a in range(self.grid_size):
+            for b in range(a + 1, self.grid_size):
+                if ep[a, b] == EndpointMark.NO_EDGE:
+                    continue
+                va, vb = self.decode(a), self.decode(b)
+                if (va.lag, va.var) <= (vb.lag, vb.var):
+                    s_id, d_id, s_v, d_v = a, b, va, vb
+                else:
+                    s_id, d_id, s_v, d_v = b, a, vb, va
+                out.append(
+                    LaggedEdge(
+                        src=s_v,
+                        dst=d_v,
+                        mark_at_src=EndpointMark(int(ep[d_id, s_id])),
+                        mark_at_dst=EndpointMark(int(ep[s_id, d_id])),
+                    )
+                )
+        return tuple(out)
+
+    def present_edges(self) -> tuple[LaggedEdge, ...]:
+        """Present-anchored edges only — the later endpoint at lag 0. This is the canonical,
+        non-redundant windowed view (the standard ``graph[i, j, tau]`` present-anchored convention):
+        it drops the lag-shifted mirror copies that stationarity makes redundant."""
+        return tuple(e for e in self.edges() if e.dst.lag == 0)
 
 
 class PartialTimeSeriesCPDAG(_LaggedGraphBase):

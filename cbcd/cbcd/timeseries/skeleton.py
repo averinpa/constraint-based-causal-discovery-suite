@@ -9,12 +9,14 @@ p = stronger evidence of dependence = higher priority as a conditioner).
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Protocol
 
 from cbcd.exceptions import CBCDInputError
+from cbcd.recording import RunRecorder, _resolve_recorder
 from cbcd.timeseries.citest import LaggedCITest
-from cbcd.timeseries.lagged import LaggedBackgroundKnowledge, LaggedVar
+from cbcd.timeseries.lagged import LaggedBackgroundKnowledge, LaggedVar, lagged_node_id
 
 
 @dataclass
@@ -40,6 +42,7 @@ class LaggedSkeletonAlgorithm(Protocol):
         alpha: float,
         max_cond_set: int | None = None,
         background: LaggedBackgroundKnowledge | None = None,
+        recorder: RunRecorder | None = None,
         n_jobs: int = 1,
     ) -> LaggedSkeleton: ...
 
@@ -70,16 +73,24 @@ class PC1Skeleton:
         alpha: float,
         max_cond_set: int | None = None,
         background: LaggedBackgroundKnowledge | None = None,
+        recorder: RunRecorder | None = None,
         n_jobs: int = 1,
+        variables: Sequence[int] | None = None,
     ) -> LaggedSkeleton:
         if n_jobs != 1:
             raise CBCDInputError("n_jobs != 1 not yet implemented in this slice; pass n_jobs=1")
+        rec = _resolve_recorder(recorder)
+        is_cached = getattr(ci, "is_cached", None)
         n = ci.n_vars
         max_lag = ci.max_lag
+        # ``variables`` restricts which targets get a parent set — locality for the local-temporal
+        # caller (only region series), which still scans the full candidate-parent pool so each
+        # estimated parent set is complete (a superset that keeps the downstream MCI test sound).
+        targets = range(n) if variables is None else variables
         parents: dict[LaggedVar, frozenset[LaggedVar]] = {}
         sepsets: dict[frozenset[LaggedVar], tuple[LaggedVar, ...]] = {}
 
-        for target_var in range(n):
+        for target_var in targets:
             target = LaggedVar(target_var, 0)
             # Initial candidate parents: all (X, -τ) for τ ∈ [1, max_lag],
             # filtered by background knowledge.
@@ -116,7 +127,16 @@ class PC1Skeleton:
                         # Cannot form a size-`depth` conditioning set without z.
                         continue
                     S = tuple(pool[:depth])
+                    was_hit = bool(is_cached(z, target, S)) if is_cached is not None else False
                     p = ci(z, target, S)
+                    rec.record_ci(
+                        x=lagged_node_id(z, max_lag),
+                        y=lagged_node_id(target, max_lag),
+                        S=tuple(lagged_node_id(s, max_lag) for s in S),
+                        p_value=p,
+                        depth=depth,
+                        was_cache_hit=was_hit,
+                    )
                     if p > pval_max[z]:
                         pval_max[z] = p
                     if p > alpha:

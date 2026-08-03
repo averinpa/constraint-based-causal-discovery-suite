@@ -72,3 +72,9 @@ uv.lock
 
 # macOS
 .DS_Store
+
+# Stray experiment outputs written to the repo root by ad-hoc runs (not library data)
+/*.csv
+
+# Paper-3 experiment scripts that ran here with cwd=cbcd; they belong with the paper, not the library
+/experiments/

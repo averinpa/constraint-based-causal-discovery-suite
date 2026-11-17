@@ -44,89 +44,28 @@ import pandas as pd
 from numpy.typing import NDArray
 
 from cbcd._run import iid_run
+from cbcd.algorithms._sequential import (
+    ARROW,
+    CIRCLE,
+    NO_EDGE,
+    collider_at,
+    harvest,
+    local_learn,
+    settled_subgraph,
+    unshielded,
+)
 from cbcd.background import BackgroundKnowledge
 from cbcd.citest.protocol import CITest
-from cbcd.collider import SepsetOrienter
 from cbcd.exceptions import CBCDInputError
-from cbcd.graph.marks import EndpointMark
 from cbcd.graph.pag import PAG, PartialPAG
 from cbcd.mb import total_conditioning
 from cbcd.recording import RunRecorder
-from cbcd.refinement import PossibleDSepRefinement
 from cbcd.rules import FCIRules
-from cbcd.skeleton import PCStable, Skeleton
-
-NO_EDGE = int(EndpointMark.NO_EDGE)
-ARROW = int(EndpointMark.ARROW)
-TAIL = int(EndpointMark.TAIL)
-CIRCLE = int(EndpointMark.CIRCLE)
 
 MBLearner = Callable[..., "frozenset[int]"]
 
 
-# --------------------------------------------------------------- LocalLearn
-def _local_learn(
-    ci: CITest,
-    region: Sequence[int],
-    *,
-    alpha: float,
-    max_cond_set: int | None,
-    background: BackgroundKnowledge | None,
-    n_vars: int,
-    names: tuple[str, ...] | None,
-    rec: RunRecorder,
-) -> PartialPAG:
-    """FCI over ``region`` only, which is LoCaLS's ``LocalLearn``.
-
-    The same two-pass composition ``cbcd.fci`` uses — skeleton, colliders, Possible-D-Sep
-    refinement, re-run colliders on the refined skeleton, rule closure — with ``PCStable``
-    restricted to the region. Vertices outside it stay isolated, so the returned graph is
-    ``n_vars`` wide and index positions are preserved throughout.
-    """
-    skel = PCStable()(
-        ci,
-        alpha=alpha,
-        max_cond_set=max_cond_set,
-        background=background,
-        variables=list(region),
-        recorder=rec,
-    )
-    coll = SepsetOrienter()
-    partial = coll(skel, ci, alpha=alpha, background=background, recorder=rec).apply_to_pag(
-        skel, var_names=names
-    )
-    partial = PossibleDSepRefinement()(
-        partial, ci, alpha=alpha, max_cond_set=max_cond_set, recorder=rec
-    )
-    # Refinement can delete edges, which changes which triples are unshielded, so the collider
-    # classification from before it is stale (the D13 two-pass shape, as in fci()).
-    refined = Skeleton(
-        n_vars=partial.n_vars,
-        adj=(partial.endpoints != NO_EDGE).astype(bool),
-        sepsets=partial.sepsets if partial.sepsets is not None else {},
-        pvalues_max=None,
-    )
-    partial = coll(refined, ci, alpha=alpha, background=background, recorder=rec).apply_to_pag(
-        refined, var_names=names
-    )
-    closed = FCIRules()(partial, background=background, recorder=rec)
-    return PartialPAG(
-        n_vars=n_vars,
-        endpoints=np.asarray(closed.endpoints, dtype=np.int8),
-        var_names=names,
-        sepsets=closed.sepsets,
-    )
-
-
 # ------------------------------------------------------- PreserveConsistentInfo
-def _unshielded(ep: NDArray[np.int8], a: int, b: int, c: int) -> bool:
-    return ep[a, c] == NO_EDGE and ep[c, a] == NO_EDGE
-
-
-def _collider_at(ep: NDArray[np.int8], a: int, m: int, b: int) -> bool:
-    return ep[a, m] == ARROW and ep[b, m] == ARROW
-
-
 def _uncovered_collider_paths(ep: NDArray[np.int8], x: int, blanket: frozenset[int]):
     """Every uncovered collider path ``X *-> V1 <-> ... <-* Vi`` out of ``x`` (Theorem 2).
 
@@ -144,7 +83,7 @@ def _uncovered_collider_paths(ep: NDArray[np.int8], x: int, blanket: frozenset[i
         for nxt in range(n):
             if nxt in path or nxt not in blanket or ep[last, nxt] == NO_EDGE:
                 continue
-            if _collider_at(ep, prev, last, nxt) and _unshielded(ep, prev, nxt, last):
+            if collider_at(ep, prev, last, nxt) and unshielded(ep, prev, nxt, last):
                 stack.append([*path, nxt])
 
 
@@ -167,12 +106,18 @@ def _preserve_consistent_info(
             out[x, v] = out[v, x] = NO_EDGE
 
     def commit(i: int, j: int, mark: int) -> None:
-        """Write a certified mark, creating the edge if the local graph has one."""
+        """Write a certified mark, creating the edge if the local graph has one.
+
+        A circle never overwrites a committed mark. A later region can be silent about an
+        endpoint an earlier one settled, and silence is not evidence. The authors' code does the
+        same by passing ``None`` instead of a circle when it merges a region in.
+        """
         if local[i, j] == NO_EDGE:
             return
         if out[i, j] == NO_EDGE:
             out[i, j] = out[j, i] = CIRCLE
-        out[i, j] = mark
+        if mark != CIRCLE:
+            out[i, j] = mark
 
     # Theorem 2 — uncovered collider paths out of X carry their marks across.
     for path in _uncovered_collider_paths(local, x, blanket):
@@ -183,7 +128,7 @@ def _preserve_consistent_info(
     # Theorem 3 — an unshielded collider with X in the middle is a true one.
     nbrs = [v for v in range(local.shape[0]) if local[x, v] != NO_EDGE]
     for a, b in itertools.combinations(sorted(nbrs), 2):
-        if _unshielded(local, a, b, x) and _collider_at(local, a, x, b):
+        if unshielded(local, a, b, x) and collider_at(local, a, x, b):
             commit(a, x, ARROW)
             commit(b, x, ARROW)
 
@@ -227,35 +172,6 @@ def _update_waitlist(ep: NDArray[np.int8], target: int, done: set[int]) -> list[
         and any(ep[v, w] != NO_EDGE for w in range(n))
         and _potentially_anterior(ep, v, target)
     ]
-
-
-def _settled_subgraph(keep: NDArray[np.int8], done: set[int], n: int) -> NDArray[np.int8]:
-    """Induced subgraph on the processed vertices, the only graph the rules are sound on.
-
-    A missing edge anywhere else in ``keep`` is an unexamined pair, not a nonadjacency, and
-    every Zhang rule needs a real one. Running them over all of ``keep`` gave 50 of 140 target
-    marks wrong at an oracle, here 0. Corollary 1 settles adjacency at a processed vertex, so
-    between two of them absence is proved.
-
-    PAPER vs CODE. Algorithm 1 says only ``OrientPAG(P_hat, Sepsets)``. The authors' own
-    implementation gates every rule on a recorded separating set, which the paper never says.
-    """
-    out = np.full((n, n), NO_EDGE, dtype=np.int8)
-    for i in sorted(done):
-        for j in sorted(done):
-            if i != j:
-                out[i, j] = keep[i, j]
-    return out
-
-
-def _harvest(keep: NDArray[np.int8], closed: NDArray[np.int8], done: set[int]) -> NDArray[np.int8]:
-    """Take rule-derived marks back, on settled edges only."""
-    out = keep.copy()
-    for i in sorted(done):
-        for j in sorted(done):
-            if i != j and out[i, j] != NO_EDGE:
-                out[i, j] = closed[i, j]
-    return out
 
 
 def _target_marks_decided(ep: NDArray[np.int8], target: int) -> bool:
@@ -334,7 +250,7 @@ def locals_(
             region = sorted(set(blanket) | {x})
             ctx.rec.record_region(target=x, region=region, boundary=sorted(blanket))
 
-            local = _local_learn(
+            local = local_learn(
                 ctx.ci,
                 region,
                 alpha=alpha,
@@ -359,7 +275,7 @@ def locals_(
                 FCIRules()(
                     PartialPAG(
                         n_vars=ctx.n_vars,
-                        endpoints=_settled_subgraph(keep, done, ctx.n_vars),
+                        endpoints=settled_subgraph(keep, done, ctx.n_vars),
                         var_names=ctx.names,
                         sepsets=sepsets,
                     ),
@@ -368,7 +284,7 @@ def locals_(
                 ).endpoints,
                 dtype=np.int8,
             )
-            keep = _harvest(keep, closed, done)
+            keep = harvest(keep, closed, done)
             rounds += 1
             if _target_marks_decided(keep, t):  # R1
                 break

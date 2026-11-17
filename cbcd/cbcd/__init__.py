@@ -8,6 +8,7 @@ from cbcd.algorithms import (
     lmarvel,
     locals_,
     marvel,
+    mmb_by_mmb,
     pc,
     rfci,
 )
@@ -109,6 +110,7 @@ __all__ = [
     "lagged_run",
     "lmarvel",
     "locals_",
+    "mmb_by_mmb",
     "load_run",
     "marvel",
     "lpcmci",

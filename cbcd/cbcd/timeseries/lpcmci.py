@@ -186,7 +186,9 @@ def mci_skeleton(
                 for tau in range(1, lag + 1):  # lagged links only
                     cand = LaggedVar(x_var, -tau)
                     cond = _mci_cond_set(parents, cand, target, lag)
-                    was_hit = bool(is_cached(cand, target, cond)) if is_cached is not None else False
+                    was_hit = (
+                        bool(is_cached(cand, target, cond)) if is_cached is not None else False
+                    )
                     p = float(cached(cand, target, cond))
                     ctx.rec.record_ci(
                         x=nid(x_var, -tau),
@@ -195,6 +197,7 @@ def mci_skeleton(
                         p_value=p,
                         depth=len(cond),
                         was_cache_hit=was_hit,
+                        phase="lpcmci",
                     )
                     if p <= alpha:
                         a, b = nid(x_var, -tau), nid(y_var, 0)
@@ -292,9 +295,7 @@ def lpcmci(
     return ctx.result
 
 
-def _apply_background_forbidden(
-    g: LPCMCIPAG, background: LaggedBackgroundKnowledge | None
-) -> None:
+def _apply_background_forbidden(g: LPCMCIPAG, background: LaggedBackgroundKnowledge | None) -> None:
     """Honour ``no_contemporaneous`` (remove that adjacency) as background. Time order is already
     enforced structurally (lagged edges carry a head at the present end)."""
     if background is None:
@@ -302,7 +303,9 @@ def _apply_background_forbidden(
     for i in range(g.n):
         for j in range(i + 1, g.n):
             a, b = grid_id(i, 0, g.max_lag), grid_id(j, 0, g.max_lag)
-            if g.edge_exists(a, b) and background.is_forbidden_lagged(
-                LaggedVar(i, 0), LaggedVar(j, 0)
-            ) and background.is_forbidden_lagged(LaggedVar(j, 0), LaggedVar(i, 0)):
+            if (
+                g.edge_exists(a, b)
+                and background.is_forbidden_lagged(LaggedVar(i, 0), LaggedVar(j, 0))
+                and background.is_forbidden_lagged(LaggedVar(j, 0), LaggedVar(i, 0))
+            ):
                 g.remove_edge(a, b)

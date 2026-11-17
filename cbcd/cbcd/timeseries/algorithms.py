@@ -77,7 +77,9 @@ def pcmci(
     ) as ctx:
         n, max_lag, cached = ctx.n_series, ctx.max_lag, ctx.ci
         skel_algo = skeleton if skeleton is not None else PC1Skeleton()
-        skel = skel_algo(cached, alpha=pc_alpha, background=background, recorder=ctx.rec, n_jobs=n_jobs)
+        skel = skel_algo(
+            cached, alpha=pc_alpha, background=background, recorder=ctx.rec, n_jobs=n_jobs
+        )
 
         endpoints = np.zeros((max_lag + 1, n, n), dtype=np.int8)
 
@@ -109,6 +111,7 @@ def pcmci(
                         p_value=p,
                         depth=len(S_sorted),
                         was_cache_hit=was_hit,
+                        phase="ts_skeleton",
                     )
                     if p <= alpha:
                         endpoints[tau, x_var, y_var] = EndpointMark.ARROW
@@ -196,6 +199,7 @@ class _MCICITest:
             p_value=p,
             depth=len(Z),
             was_cache_hit=was_hit,
+            phase="ts_skeleton",
         )
         return p
 
@@ -271,9 +275,7 @@ def _pcmci_plus_apply_colliders(
             directed.add((endpoint, z))
 
 
-def _grid_to_ts_endpoints(
-    grid_ep: NDArray[np.int8], n: int, max_lag: int
-) -> NDArray[np.int8]:
+def _grid_to_ts_endpoints(grid_ep: NDArray[np.int8], n: int, max_lag: int) -> NDArray[np.int8]:
     """Project the oriented lagged-grid endpoint matrix onto the ``(max_lag+1, n, n)``
     ``TimeSeriesCPDAG`` layout (present-anchored edges only)."""
     ep = np.zeros((max_lag + 1, n, n), dtype=np.int8)
@@ -409,9 +411,7 @@ def pcmci_plus(
 
         # Phase 3b — Meek R1–R3 closure on the grid (cbcd's shared MeekRules), lagged edges fixed.
         # Ambiguous triples are carried on the PartialCPDAG so R1 does not treat them as evidence.
-        partial = PartialCPDAG(
-            n_vars=grid_n, endpoints=ep, ambiguous_triples=decisions.ambiguous
-        )
+        partial = PartialCPDAG(n_vars=grid_n, endpoints=ep, ambiguous_triples=decisions.ambiguous)
         grid_cpdag = MeekRules(rules=frozenset({"R1", "R2", "R3"}))(partial, recorder=rec)
         grid_ep = grid_cpdag.endpoints.copy()
 

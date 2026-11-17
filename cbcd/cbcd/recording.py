@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any, Protocol, TextIO, runtime_checkable
 if TYPE_CHECKING:  # pragma: no cover - typing only
     import pandas as pd
 
-_TABLES = ("runs", "ci_tests", "colliders", "rules", "regions")
+_TABLES = ("runs", "ci_tests", "adjacency", "colliders", "rules", "regions")
 
 
 @runtime_checkable
@@ -57,6 +57,20 @@ class RunRecorder(Protocol):
         p_value: float,
         depth: int,
         was_cache_hit: bool,
+        phase: str | None = None,
+        statistic: float | None = None,
+        n_effective: int | None = None,
+    ) -> None: ...
+
+    def record_adjacency(
+        self,
+        *,
+        x: int,
+        y: int,
+        decision: str,
+        depth: int,
+        sepset: tuple[int, ...] | None = None,
+        phase: str | None = None,
     ) -> None: ...
 
     def record_collider(
@@ -95,6 +109,9 @@ class NullRecorder:
     def record_ci(self, **_: Any) -> None:
         return
 
+    def record_adjacency(self, **_: Any) -> None:
+        return
+
     def record_collider(self, **_: Any) -> None:
         return
 
@@ -119,6 +136,7 @@ class _BaseRecorder:
         self._n_ci = 0
         self._n_unique = 0
         self._n_cache = 0
+        self._n_adj = 0
         self._max_depth = 0
         self._seen: set[tuple[int, int, frozenset[int]]] = set()
         self._region: set[int] = set()
@@ -178,10 +196,25 @@ class _BaseRecorder:
         p_value: float,
         depth: int,
         was_cache_hit: bool,
+        phase: str | None = None,
+        statistic: float | None = None,
+        n_effective: int | None = None,
     ) -> None:
+        """One conditional independence decision.
+
+        ``phase`` names the step that asked, so an error can be attributed to blanket growth,
+        skeleton search, Possible-D-Sep refinement or a rule check rather than to the run as a
+        whole. ``key`` is the canonical (pair, conditioning set) identity, which is what lets the
+        same question be joined across phases, across runs and across algorithms.
+
+        There is deliberately no truth column. Whether a decision was right is a property of the
+        decision *and* a reference graph, so it belongs in a separate table written by a later
+        labelling pass, and a run on data with no known graph simply has no such table.
+        """
         self._n_ci += 1
         a, b = (int(x), int(y)) if int(x) <= int(y) else (int(y), int(x))
-        key = (a, b, frozenset(int(s) for s in S))  # unordered pair, matching the CI cache
+        cond = tuple(sorted(int(s) for s in S))
+        key = (a, b, frozenset(cond))  # unordered pair, matching the CI cache
         if key not in self._seen:
             self._seen.add(key)
             self._n_unique += 1
@@ -194,12 +227,52 @@ class _BaseRecorder:
             {
                 "run_id": self._run_id,
                 "seq": self._next(),
+                "key": f"{a}|{b}|{','.join(str(c) for c in cond)}",
+                "phase": phase,
                 "x": int(x),
                 "y": int(y),
                 "S": [int(s) for s in S],
                 "depth": int(depth),
                 "p_value": float(p_value),
+                "statistic": None if statistic is None else float(statistic),
+                "n_effective": None if n_effective is None else int(n_effective),
                 "was_cache_hit": bool(was_cache_hit),
+                "ts_ns": self._rel_ns(),
+            },
+        )
+
+    def record_adjacency(
+        self,
+        *,
+        x: int,
+        y: int,
+        decision: str,
+        depth: int,
+        sepset: tuple[int, ...] | None = None,
+        phase: str | None = None,
+    ) -> None:
+        """What a search concluded about one pair, and what justified it.
+
+        ``decision`` is ``"deleted"`` or ``"survived"``. Orientation events already have tables
+        (``colliders``, ``rules``); adjacency did not, and a wrongly deleted or wrongly kept edge
+        is where most of the damage in these algorithms starts, with orientation errors following
+        as consequences. The ``seq`` here is monotonic with ``ci_tests``, so the deciding test is
+        the one immediately before it on the same pair.
+        """
+        a, b = (int(x), int(y)) if int(x) <= int(y) else (int(y), int(x))
+        self._n_adj += 1
+        self._emit(
+            "adjacency",
+            {
+                "run_id": self._run_id,
+                "seq": self._next(),
+                "key": f"{a}|{b}",
+                "phase": phase,
+                "x": a,
+                "y": b,
+                "decision": str(decision),
+                "depth": int(depth),
+                "sepset": None if sepset is None else [int(s) for s in sepset],
                 "ts_ns": self._rel_ns(),
             },
         )
@@ -280,6 +353,7 @@ class _BaseRecorder:
                 "n_ci_total": self._n_ci,
                 "n_ci_unique": self._n_unique,
                 "n_cache_hits": self._n_cache,
+                "n_adjacency_decisions": self._n_adj,
                 "redundancy": (1.0 - self._n_unique / self._n_ci) if self._n_ci else 0.0,
                 "max_depth": self._max_depth,
                 "region_size": len(self._region) if self._region else None,
@@ -294,6 +368,7 @@ class _BaseRecorder:
             "n_ci_total": self._n_ci,
             "n_ci_unique": self._n_unique,
             "n_cache_hits": self._n_cache,
+            "n_adjacency_decisions": self._n_adj,
             "redundancy": (1.0 - self._n_unique / self._n_ci) if self._n_ci else 0.0,
             "max_depth": self._max_depth,
             "region_size": len(self._region) if self._region else None,

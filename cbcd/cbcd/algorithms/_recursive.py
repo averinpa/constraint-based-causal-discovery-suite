@@ -46,7 +46,13 @@ class _CI:
         hit = bool(self._is_cached(x, y, s)) if self._is_cached is not None else False
         p = float(self._ci(x, y, s))
         self._rec.record_ci(
-            x=int(x), y=int(y), S=tuple(s), p_value=p, depth=len(s), was_cache_hit=hit
+            x=int(x),
+            y=int(y),
+            S=tuple(s),
+            p_value=p,
+            depth=len(s),
+            was_cache_hit=hit,
+            phase="recursive_elimination",
         )
         return p > self._alpha
 
@@ -121,7 +127,14 @@ def recursive_skeleton(
     *,
     analyze: Callable[[int, set[int], _CI], EliminationInfo],
     update_mb: Callable[
-        [int, EliminationInfo, dict[int, set[int]], dict[frozenset[int], tuple[int, ...]], set[int], _CI],
+        [
+            int,
+            EliminationInfo,
+            dict[int, set[int]],
+            dict[frozenset[int], tuple[int, ...]],
+            set[int],
+            _CI,
+        ],
         set[int],
     ],
     init_sepsets: dict[frozenset[int], tuple[int, ...]] | None = None,

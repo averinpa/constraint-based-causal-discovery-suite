@@ -191,3 +191,51 @@ def test_pcmci_run_populates_recorder() -> None:
     # node ids are lagged-grid encoded: within [0, n_series * (max_lag + 1))
     assert (frames["ci_tests"]["x"] < 2 * (max_lag + 1)).all()
     assert (frames["ci_tests"]["depth"] >= 0).all()
+
+
+# --------------------------------------------------- decision forensics columns
+def test_every_ci_row_carries_a_phase_and_a_join_key() -> None:
+    """Attribution needs to know which step asked, and cross-arm comparison needs the same
+    question to have the same identity in both runs. Without these two columns the ci_tests
+    table says how many decisions were made but not by whom or about what."""
+    import numpy as np
+
+    from cbcd import InMemoryRecorder, fci
+    from cbcd.graph.dag import DAG
+    from tests.oracle import DSeparationOracle
+
+    dag = DAG.from_directed_edges(5, [(0, 2), (1, 2), (2, 3), (3, 4)])
+    rec = InMemoryRecorder()
+    fci(np.zeros((5, 5)), ci_test=DSeparationOracle(dag), alpha=0.5, recorder=rec)
+    rows = rec.tables["ci_tests"]
+    assert rows
+    assert all(r["phase"] for r in rows), "a CI decision was logged with no phase"
+    assert {"skeleton", "pdsep_refinement"} & {r["phase"] for r in rows}
+    # the key is canonical: same pair and conditioning set, whatever order they arrived in
+    assert all(r["key"] for r in rows)
+    probe = rec.tables["ci_tests"][0]
+    lo, hi = sorted((probe["x"], probe["y"]))
+    assert probe["key"].startswith(f"{lo}|{hi}|")
+
+
+def test_adjacency_decisions_are_recorded_with_their_witness() -> None:
+    """Orientation events had tables; adjacency did not, and a wrongly deleted or wrongly kept
+    edge is where most of the damage starts. Every deletion must carry the separating set that
+    justified it, and surviving edges must be logged too, or only half the ledger exists."""
+    import numpy as np
+
+    from cbcd import InMemoryRecorder, fci
+    from cbcd.graph.dag import DAG
+    from tests.oracle import DSeparationOracle
+
+    dag = DAG.from_directed_edges(5, [(0, 2), (1, 2), (2, 3), (3, 4)])
+    rec = InMemoryRecorder()
+    fci(np.zeros((5, 5)), ci_test=DSeparationOracle(dag), alpha=0.5, recorder=rec)
+    adj = rec.tables["adjacency"]
+    assert adj, "no adjacency decision was recorded"
+    deleted = [r for r in adj if r["decision"] == "deleted"]
+    survived = [r for r in adj if r["decision"] == "survived"]
+    assert deleted and survived
+    assert all(r["sepset"] is not None for r in deleted), "a deletion with no witness"
+    assert all(r["phase"] for r in adj)
+    assert rec.metrics()["n_adjacency_decisions"] == len(adj)

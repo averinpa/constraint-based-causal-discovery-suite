@@ -95,12 +95,26 @@ class PossibleDSepRefinement:
                     was_hit = bool(is_cached(x, y, list(S))) if is_cached is not None else False
                     p = ci(x, y, list(S))
                     rec.record_ci(
-                        x=x, y=y, S=tuple(S), p_value=p, depth=size, was_cache_hit=was_hit
+                        x=x,
+                        y=y,
+                        S=tuple(S),
+                        p_value=p,
+                        depth=size,
+                        was_cache_hit=was_hit,
+                        phase="pdsep_refinement",
                     )
                     if p > alpha:
                         endpoints[x, y] = EndpointMark.NO_EDGE
                         endpoints[y, x] = EndpointMark.NO_EDGE
                         sepsets[frozenset({x, y})] = tuple(S)
+                        rec.record_adjacency(
+                            x=x,
+                            y=y,
+                            decision="deleted",
+                            depth=size,
+                            sepset=tuple(S),
+                            phase="pdsep_refinement",
+                        )
                         removed = True
                         break
                 if removed:

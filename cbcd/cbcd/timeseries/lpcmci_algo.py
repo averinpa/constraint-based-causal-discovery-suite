@@ -75,6 +75,7 @@ class _CI:
             p_value=p,
             depth=len(cvs),
             was_cache_hit=was_hit,
+            phase="lpcmci",
         )
         return p, abs_i
 
@@ -214,9 +215,7 @@ def _s3_side(
     s_def_1 = _s_def(g, a, b)
     s_def_2 = ever_parents.get(frozenset({a, b}), set())
     napds_t = set(napds(g, target, exclude))
-    search = [
-        c for c in napds_t if c not in s_def_1 and c not in s_def_2 and c not in (a, b)
-    ]
+    search = [c for c in napds_t if c not in s_def_1 and c not in s_def_2 and c not in (a, b)]
     search = order_by_imin(search, target, i_min)
     if len(search) < p:
         return True

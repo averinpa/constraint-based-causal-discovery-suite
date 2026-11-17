@@ -49,8 +49,13 @@ def _tester(ci: CITest, rec: RunRecorder) -> Callable[[int, int, Sequence[int]],
         hit = bool(is_cached(x, y, s)) if is_cached is not None else False
         p = float(ci(x, y, s))
         rec.record_ci(
-            x=int(x), y=int(y), S=tuple(int(c) for c in s),
-            p_value=p, depth=len(s), was_cache_hit=hit,
+            x=int(x),
+            y=int(y),
+            S=tuple(int(c) for c in s),
+            p_value=p,
+            depth=len(s),
+            was_cache_hit=hit,
+            phase="cml_skeleton",
         )
         return p
 
@@ -65,6 +70,7 @@ def _phase2_prune(
     test: Callable[[int, int, Sequence[int]], float],
     alpha: float,
     cap: int | None,
+    rec: RunRecorder,
 ) -> None:
     """Prune every union-skeleton edge (i,j) among ``nodes`` if some subset of ``N1(i)\\{j}`` or
     ``N1(j)\\{i}`` separates them (mutates ``adj`` / ``sepsets`` in place).
@@ -93,12 +99,22 @@ def _phase2_prune(
                         if test(i, j, cond) > alpha:
                             adj[i, j] = adj[j, i] = False
                             sepsets[frozenset({i, j})] = tuple(cond)
+                            rec.record_adjacency(
+                                x=i,
+                                y=j,
+                                decision="deleted",
+                                depth=size,
+                                sepset=tuple(cond),
+                                phase="cml_phase2",
+                            )
                             removed = True
                             break
                     if removed:
                         break
                 if removed:
                     break
+            if not removed and adj[i, j]:
+                rec.record_adjacency(x=i, y=j, decision="survived", depth=0, phase="cml_phase2")
 
 
 def _apply_rn(pag: PAG, in_nbhd: set[frozenset[int]]) -> PAG:
@@ -196,15 +212,19 @@ def cml(
 
         # Phase 1 — union skeleton over O = NB_T (region-scoped PC-stable, conditions on O only).
         skel = PCStable()(
-            ci, alpha=alpha, max_cond_set=max_cond_set, background=background,
-            variables=nb_union, recorder=rec,
+            ci,
+            alpha=alpha,
+            max_cond_set=max_cond_set,
+            background=background,
+            variables=nb_union,
+            recorder=rec,
         )
         adj = skel.adj.copy()
         sepsets = dict(skel.sepsets)
 
         # Phase 2 — prune union-skeleton edges (within- AND between-neighbourhood) using first-order
         # neighbours; the between-neighbourhood pass is what keeps coordinated queries sound.
-        _phase2_prune(adj, sepsets, n1, nb_union, test, alpha, max_cond_set)
+        _phase2_prune(adj, sepsets, n1, nb_union, test, alpha, max_cond_set, rec)
 
         # Orient: v-structures + Zhang rules, then R_N within neighbourhoods.
         pruned = Skeleton(n_vars=ctx.n_vars, adj=adj, sepsets=sepsets, pvalues_max=None)
@@ -215,12 +235,6 @@ def cml(
         partial = decisions.apply_to_pag(pruned, var_names=ctx.names)
         pag = FCIRules()(partial, background=background, recorder=rec)
 
-        in_nbhd = {
-            frozenset({i, j})
-            for nb in nbhds.values()
-            for i in nb
-            for j in nb
-            if i != j
-        }
+        in_nbhd = {frozenset({i, j}) for nb in nbhds.values() for i in nb for j in nb if i != j}
         ctx.result = _apply_rn(pag, in_nbhd)
     return ctx.result

@@ -176,7 +176,7 @@ def _preserve_consistent_info(
 
     # Theorem 2 — uncovered collider paths out of X carry their marks across.
     for path in _uncovered_collider_paths(local, x, blanket):
-        for a, b in zip(path, path[1:]):
+        for a, b in zip(path, path[1:], strict=False):
             commit(a, b, int(local[a, b]))
             commit(b, a, int(local[b, a]))
 
@@ -374,7 +374,5 @@ def locals_(
                 break
             waitlist = _update_waitlist(keep, t, done)  # R2 is this coming back empty
 
-        ctx.result = PAG(
-            n_vars=ctx.n_vars, endpoints=keep, var_names=ctx.names, sepsets=sepsets
-        )
+        ctx.result = PAG(n_vars=ctx.n_vars, endpoints=keep, var_names=ctx.names, sepsets=sepsets)
     return ctx.result

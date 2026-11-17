@@ -42,14 +42,17 @@ class _Tester:
         hit = bool(self._is_cached(x, y, s)) if self._is_cached is not None else False
         val = float(self._ci(x, y, s))
         self._rec.record_ci(
-            x=int(x), y=int(y), S=tuple(int(c) for c in s),
-            p_value=val, depth=len(s), was_cache_hit=hit,
+            x=int(x),
+            y=int(y),
+            S=tuple(int(c) for c in s),
+            p_value=val,
+            depth=len(s),
+            was_cache_hit=hit,
+            phase="blanket",
         )
         return val
 
-    def max_p_over_subsets(
-        self, x: int, t: int, pool: Sequence[int], cap: int | None
-    ) -> float:
+    def max_p_over_subsets(self, x: int, t: int, pool: Sequence[int], cap: int | None) -> float:
         """Largest p over conditioning subsets of ``pool`` (incl. the empty set), up to size ``cap``.
         A value ``> alpha`` means some subset separates ``x`` from ``t``."""
         pool = list(pool)

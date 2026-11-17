@@ -136,6 +136,7 @@ class PC1Skeleton:
                         p_value=p,
                         depth=depth,
                         was_cache_hit=was_hit,
+                        phase="ts_skeleton",
                     )
                     if p > pval_max[z]:
                         pval_max[z] = p

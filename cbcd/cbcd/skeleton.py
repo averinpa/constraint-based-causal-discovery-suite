@@ -140,7 +140,13 @@ class PCStable:
                         was_hit = bool(is_cached(x, y_int, S)) if is_cached is not None else False
                         p = ci(x, y_int, S)
                         rec.record_ci(
-                            x=x, y=y_int, S=S, p_value=p, depth=depth, was_cache_hit=was_hit
+                            x=x,
+                            y=y_int,
+                            S=S,
+                            p_value=p,
+                            depth=depth,
+                            was_cache_hit=was_hit,
+                            phase="skeleton",
                         )
                         if pvalues_max is not None and p > pvalues_max[x, y_int]:
                             pvalues_max[x, y_int] = p
@@ -158,8 +164,20 @@ class PCStable:
                 adj[x, y] = False
                 adj[y, x] = False
                 sepsets[frozenset({x, y})] = sep
+                rec.record_adjacency(
+                    x=x, y=y, decision="deleted", depth=depth, sepset=sep, phase="skeleton"
+                )
 
             if not any_eligible:
+                # Nothing left to test, so whatever is still adjacent survived the whole search.
+                # Logged so the ledger covers kept edges too — a wrongly kept edge is as much a
+                # decision as a wrongly deleted one, and only one of the two leaves a trace
+                # otherwise.
+                for i, j in combinations(active, 2):
+                    if adj[i, j]:
+                        rec.record_adjacency(
+                            x=i, y=j, decision="survived", depth=depth, phase="skeleton"
+                        )
                 break
             depth += 1
 

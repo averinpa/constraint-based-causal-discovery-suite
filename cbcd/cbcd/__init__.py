@@ -6,6 +6,7 @@ from cbcd.algorithms import (
     cml,
     fci,
     lmarvel,
+    locals_,
     marvel,
     pc,
     rfci,
@@ -19,7 +20,7 @@ from cbcd.exceptions import (
     CBCDInputError,
 )
 from cbcd.graph import CPDAG, DAG, MAG, PAG, Edge, EndpointMark, PartialCPDAG, PartialPAG
-from cbcd.mb import grow_shrink, iamb, inter_iamb, mmpc
+from cbcd.mb import grow_shrink, iamb, inter_iamb, mmpc, total_conditioning
 from cbcd.recording import (
     FileRecorder,
     InMemoryRecorder,
@@ -107,10 +108,12 @@ __all__ = [
     "inter_iamb",
     "lagged_run",
     "lmarvel",
+    "locals_",
     "load_run",
     "marvel",
     "lpcmci",
     "mmpc",
+    "total_conditioning",
     "make_ci_test",
     "make_lagged_ci_test",
     "orient_region",

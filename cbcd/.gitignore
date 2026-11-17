@@ -78,3 +78,23 @@ uv.lock
 
 # Paper-3 experiment scripts that ran here with cwd=cbcd; they belong with the paper, not the library
 /experiments/
+
+# FLASH (pds-ball certificate). Dropped as a research direction on 2026-11-16 and deliberately kept
+# out of the library: it is an arm to be measured, not part of cbcd. The module stays on disk so the
+# untracked time-series local cell can still import it, but it must never ship. The generic local
+# cells it was split out of live in cbcd/algorithms/local.py and ARE tracked.
+/cbcd/algorithms/_flash.py
+_flash*.py
+
+# The i.i.d. local cells from the same research line as FLASH. local_discovery and
+# local_discovery_latent implement no published algorithm (the module says "roadmap Phase 3+4"),
+# and the Possible-D-Sep adequacy guard they rest on is ours, not a paper's. They stay on disk as
+# arms to measure, not as library surface. The published local-latent algorithms live beside them
+# in locals_.py and ARE tracked.
+/cbcd/algorithms/local.py
+
+# TEMPORARY. The time-series local cell, held back because it still imports the FLASH certificate
+# (_finalize_flash_ts + the _flash import) and has not been split the way cbcd/algorithms/local.py
+# was. Its three tests under tests/timeseries/ are left visible on purpose, as the reminder that
+# this is unfinished rather than abandoned. Remove this line once the file is split.
+/cbcd/timeseries/local.py

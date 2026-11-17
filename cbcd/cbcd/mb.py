@@ -4,6 +4,8 @@ Local, per-target CI-test routines that the region-grow (Phase 3) builds on:
 
 * ``iamb`` / ``inter_iamb`` — Markov blanket of a target (grow-shrink; inter- interleaves the shrink).
 * ``mmpc`` — parents-and-children set (Max-Min PC forward/backward + AND symmetry correction).
+* ``total_conditioning`` — Markov blanket by one test per candidate, each conditioning on every
+  other observed variable. Valid in a MAG (latents + selection), unlike the three above.
 
 All are ``CITest``-driven (``X ⫫ Y | S`` when ``ci(x, y, S) > alpha``) and accept a ``recorder`` so
 every CI query is instrumented for the cost-vs-accuracy frontier. They emit ``record_ci`` only; the
@@ -224,3 +226,40 @@ def mmpc(
         return frozenset(raw_t)
     kept = {x for x in raw_t if t in _mmpc_raw(tester, n, x, alpha, max_cond_set)}
     return frozenset(kept)
+
+
+def total_conditioning(
+    ci: CITest,
+    target: int,
+    *,
+    alpha: float = 0.05,
+    recorder: RunRecorder | None = None,
+) -> frozenset[int]:
+    """Markov blanket of ``target`` by total conditioning (TC; Pellet and Elisseeff, 2008).
+
+    One test per candidate, each conditioning on *every* other observed variable::
+
+        Y in MB(X)  <=>  X _||_/ Y | O \\ {X, Y}
+
+    Linear in ``n_vars`` rather than exponential, and — unlike ``iamb`` / ``grow_shrink`` /
+    ``mmpc``, which characterise the blanket of a DAG — this equivalence still holds in a MAG,
+    so it is the blanket primitive for the latent + selection setting. Li et al. (2025),
+    Proposition 1, state the MAG case; the set it returns is the four-clause blanket of their
+    Definition 9 (parents, children and undirected neighbours; parents of children; the districts
+    of X and of its children; and the parents of every vertex in those districts).
+
+    THE COST IS STATISTICAL, NOT COMPUTATIONAL. Every test conditions on ``n_vars - 2``
+    variables, so at finite sample this is the deepest possible conditioning set and the least
+    powerful test in the library. A blanket that comes back too small silently breaks the
+    locality guarantee of everything built on it, and nothing downstream can detect that. The
+    returned set is only as good as a test at depth ``n_vars - 2`` on the data at hand.
+    """
+    t = _check_target(ci, target)
+    tester = _Tester(ci, recorder)
+    others = [v for v in range(ci.n_vars) if v != t]
+    blanket = set()
+    for y in others:
+        rest = [v for v in others if v != y]
+        if tester.p(y, t, rest) <= alpha:
+            blanket.add(y)
+    return frozenset(blanket)

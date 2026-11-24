@@ -145,6 +145,30 @@ def test_committed_marks_at_target_match_global_fci() -> None:
     assert wrong == 0, f"{wrong} of {committed} committed marks at the target disagree with fci"
 
 
+def test_all_marks_at_target_equal_global_fci() -> None:
+    """Theorem 4 — the output at the target IS the PAG's, circles included, not just never wrong.
+
+    The test above passed while the walk stopped after one blanket and left most marks as
+    circles (8 of 20 PAG marks on the MILDEW anchor). This one fails on that."""
+    rng = np.random.default_rng(11)
+    diff, total = 0, 0
+    for _ in range(12):
+        dag, n_obs = _rand_latent_case(rng)
+        oracle = DSeparationOracleProjected(dag, n_obs)
+        data = np.zeros((5, n_obs))
+        glob = fci(data, ci_test=oracle, alpha=0.5).endpoints
+        for t in range(n_obs):
+            loc = mmb_by_mmb(data, t, ci_test=oracle, alpha=0.5).endpoints
+            for w in range(n_obs):
+                if w == t or (glob[t, w] == NO_EDGE and loc[t, w] == NO_EDGE):
+                    continue
+                for i, j in ((t, w), (w, t)):
+                    total += 1
+                    diff += int(loc[i, j] != glob[i, j])
+    assert total > 0
+    assert diff == 0, f"{diff} of {total} marks at the target differ from global fci"
+
+
 def test_records_and_validates() -> None:
     dag = DAG.from_directed_edges(4, [(0, 2), (1, 2), (2, 3)])
     oracle = DSeparationOracleProjected(dag, 4)

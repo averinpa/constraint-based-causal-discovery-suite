@@ -34,6 +34,29 @@ is not a Markov blanket. Measured over 163 targets on random MAGs, it differs fr
 blanket on 21 of them, always on dense graphs; adding the bidirected neighbours makes it agree
 everywhere. The same group's later Definition 9 (LoCaLS) states the four-clause version that is
 correct, so this module uses ``total_conditioning``, which returns it.
+
+PAPER vs CODE. Stopping rule R3 (Theorem 3) is false as stated, so it is off by default
+(``stop_r3=False``). R3 stops once every path out of T that leaves by an undetermined mark is
+blocked by an arrowhead ``*->`` pointing along it. Its proof (Appendix C.3) only follows marks
+propagating back toward T. Rules R9 and R10 work along uncovered potentially directed paths,
+and those run straight through such an arrowhead. Witness, at the exact covariance oracle on
+MILDEW with dm_3, foto_3, temp_4 and udbytte hidden, target dm_4: R3 fires with dm_4 <-o temp_3
+and temp_3 o-> mikro_3, mikro_3 not yet processed. Once mikro_3 and its neighbours are
+processed, R9 orients temp_3 -> dm_4 along temp_3 o-> mikro_3 o-> meldug_4 o-> lai_4 -> foto_4
+-> dm_4. The global PAG has that tail. The authors' code (``stop_condition_three``) misses the
+same mark. With R3 off, the walk stops on R1 or R2 only. Output then equals the true PAG at the
+target on all seven anchor targets (MILDEW 20 of 20 marks, ALARM 32 of 32). With R3 on it gets
+19 of 20 and 30 of 32.
+
+PAPER vs CODE (our port, fixed). The first port had two bugs, and the authors' code has
+neither. (1) R3 treated an unprocessed neighbour with no recorded edges as a dead end. After
+round one only T is processed, so every path looked blocked and the walk stopped after one
+blanket. The authors' ``stop_condition_three`` returns False there. (2) No separating set
+reached the rules. ``FCIRules`` R4 reads a missing sepset as "not in the sepset" and orients
+a <-> b <-> c, which put a wrong arrowhead on ALARM (CATECHOL <-> ARTCO2, truth ARTCO2 ->
+CATECHOL). The authors record a sepset for every decided pair: the one found in the adjacency
+search, or MMB(x) for a vertex outside the blanket of x. This module now does the same. Before
+the fix: 8 of 20 marks on MILDEW and 21 of 32 on ALARM, all misses left as circles.
 """
 
 from __future__ import annotations
@@ -111,27 +134,37 @@ def _preserve(
     return out
 
 
-def _r3_satisfied(ep: NDArray[np.int8], t: int) -> bool:
-    """Stopping rule R3 — every path out of ``t`` that still carries an undetermined mark at
-    ``t`` is blocked further along by an arrowhead. Nothing beyond such a block can propagate an
-    orientation back, so no further blanket could settle the edges at ``t``."""
+def _r3_satisfied(ep: NDArray[np.int8], t: int, done: set[int]) -> bool:
+    """Stopping rule R3, in the form its proof uses (Appendix C.3). Off by default, because it
+    is incomplete (see the module docstring).
+
+    A path leaves ``t`` by an edge with an undetermined mark, runs through processed vertices
+    ``V_1 .. V_n`` and ends at an unprocessed ``Y``. It is blocked where it meets an arrowhead
+    pointing along it (``V_i *-> V_{i+1}``, or ``V_n *-> Y``). R3 holds when no unprocessed
+    vertex is reachable from ``t`` without crossing such an arrowhead. Edges at ``t`` with both
+    marks decided are not followed, as in the authors' ``stop_condition_three``.
+    """
     n = ep.shape[0]
-    open_at_t = [w for w in range(n) if w != t and ep[t, w] != NO_EDGE and ep[w, t] == CIRCLE]
-    if not open_at_t:
-        return True
-    for start in open_at_t:
-        seen, stack = {t, start}, [start]
-        while stack:
-            cur = stack.pop()
-            for nxt in range(n):
-                if nxt in seen or ep[cur, nxt] == NO_EDGE:
-                    continue
-                if ep[nxt, cur] == ARROW:  # arrowhead into nxt blocks the path
-                    continue
-                seen.add(nxt)
-                stack.append(nxt)
-        if len(seen) > 2:  # the path out of t reaches something unblocked
-            return False
+    decided = {
+        w for w in range(n)
+        if w != t and ep[t, w] != NO_EDGE and ep[t, w] != CIRCLE and ep[w, t] != CIRCLE
+    }
+    seen = {t} | decided
+    stack = []
+    for w in range(n):
+        if w in seen or ep[t, w] == NO_EDGE or ep[t, w] == ARROW:  # ARROW: blocked at w
+            continue
+        seen.add(w)
+        stack.append(w)
+    while stack:
+        cur = stack.pop()
+        if cur not in done:
+            return False  # reached an unprocessed vertex without crossing an arrowhead
+        for nxt in range(n):
+            if nxt in seen or ep[cur, nxt] == NO_EDGE or ep[cur, nxt] == ARROW:
+                continue
+            seen.add(nxt)
+            stack.append(nxt)
     return True
 
 
@@ -144,6 +177,7 @@ def mmb_by_mmb(
     mb_learner: MBLearner = total_conditioning,
     max_cond_set: int | None = None,
     max_rounds: int | None = None,
+    stop_r3: bool = False,
     background: BackgroundKnowledge | None = None,
     var_names: Sequence[str] | None = None,
     recorder: RunRecorder | None = None,
@@ -158,6 +192,10 @@ def mmb_by_mmb(
     ``max_rounds`` caps the number of blankets learned. Not in the paper, where the walk runs to
     a stopping rule; it bounds an instrumented run on a large graph. A capped run stays sound,
     since each mark was certified when written, and is less informative.
+
+    ``stop_r3`` turns on the paper's stopping rule R3. It is off by default because R3 can stop
+    before R9 or R10 have the path they need (module docstring). Turn it on only to reproduce
+    the paper's stopping behaviour. R1 and R2 are always active.
     """
     with iid_run(
         data,
@@ -167,6 +205,7 @@ def mmb_by_mmb(
             "alpha": alpha,
             "max_cond_set": max_cond_set,
             "max_rounds": max_rounds,
+            "stop_r3": stop_r3,
             "mb_learner": getattr(mb_learner, "__name__", str(mb_learner)),
         },
         alpha=alpha,
@@ -205,22 +244,39 @@ def mmb_by_mmb(
             elif blanket <= done:
                 lep = keep.copy()
             else:
-                lep = np.asarray(
-                    local_learn(
-                        ctx.ci,
-                        region,
-                        alpha=alpha,
-                        max_cond_set=max_cond_set,
-                        background=background,
-                        n_vars=ctx.n_vars,
-                        names=ctx.names,
-                        rec=ctx.rec,
-                    ).endpoints,
-                    dtype=np.int8,
+                local = local_learn(
+                    ctx.ci,
+                    region,
+                    alpha=alpha,
+                    max_cond_set=max_cond_set,
+                    background=background,
+                    n_vars=ctx.n_vars,
+                    names=ctx.names,
+                    rec=ctx.rec,
                 )
+                lep = np.asarray(local.endpoints, dtype=np.int8)
+                # A set that separates two vertices inside the region separates them in the full
+                # graph too, so every local sepset is kept. The first one recorded wins.
+                for pair, sep in (local.sepsets or {}).items():
+                    sepsets.setdefault(pair, tuple(sep))
             learned[x] = (blanket, lep)
+            # A vertex outside MMB(x) is m-separated from x by MMB(x). The authors' find_mmb
+            # records exactly this. R4 needs it: a missing sepset makes it orient a collider.
+            for v in range(ctx.n_vars):
+                if v != x and v not in blanket:
+                    sepsets.setdefault(frozenset({x, v}), tuple(sorted(blanket)))
 
+            before = keep
             keep = _preserve(keep, lep, x, blanket)
+            ctx.rec.record_choice(
+                kind="preserve", subject=str(x), choice="theorems_1_2",
+                phase="mmb_by_mmb",
+                detail={
+                    "offered": int((lep != NO_EDGE).sum()),
+                    "kept": int((keep != NO_EDGE).sum() - (before != NO_EDGE).sum()),
+                    "reused": reuse is not None,
+                },
+            )
             done.add(x)
             closed = np.asarray(
                 FCIRules()(
@@ -243,14 +299,20 @@ def mmb_by_mmb(
             if edges_at_t and all(
                 keep[t, w] != CIRCLE and keep[w, t] != CIRCLE for w in edges_at_t
             ):
+                ctx.rec.record_choice(kind="stop", subject=str(t), choice="R1",
+                                      phase="mmb_by_mmb", detail={"round": rounds})
                 break
-            if _r3_satisfied(keep, t):  # R3
+            if stop_r3 and _r3_satisfied(keep, t, done):  # R3, opt-in
+                ctx.rec.record_choice(kind="stop", subject=str(t), choice="R3",
+                                      phase="mmb_by_mmb", detail={"round": rounds})
                 break
             # Waitlist update: the neighbours of x not already queued or processed.
             for v in range(ctx.n_vars):
                 if v != x and keep[x, v] != NO_EDGE and v not in done and v not in waitlist:
                     waitlist.append(v)
-            # R2 is this list coming back empty.
+            if not waitlist:  # R2
+                ctx.rec.record_choice(kind="stop", subject=str(t), choice="R2",
+                                      phase="mmb_by_mmb", detail={"round": rounds})
 
         ctx.result = PAG(n_vars=ctx.n_vars, endpoints=keep, var_names=ctx.names, sepsets=sepsets)
     return ctx.result

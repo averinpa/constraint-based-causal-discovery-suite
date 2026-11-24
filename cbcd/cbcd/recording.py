@@ -28,7 +28,15 @@ from typing import TYPE_CHECKING, Any, Protocol, TextIO, runtime_checkable
 if TYPE_CHECKING:  # pragma: no cover - typing only
     import pandas as pd
 
-_TABLES = ("runs", "ci_tests", "adjacency", "colliders", "rules", "regions")
+_TABLES = (
+    "runs",
+    "ci_tests",
+    "adjacency",
+    "colliders",
+    "rules",
+    "regions",
+    "choices",
+)
 
 
 @runtime_checkable
@@ -73,6 +81,16 @@ class RunRecorder(Protocol):
         phase: str | None = None,
     ) -> None: ...
 
+    def record_choice(
+        self,
+        *,
+        kind: str,
+        subject: str,
+        choice: str,
+        phase: str | None = None,
+        detail: dict | None = None,
+    ) -> None: ...
+
     def record_collider(
         self,
         *,
@@ -110,6 +128,9 @@ class NullRecorder:
         return
 
     def record_adjacency(self, **_: Any) -> None:
+        return
+
+    def record_choice(self, **_: Any) -> None:
         return
 
     def record_collider(self, **_: Any) -> None:
@@ -273,6 +294,36 @@ class _BaseRecorder:
                 "decision": str(decision),
                 "depth": int(depth),
                 "sepset": None if sepset is None else [int(s) for s in sepset],
+                "ts_ns": self._rel_ns(),
+            },
+        )
+
+    def record_choice(
+        self,
+        *,
+        kind: str,
+        subject: str,
+        choice: str,
+        phase: str | None = None,
+        detail: dict | None = None,
+    ) -> None:
+        """A decision that is not an edge or a mark, and so has no other table.
+
+        Preservation (is this local finding safe to keep globally) and stopping (can the walk
+        stop now) are real decisions that can be wrong, and neither appears in the output graph,
+        which is why they are easy to leave uninstrumented. ``kind`` names the decision type,
+        ``subject`` what it was about, ``choice`` what was decided.
+        """
+        self._emit(
+            "choices",
+            {
+                "run_id": self._run_id,
+                "seq": self._next(),
+                "kind": str(kind),
+                "subject": str(subject),
+                "choice": str(choice),
+                "phase": phase,
+                "detail": detail,
                 "ts_ns": self._rel_ns(),
             },
         )

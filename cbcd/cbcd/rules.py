@@ -736,14 +736,16 @@ def _apply_zhang_r9(endpoints: NDArray[np.int8], n: int, bk: BackgroundKnowledge
                 continue
             if endpoints[alpha, gamma] != EndpointMark.ARROW:
                 continue
-            path = find_uncovered_pd_path(endpoints, alpha, gamma)
-            if path is None or len(path) < 3:
-                continue
-            v1 = path[1]
-            if _has_pag_edge(endpoints, gamma, v1):
-                continue
-            if _set_mark(endpoints, gamma, alpha, EndpointMark.TAIL, bk):
-                changed = True
+            # Every candidate v1 not adjacent to gamma, as pcalg does. Taking whichever path the
+            # search met first and giving up when its v1 was adjacent to gamma missed R9.
+            for v1 in range(n):
+                if v1 in (alpha, gamma) or _has_pag_edge(endpoints, gamma, v1):
+                    continue
+                if find_uncovered_pd_path(endpoints, alpha, gamma, first=v1) is None:
+                    continue
+                if _set_mark(endpoints, gamma, alpha, EndpointMark.TAIL, bk):
+                    changed = True
+                break
     return changed
 
 
@@ -770,24 +772,56 @@ def _apply_zhang_r10(endpoints: NDArray[np.int8], n: int, bk: BackgroundKnowledg
             ]
             if len(parents_of_gamma) < 2:
                 continue
+            # Every pair of first vertices (mu, omega), as pcalg does. Taking one path per
+            # parent and testing only its first vertex missed R10.
+            #
+            # Zhang's R10 allows mu = beta (path <alpha, beta>, a single edge), so the first
+            # vertex can be the parent itself: candidates are all v with alpha *-o/-> v pd.
+            firsts = [
+                v for v in range(n)
+                if v not in (alpha, gamma) and _pd_step_ok(endpoints, alpha, v)
+            ]
+
+            memo: dict[tuple[int, int], bool] = {}
+
+            def reaches(mu: int, target: int) -> bool:
+                if mu == target:
+                    return True
+                key = (mu, target)
+                if key not in memo:
+                    memo[key] = (
+                        find_uncovered_pd_path(endpoints, alpha, target, first=mu) is not None
+                    )
+                return memo[key]
+
+            fired = False
             for i, beta in enumerate(parents_of_gamma):
                 for delta in parents_of_gamma[i + 1 :]:
-                    p1 = find_uncovered_pd_path(endpoints, alpha, beta)
-                    p2 = find_uncovered_pd_path(endpoints, alpha, delta)
-                    if p1 is None or p2 is None:
-                        continue
-                    if len(p1) < 2 or len(p2) < 2:
-                        continue
-                    mu = p1[1]
-                    omega = p2[1]
-                    if mu == omega:
-                        continue
-                    if _has_pag_edge(endpoints, mu, omega):
-                        continue
-                    if _set_mark(endpoints, gamma, alpha, EndpointMark.TAIL, bk):
-                        changed = True
+                    for mu in firsts:
+                        if not reaches(mu, beta):
+                            continue
+                        for omega in firsts:
+                            if omega == mu or _has_pag_edge(endpoints, mu, omega):
+                                continue
+                            if reaches(omega, delta):
+                                fired = True
+                                break
+                        if fired:
+                            break
+                    if fired:
                         break
-                else:
-                    continue
-                break
+                if fired:
+                    break
+            if fired and _set_mark(endpoints, gamma, alpha, EndpointMark.TAIL, bk):
+                changed = True
     return changed
+
+
+def _pd_step_ok(endpoints: NDArray[np.int8], u: int, v: int) -> bool:
+    """``u *-* v`` is a potentially directed step from ``u`` to ``v``: no arrowhead at ``u``,
+    no tail at ``v``."""
+    at_v, at_u = int(endpoints[u, v]), int(endpoints[v, u])
+    return (
+        at_v in (int(EndpointMark.ARROW), int(EndpointMark.CIRCLE))
+        and at_u in (int(EndpointMark.TAIL), int(EndpointMark.CIRCLE))
+    )

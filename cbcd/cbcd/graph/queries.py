@@ -99,7 +99,16 @@ def _walk_paths(
     require_uncovered: bool,
     max_length: int | None,
 ) -> Iterator[tuple[int, ...]]:
-    """DFS over simple (no-repeat) paths from ``start`` to ``end``."""
+    """DFS over simple (no-repeat) paths from ``start`` to ``end``.
+
+    With ``require_uncovered`` the condition is checked as the path grows: a step to ``w`` is
+    refused when ``w`` is adjacent to the vertex two back. That is exactly "every consecutive
+    triple unshielded", so the paths yielded are the same as filtering complete paths, but a
+    covered prefix is never extended. Filtering only at the end enumerated every simple path and
+    blew up on 40-node graphs (minutes per R9 call inside MMB-by-MMB). pcalg's
+    ``minUncovPdPath`` and causal-learn's ``existsUncoveredPdPath`` are fast for another reason:
+    one global visited set, which can miss a path. This search stays exact.
+    """
     n = endpoints.shape[0]
     if max_length is None:
         max_length = n
@@ -107,8 +116,6 @@ def _walk_paths(
     while stack:
         v, path = stack.pop()
         if v == end and len(path) >= 2:
-            if require_uncovered and not _is_uncovered_path(endpoints, path):
-                continue
             yield tuple(path)
             continue
         if len(path) - 1 >= max_length:
@@ -117,6 +124,8 @@ def _walk_paths(
             if w in path:
                 continue
             if not edge_ok(endpoints, v, w):
+                continue
+            if require_uncovered and len(path) >= 2 and _has_edge(endpoints, path[-2], w):
                 continue
             stack.append((w, path + [w]))
 
@@ -157,10 +166,36 @@ def find_uncovered_circle_path(
 
 
 def find_uncovered_pd_path(
-    endpoints: NDArray[np.int8], x: int, y: int, *, max_length: int | None = None
+    endpoints: NDArray[np.int8],
+    x: int,
+    y: int,
+    *,
+    max_length: int | None = None,
+    first: int | None = None,
 ) -> tuple[int, ...] | None:
     """Return one uncovered potentially-directed path from ``x`` to ``y`` with
-    ≥ 1 intermediate vertex, or None."""
+    ≥ 1 intermediate vertex, or None.
+
+    ``first`` fixes the vertex after ``x``. R9 and R10 need a path with a particular second
+    vertex, not just any path, so they call this once per candidate.
+    """
+    if first is not None:
+        if first in (x, y) or not _pd_step(endpoints, x, first):
+            return None
+        for rest in _walk_paths(
+            endpoints,
+            first,
+            y,
+            edge_ok=lambda ep, u, v: (
+                v != x and _pd_step(ep, u, v) and not (u == first and _has_edge(ep, x, v))
+            ),
+            require_uncovered=True,
+            max_length=None if max_length is None else max_length - 1,
+        ):
+            # the triple (x, first, rest[1]) must be unshielded too
+            if not _has_edge(endpoints, x, rest[1]):
+                return (x, *rest)
+        return None
     for path in _walk_paths(
         endpoints,
         x,

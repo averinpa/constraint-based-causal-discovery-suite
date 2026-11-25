@@ -117,6 +117,7 @@ def latentlcd(
     alpha: float = 0.05,
     pc_learner: PCLearner = mmpc,
     max_cond_set: int | None = None,
+    as_published: bool = False,
     background: BackgroundKnowledge | None = None,
     var_names: Sequence[str] | None = None,
     recorder: RunRecorder | None = None,
@@ -128,6 +129,10 @@ def latentlcd(
     neighbour whose association with the target runs through a hidden common cause rather than
     through a direct effect in either direction.
 
+    ``as_published`` reproduces step 2 as written, which orients only the colliders at the
+    target before step 3 runs Zhang's rules. Those rules are sound only once every unshielded
+    collider is oriented, so R3 misfires. For measuring the published specification, not for use.
+
     ``pc_learner`` defaults to ``mmpc``, which is what the paper specifies. Proposition 1 is what
     licenses leaving the adjacency step unchanged.
     """
@@ -138,6 +143,7 @@ def latentlcd(
         params={
             "alpha": alpha,
             "max_cond_set": max_cond_set,
+            "as_published": as_published,
             "pc_learner": getattr(pc_learner, "__name__", str(pc_learner)),
         },
         alpha=alpha,
@@ -189,6 +195,8 @@ def latentlcd(
                 x=x, y=y, decision="deleted", depth=len(S), sepset=S, phase="latentlcd_sepset"
             )
             for m in sorted(settled):
+                if as_published and m != t:
+                    continue  # published step 2 orients only the colliders AT the target
                 if m in (x, y) or not (adjacent(x, m) and adjacent(y, m)) or m in S:
                     continue
                 if _dependent_given(ctx.ci, x, y, (*S, m), alpha, rec):

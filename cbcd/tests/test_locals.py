@@ -184,3 +184,32 @@ def test_max_rounds_bounds_the_walk() -> None:
     locals_(data, 0, ci_test=oracle, alpha=0.5, recorder=rec_)
     assert len(rec.to_frames()["regions"]) == 1
     assert len(rec.to_frames()["ci_tests"]) <= len(rec_.to_frames()["ci_tests"])
+
+
+def test_as_published_reproduces_the_defect() -> None:
+    """The flag must actually reproduce what Algorithm 1 specifies, or it is useless for
+    measuring the published behaviour. Running the rules over the whole pooled graph has to
+    commit marks that disagree with global FCI, where the corrected path commits none."""
+    rng = np.random.default_rng(11)
+    wrong_pub = wrong_fixed = 0
+    for _ in range(6):
+        dag, n_obs = _rand_latent_case(rng)
+        oracle = DSeparationOracleProjected(dag, n_obs)
+        data = np.zeros((5, n_obs))
+        glob = fci(data, ci_test=oracle, alpha=0.5).endpoints
+        for t in range(n_obs):
+            for published, bucket in ((True, "pub"), (False, "fixed")):
+                ep = locals_(
+                    data, t, ci_test=oracle, alpha=0.5, as_published=published
+                ).endpoints
+                bad = sum(
+                    1
+                    for (i, j), mk in _marks_at(ep, t).items()
+                    if mk != CIRCLE and mk != int(glob[i, j])
+                )
+                if bucket == "pub":
+                    wrong_pub += bad
+                else:
+                    wrong_fixed += bad
+    assert wrong_fixed == 0, f"the corrected path is not sound: {wrong_fixed} wrong"
+    assert wrong_pub > 0, "as_published did not reproduce the defect"

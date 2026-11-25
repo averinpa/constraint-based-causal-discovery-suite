@@ -193,6 +193,7 @@ def locals_(
     mb_learner: MBLearner = total_conditioning,
     max_cond_set: int | None = None,
     max_rounds: int | None = None,
+    as_published: bool = False,
     background: BackgroundKnowledge | None = None,
     var_names: Sequence[str] | None = None,
     recorder: RunRecorder | None = None,
@@ -210,6 +211,11 @@ def locals_(
     the only blanket primitive in ``cbcd.mb`` that is valid in a MAG. The others characterise a
     DAG blanket and will silently return the wrong set under latents or selection.
 
+    ``as_published`` reproduces the defect in Algorithm 1 as written, which runs the orientation
+    rules over the whole accumulated graph. A missing edge there is usually a pair nothing has
+    examined, not a proved absence, and every Zhang rule has a nonadjacency premise, so the rules
+    fire almost everywhere. For measuring what the published specification does, not for use.
+
     ``max_rounds`` caps the number of blankets learned. It is not in the paper, where the walk
     runs until a stopping rule fires; it exists so an instrumented run on a large graph can be
     bounded. A capped run is still sound, since every mark was certified when it was written,
@@ -223,6 +229,7 @@ def locals_(
             "alpha": alpha,
             "max_cond_set": max_cond_set,
             "max_rounds": max_rounds,
+            "as_published": as_published,
             "mb_learner": getattr(mb_learner, "__name__", str(mb_learner)),
         },
         alpha=alpha,
@@ -269,13 +276,22 @@ def locals_(
                 if lep[a, b] == NO_EDGE:
                     absent.add(frozenset((a, b)))
 
+            before = keep
             keep = _preserve_consistent_info(keep, lep, x, frozenset(blanket))
+            # D5 — what the local structure offered against what Section 4.2 lets us keep.
+            offered = int((lep != NO_EDGE).sum())
+            taken = int(((keep != before) | ((keep != NO_EDGE) & (before != NO_EDGE))).sum())
+            ctx.rec.record_choice(
+                kind="preserve", subject=str(x), choice="section_4_2",
+                phase="locals", detail={"offered": offered, "kept": taken},
+            )
             done.add(x)
             closed = np.asarray(
                 FCIRules()(
                     PartialPAG(
                         n_vars=ctx.n_vars,
-                        endpoints=settled_subgraph(keep, done, ctx.n_vars),
+                        endpoints=keep if as_published
+                        else settled_subgraph(keep, done, ctx.n_vars),
                         var_names=ctx.names,
                         sepsets=sepsets,
                     ),
@@ -284,11 +300,20 @@ def locals_(
                 ).endpoints,
                 dtype=np.int8,
             )
-            keep = harvest(keep, closed, done)
+            keep = closed if as_published else harvest(keep, closed, done)
             rounds += 1
             if _target_marks_decided(keep, t):  # R1
+                ctx.rec.record_choice(
+                    kind="stop", subject=str(t), choice="R1",
+                    phase="locals", detail={"round": rounds},
+                )
                 break
-            waitlist = _update_waitlist(keep, t, done)  # R2 is this coming back empty
+            waitlist = _update_waitlist(keep, t, done)
+            if not waitlist:  # R2
+                ctx.rec.record_choice(
+                    kind="stop", subject=str(t), choice="R2",
+                    phase="locals", detail={"round": rounds},
+                )
 
         ctx.result = PAG(n_vars=ctx.n_vars, endpoints=keep, var_names=ctx.names, sepsets=sepsets)
     return ctx.result
